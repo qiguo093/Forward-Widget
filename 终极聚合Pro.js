@@ -57,6 +57,7 @@ var WidgetMetadata = {
     id: "super_ultime_media_hub_makka",
     title: "终极聚合Pro",
     description: "影视、动漫、综艺、弹幕、全球聚合",
+    icon: "https://raw.githubusercontent.com/qiguo093/Forward-Widget/main/icon.jpeg",
     author: "𝓚𝓾𝓰𝓾𝓸𝔃𝓪𝓲 ⁷",
     version: "2.0.0",
     requiredVersion: "0.0.1",
