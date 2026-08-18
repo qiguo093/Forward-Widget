@@ -54,7 +54,7 @@ function buildItem({ id, tmdbId, type, title, date, poster, backdrop, rating, ge
 // 2. 终极聚合版 Widget Metadata (史诗七大阵营)
 // =========================================================================
 var WidgetMetadata = {
-    id: "super_ultime_media_hub_makka",
+    id: "🅖 🅖ᴳMedia.library",
     title: "终极聚合Pro",
     description: "影视、动漫、综艺、弹幕、全球聚合",
     icon: "https://github.com/qiguo093/Forward-Widget/raw/refs/heads/main/icon.jpeg",
