@@ -55,7 +55,7 @@ function buildItem({ id, tmdbId, type, title, date, poster, backdrop, rating, ge
 // =========================================================================
 var WidgetMetadata = {
     id: "🅖 🅖ᴳMedia.library",
-    title: "终极聚合Pro",
+    title: "终极影视榜单Pro",
     description: "影视、动漫、综艺、弹幕、全球聚合",
     icon: "https://github.com/qiguo093/Forward-Widget/raw/refs/heads/main/icon.jpeg",
     author: "𝓚𝓾𝓰𝓾𝓸𝔃𝓪𝓲 ⁷",

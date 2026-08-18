@@ -1,17 +1,17 @@
 {
-  "title": "🅖 🅖ᴳ终极模块",
+  "title": "🅖 🅖ᴳ终极影视榜单模块",
   "description": "影视、动漫、综艺、弹幕、全球聚合",
   "icon": "https://github.com/qiguo093/Forward-Widget/raw/refs/heads/main/icon.jpeg",
   "widgets": [
     {
       "id": "🅖 🅖ᴳMedia.library",
-      "title": "🅖 🅖ᴳ终极模块",
+      "title": "🅖 🅖ᴳ终极影视榜单模块",
       "description": "影视、动漫、综艺、弹幕、全球聚合",
       "icon": "https://github.com/qiguo093/Forward-Widget/raw/refs/heads/main/icon.jpeg",
       "requiredVersion": "0.0.1",
       "version": "2.0.0",
       "author": "𝓚𝓾𝓰𝓾𝓸𝔃𝓪𝓲 ⁷",
-      "url": "https://raw.githubusercontent.com/qiguo093/Forward-Widget/main/%E7%BB%88%E6%9E%81%E8%81%9A%E5%90%88Pro.js"
+      "url": "https://raw.githubusercontent.com/qiguo093/Forward-Widget/main/%E7%BB%88%E6%9E%81%E8%A7%86%E5%BD%B1%E6%A6%9C%E5%8D%95Pro.js"
     }
   ]
 }
