@@ -518,9 +518,21 @@ var WidgetMetadata = {
                 { name: "diversion_list", title: "分流子列表", type: "enumeration", belongTo: { paramName: "global_source", value: ["diversion"] }, value: "trend", enumOptions: [
                     { title: "🔥 全球热榜聚合", value: "trend" }, { title: "📺 平台分流片库", value: "matrix" }
                 ] },
-                { name: "diversion_sort_by", title: "榜单/播出平台", type: "input", belongTo: { paramName: "diversion_list", value: ["trend", "matrix"] }, value: "trakt_trending" },
-                { name: "diversion_category", title: "内容分类", type: "input", belongTo: { paramName: "diversion_list", value: ["matrix"] }, value: "tv_drama" },
-                { name: "diversion_sort", title: "排序", type: "input", belongTo: { paramName: "diversion_list", value: ["matrix"] }, value: "popularity.desc" },
+                { name: "diversion_sort_by", title: "选择榜单", type: "enumeration", belongTo: { paramName: "diversion_list", value: ["trend"] }, value: "trakt_trending", enumOptions: [
+                    { title: "🌍 Trakt - 实时热播", value: "trakt_trending" }, { title: "🌍 Trakt - 最受欢迎", value: "trakt_popular" }, { title: "🌍 Trakt - 最受期待", value: "trakt_anticipated" }, { title: "🇨🇳 豆瓣 - 热门国产剧", value: "db_tv_cn" }, { title: "🇨🇳 豆瓣 - 热门综艺", value: "db_variety" }, { title: "🇨🇳 豆瓣 - 热门电影", value: "db_movie" }, { title: "🇺🇸 豆瓣 - 热门美剧", value: "db_tv_us" }, { title: "📺 B站 - 番剧热播", value: "bili_bgm" }, { title: "📺 B站 - 国创热播", value: "bili_cn" }, { title: "🌸 Bangumi - 每日放送", value: "bgm_daily" }
+                ] },
+                { name: "diversion_traktType", title: "Trakt 类型", type: "enumeration", belongTo: { paramName: "diversion_sort_by", value: ["trakt_trending", "trakt_popular", "trakt_anticipated"] }, value: "all", enumOptions: [
+                    { title: "全部 (剧集+电影)", value: "all" }, { title: "剧集", value: "shows" }, { title: "电影", value: "movies" }
+                ] },
+                { name: "diversion_matrix_platform", title: "播出平台", type: "enumeration", belongTo: { paramName: "diversion_list", value: ["matrix"] }, value: "2007", enumOptions: [
+                    { title: "腾讯视频", value: "2007" }, { title: "爱奇艺", value: "1330" }, { title: "优酷", value: "1419" }, { title: "芒果TV", value: "1631" }, { title: "Bilibili", value: "1605" }, { title: "Netflix", value: "213" }, { title: "Disney+", value: "2739" }, { title: "HBO", value: "49" }, { title: "Apple TV+", value: "2552" }
+                ] },
+                { name: "diversion_category", title: "内容分类", type: "enumeration", belongTo: { paramName: "diversion_list", value: ["matrix"] }, value: "tv_drama", enumOptions: [
+                    { title: "📺 电视剧", value: "tv_drama" }, { title: "🎤 综艺", value: "tv_variety" }, { title: "🐲 动漫", value: "tv_anime" }, { title: "🎬 电影", value: "movie" }
+                ] },
+                { name: "diversion_sort", title: "排序", type: "enumeration", belongTo: { paramName: "diversion_list", value: ["matrix"] }, value: "popularity.desc", enumOptions: [
+                    { title: "🔥 热度最高", value: "popularity.desc" }, { title: "📅 最新首播", value: "first_air_date.desc" }, { title: "⭐ 评分最高", value: "vote_average.desc" }
+                ] },
                 { name: "diversion_page", title: "页码", type: "page", belongTo: { paramName: "global_source", value: ["diversion"] } }
             ]
         },
@@ -4879,8 +4891,8 @@ function buildGlobalNetworkItem(item, isMovie, platformName) {
 async function loadGlobalNetworkPlatform(params = {}) {
     if (params.global_source === "diversion") {
         const page = Number(params.diversion_page || 1);
-        if (params.diversion_list === "matrix") return await loadGlobalMatrixSublist({ sort_by: params.diversion_sort_by || "2007", category: params.diversion_category || "tv_drama", sort: params.diversion_sort || "popularity.desc", page });
-        return await loadGlobalTrendSublist({ sort_by: params.diversion_sort_by || "trakt_trending", page, traktType: params.traktType, traktClientId: params.traktClientId });
+        if (params.diversion_list === "matrix") return await loadGlobalMatrixSublist({ sort_by: params.diversion_matrix_platform || "2007", category: params.diversion_category || "tv_drama", sort: params.diversion_sort || "popularity.desc", page });
+        return await loadGlobalTrendSublist({ sort_by: params.diversion_sort_by || "trakt_trending", page, traktType: params.diversion_traktType, traktClientId: params.traktClientId });
     }
     // 👈 逻辑接管：获取平台选择
     const platform = params.sort_by || "netflix";
