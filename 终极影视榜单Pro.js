@@ -468,7 +468,30 @@ var WidgetMetadata = {
                         { title: "🟡 IMDb 权威榜单", value: "imdb" },
                         { title: "🍅 烂番茄风向标", value: "rt" },
                         { title: "🌍 Trakt 趋势榜", value: "trakt" },
-                        { title: "🟢 豆瓣 国内风向", value: "douban" }
+                        { title: "🟢 豆瓣 国内风向", value: "douban" },
+                        { title: "🔥 TMDB热门趋势", value: "tmdb_hot" }
+                    ]
+                },
+                {
+                    name: "tmdb_hot_type", title: "TMDB热门趋势", type: "enumeration", value: "all",
+                    belongTo: { paramName: "hub_source", value: ["tmdb_hot"] },
+                    enumOptions: [
+                        { title: "全部 (剧集+电影)", value: "all" },
+                        { title: "TMDB 热门剧集", value: "tv" },
+                        { title: "TMDB 热门电影", value: "movie" }
+                    ]
+                },
+                {
+                    name: "tmdb_hot_region", title: "地区", type: "enumeration", value: "",
+                    belongTo: { paramName: "hub_source", value: ["tmdb_hot"] },
+                    enumOptions: [
+                        { title: "全部地区", value: "" }, { title: "中国", value: "CN" }, { title: "美国", value: "US" },
+                        { title: "韩国", value: "KR" }, { title: "日本", value: "JP" }, { title: "英国", value: "GB" },
+                        { title: "中国香港", value: "HK" }, { title: "中国台湾", value: "TW" }, { title: "泰国", value: "TH" },
+                        { title: "意大利", value: "IT" }, { title: "德国", value: "DE" }, { title: "西班牙", value: "ES" },
+                        { title: "俄罗斯", value: "RU" }, { title: "瑞典", value: "SE" }, { title: "巴西", value: "BR" },
+                        { title: "丹麦", value: "DK" }, { title: "印度", value: "IN" }, { title: "加拿大", value: "CA" },
+                        { title: "爱尔兰", value: "IE" }, { title: "澳大利亚", value: "AU" }
                     ]
                 },
                 {
@@ -714,6 +737,13 @@ async function routeTrendsHub(params) {
     const hubSource = params.hub_source || "imdb";
     const page = params.page || 1;
 
+    if (hubSource === "tmdb_hot") {
+        return await loadTmdbHotTrend({
+            mediaType: params.tmdb_hot_type || "all",
+            region: params.tmdb_hot_region || "",
+            page
+        });
+    }
     if (hubSource === "rt") {
         const rtSort = params.rt_sort || "rt_movies_home";
         return await loadRottenTomatoesTrends(rtSort, page);
@@ -739,6 +769,45 @@ async function routeTrendsHub(params) {
         return await fetchDoubanAndMap(tag, type, page);
     }
     return [];
+}
+
+async function loadTmdbHotTrend({ mediaType = "all", region = "", page = 1 } = {}) {
+    const language = "zh-CN";
+    const types = mediaType === "all" ? ["tv", "movie"] : [mediaType];
+    try {
+        const responses = await Promise.all(types.map(type => {
+            const endpoint = region ? `/discover/${type}` : `/${type}/popular`;
+            const query = { language, page: Number(page) || 1, include_adult: false };
+            if (region) {
+                query.with_origin_country = region;
+                query.sort_by = "popularity.desc";
+                query["vote_count.gte"] = 0;
+            }
+            return Widget.tmdb.get(endpoint, { params: query });
+        }));
+        const items = [];
+        responses.forEach((data, index) => {
+            const type = types[index];
+            (data.results || []).forEach(item => {
+                if (!item || !item.id || !item.poster_path) return;
+                const date = item.first_air_date || item.release_date || "";
+                items.push({
+                    id: String(item.id), tmdbId: item.id, type: "tmdb", mediaType: type,
+                    title: item.name || item.title, releaseDate: date,
+                    year: date.substring(0, 4), rating: item.vote_average || 0,
+                    genreTitle: getGlobalGenreText(item.genre_ids),
+                    subTitle: type === "tv" ? "TMDB 热门剧集" : "TMDB 热门电影",
+                    description: `${date || "暂无日期"} · ⭐ ${item.vote_average || 0}\n${item.overview || "暂无简介"}`,
+                    posterPath: item.poster_path ? `https://image.tmdb.org/t/p/w500${item.poster_path}` : "",
+                    backdropPath: item.backdrop_path ? `https://image.tmdb.org/t/p/w780${item.backdrop_path}` : ""
+                });
+            });
+        });
+        return items;
+    } catch (error) {
+        console.error("[loadTmdbHotTrend] 请求失败:", error.message || error);
+        return [];
+    }
 }
 
 const MOVIE_GENRE_MAP = {
