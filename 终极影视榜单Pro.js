@@ -457,89 +457,25 @@ var WidgetMetadata = {
             ]
         },
 
-        // ---------------- 大栏目 5：影剧风向标 (IMDb + 烂番茄 + Trakt + 豆瓣) ----------------
-        {
-            title: "🧭 影剧流行风向",
-            functionName: "routeTrendsHub",
-            type: "video", 
-            cacheDuration: 3600,
-            params: [
-                {
-                    name: "hub_source", 
-                    title: "选择平台",
-                    type: "enumeration",
-                    value: "imdb",
-                    enumOptions: [
-                        { title: "🟡 IMDb 权威榜单", value: "imdb" },
-                        { title: "🍅 烂番茄风向标", value: "rt" },
-                        { title: "🌍 Trakt 趋势榜", value: "trakt" },
-                        { title: "🟢 豆瓣 国内风向", value: "douban" },
-                        { title: "🔥 TMDB热门趋势", value: "tmdb_hot" }
-                    ]
-                },
-                {
-                    name: "tmdb_hot_type", title: "TMDB热门趋势", type: "enumeration", value: "all",
-                    belongTo: { paramName: "hub_source", value: ["tmdb_hot"] },
-                    enumOptions: [
-                        { title: "全部 (剧集+电影)", value: "all" },
-                        { title: "TMDB 热门剧集", value: "tv" },
-                        { title: "TMDB 热门电影", value: "movie" }
-                    ]
-                },
-                {
-                    name: "sort_by", title: "地区", type: "enumeration", value: "",
-                    belongTo: { paramName: "hub_source", value: ["tmdb_hot"] },
-                    enumOptions: [
-                        { title: "全部地区", value: "" }, { title: "中国", value: "CN" }, { title: "美国", value: "US" },
-                        { title: "韩国", value: "KR" }, { title: "日本", value: "JP" }, { title: "英国", value: "GB" },
-                        { title: "中国香港", value: "HK" }, { title: "中国台湾", value: "TW" }, { title: "泰国", value: "TH" },
-                        { title: "意大利", value: "IT" }, { title: "德国", value: "DE" }, { title: "西班牙", value: "ES" },
-                        { title: "俄罗斯", value: "RU" }, { title: "瑞典", value: "SE" }, { title: "巴西", value: "BR" },
-                        { title: "丹麦", value: "DK" }, { title: "印度", value: "IN" }, { title: "加拿大", value: "CA" },
-                        { title: "爱尔兰", value: "IE" }, { title: "澳大利亚", value: "AU" }
-                    ]
-                },
-                {
-                    name: "sort_by", title: "IMDb 榜单", type: "enumeration", value: "trending_week",
-                    belongTo: { paramName: "hub_source", value: ["imdb"] },
-                    enumOptions: [
-                        { title: "📅 本周热榜 (Trending Week)", value: "trending_week" }, { title: "🔥 今日热榜 (Trending Day)", value: "trending_day" }, { title: "🌊 流行趋势 (Popular)", value: "popular" }, { title: "💎 高分神作 (Top Rated)", value: "top_rated" }, { title: "🇨🇳 国产剧热度(模拟)", value: "china_tv" }, { title: "🇨🇳 国产电影热度(模拟)", value: "china_movie" }
-                    ]
-                },
-                {
-                    name: "mediaType", title: "范围 (仅全球榜有效)", type: "enumeration", value: "all",
-                    belongTo: { paramName: "sort_by", value: ["trending_week", "trending_day", "popular", "top_rated"] },
-                    enumOptions: [ { title: "全部 (剧集+电影)", value: "all" }, { title: "电影", value: "movie" }, { title: "剧集", value: "tv" } ]
-                },
-                {
-                    name: "sort_by", title: "烂番茄 榜单", type: "enumeration", value: "rt_movies_home",
-                    belongTo: { paramName: "hub_source", value: ["rt"] },
-                    enumOptions: [
-                        { title: "🎬 流媒体热映", value: "rt_movies_home" }, { title: "🍿 院线热映", value: "rt_movies_theater" }, { title: "💎 最佳流媒体", value: "rt_movies_best" }, { title: "📺 热门剧集", value: "rt_tv_popular" }, { title: "🆕 最新上线", value: "rt_tv_new" }
-                    ]
-                },
-                {
-                    name: "sort_by", title: "Trakt 榜单", type: "enumeration", value: "trending",
-                    belongTo: { paramName: "hub_source", value: ["trakt"] },
-                    enumOptions: [
-                        { title: "🔥 实时热播 (Trending)", value: "trending" }, { title: "🌊 最受欢迎 (Popular)", value: "popular" }, { title: "❤️ 最受期待 (Anticipated)", value: "anticipated" }
-                    ]
-                },
-                {
-                    name: "traktType", title: "Trakt 类型", type: "enumeration", value: "all",
-                    belongTo: { paramName: "hub_source", value: ["trakt"] },
-                    enumOptions: [ { title: "全部 (剧集+电影)", value: "all" }, { title: "剧集", value: "shows" }, { title: "电影", value: "movies" } ]
-                },
-                {
-                    name: "sort_by", title: "豆瓣 榜单", type: "enumeration", value: "db_tv_cn",
-                    belongTo: { paramName: "hub_source", value: ["douban"] },
-                    enumOptions: [
-                        { title: "🇨🇳 热门国产剧", value: "db_tv_cn" }, { title: "🎤 热门综艺", value: "db_variety" }, { title: "🎬 热门电影", value: "db_movie" }, { title: "🇺🇸 热门美剧", value: "db_tv_us" }
-                    ]
-                },
-                { name: "page", title: "页码", type: "page", startPage: 1 }
-            ]
-        },
+        // ---------------- 大栏目 5：影剧流行风向（独立入口，右上角独立榜单菜单） ----------------
+        { title: "🔥 TMDB热门趋势", functionName: "loadTmdbTrendEntry", type: "video", cacheDuration: 3600, params: [
+            { name: "sort_by", title: "地区", type: "enumeration", value: "", enumOptions: [{ title: "全部地区", value: "" }, { title: "中国", value: "CN" }, { title: "美国", value: "US" }, { title: "韩国", value: "KR" }, { title: "日本", value: "JP" }, { title: "英国", value: "GB" }, { title: "中国香港", value: "HK" }, { title: "中国台湾", value: "TW" }, { title: "泰国", value: "TH" }, { title: "意大利", value: "IT" }, { title: "德国", value: "DE" }, { title: "西班牙", value: "ES" }, { title: "俄罗斯", value: "RU" }, { title: "瑞典", value: "SE" }, { title: "巴西", value: "BR" }, { title: "丹麦", value: "DK" }, { title: "印度", value: "IN" }, { title: "加拿大", value: "CA" }, { title: "爱尔兰", value: "IE" }, { title: "澳大利亚", value: "AU" }] },
+            { name: "mediaType", title: "内容类型", type: "enumeration", value: "all", enumOptions: [ { title: "全部 (剧集+电影)", value: "all" }, { title: "热门剧集", value: "tv" }, { title: "热门电影", value: "movie" } ] },
+            { name: "page", title: "页码", type: "page", startPage: 1 } ] },
+        { title: "🟡 IMDb权威榜单", functionName: "loadImdbTrendEntry", type: "video", cacheDuration: 3600, params: [
+            { name: "sort_by", title: "IMDb 榜单", type: "enumeration", value: "trending_week", enumOptions: [{ title: "📅 本周热榜 (Trending Week)", value: "trending_week" }, { title: "🔥 今日热榜 (Trending Day)", value: "trending_day" }, { title: "🌊 流行趋势 (Popular)", value: "popular" }, { title: "💎 高分神作 (Top Rated)", value: "top_rated" }, { title: "🇨🇳 国产剧热度(模拟)", value: "china_tv" }, { title: "🇨🇳 国产电影热度(模拟)", value: "china_movie" }] },
+            { name: "mediaType", title: "范围", type: "enumeration", value: "all", enumOptions: [ { title: "全部 (剧集+电影)", value: "all" }, { title: "电影", value: "movie" }, { title: "剧集", value: "tv" } ] },
+            { name: "page", title: "页码", type: "page", startPage: 1 } ] },
+        { title: "🍅 烂番茄风向标", functionName: "loadRtTrendEntry", type: "video", cacheDuration: 3600, params: [
+            { name: "sort_by", title: "烂番茄 榜单", type: "enumeration", value: "rt_movies_home", enumOptions: [{ title: "🎬 流媒体热映", value: "rt_movies_home" }, { title: "🍿 院线热映", value: "rt_movies_theater" }, { title: "💎 最佳流媒体", value: "rt_movies_best" }, { title: "📺 热门剧集", value: "rt_tv_popular" }, { title: "🆕 最新上线", value: "rt_tv_new" }] },
+            { name: "page", title: "页码", type: "page", startPage: 1 } ] },
+        { title: "🌍 Trakt趋势榜", functionName: "loadTraktTrendEntry", type: "video", cacheDuration: 3600, params: [
+            { name: "sort_by", title: "Trakt 榜单", type: "enumeration", value: "trending", enumOptions: [{ title: "🔥 实时热播 (Trending)", value: "trending" }, { title: "🌊 最受欢迎 (Popular)", value: "popular" }, { title: "❤️ 最受期待 (Anticipated)", value: "anticipated" }] },
+            { name: "traktType", title: "Trakt 类型", type: "enumeration", value: "all", enumOptions: [ { title: "全部 (剧集+电影)", value: "all" }, { title: "剧集", value: "shows" }, { title: "电影", value: "movies" } ] },
+            { name: "page", title: "页码", type: "page", startPage: 1 } ] },
+        { title: "🟢 豆瓣国内风向", functionName: "loadDoubanTrendEntry", type: "video", cacheDuration: 3600, params: [
+            { name: "sort_by", title: "豆瓣 榜单", type: "enumeration", value: "db_tv_cn", enumOptions: [{ title: "🇨🇳 热门国产剧", value: "db_tv_cn" }, { title: "🎤 热门综艺", value: "db_variety" }, { title: "🎬 热门电影", value: "db_movie" }, { title: "🇺🇸 热门美剧", value: "db_tv_us" }] },
+            { name: "page", title: "页码", type: "page", startPage: 1 } ] },
 
         // ---------------- 大栏目 6：平台分流片库 ----------------
         {
@@ -737,6 +673,12 @@ async function routeMovieOmni(params) {
     if (source === "genre") { subParams.sort_by = params.genre_sort || "878"; return await loadGenreMovies(subParams); }
     return [];
 }
+
+async function loadTmdbTrendEntry(params = {}) { return await loadTmdbHotTrend({ mediaType: params.mediaType || "all", region: params.sort_by || "", page: params.page || 1 }); }
+async function loadImdbTrendEntry(params = {}) { return await loadImdbList(params.sort_by || "trending_week", params.mediaType || "all", params.page || 1); }
+async function loadRtTrendEntry(params = {}) { return await loadRottenTomatoesTrends(params.sort_by || "rt_movies_home", params.page || 1); }
+async function loadTraktTrendEntry(params = {}) { return await handleTraktList(params.sort_by || "trending", params.traktType || "all", params.traktClientId || DEFAULT_TRAKT_ID, params.page || 1); }
+async function loadDoubanTrendEntry(params = {}) { const x=params.sort_by || "db_tv_cn"; const m={db_tv_cn:["国产剧","tv"],db_variety:["综艺","tv"],db_movie:["热门","movie"],db_tv_us:["美剧","tv"]}[x] || ["国产剧","tv"]; return await fetchDoubanAndMap(m[0],m[1],params.page || 1); }
 
 async function routeTrendsHub(params) {
     const hubSource = params.hub_source || "imdb";
