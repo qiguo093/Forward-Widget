@@ -2009,18 +2009,43 @@ async function loadLiteStable_unused(params={}) {
 
 async function loadLiteDouban(params = {}) { const source=params.lite_source||"douban"; if(source==="calendar") return await loadCalendarModule(params); if(source==="tmdb") return await loadTMDBModule(params); return await liteLoadDoubanModule(params); }
 
+async function liteCustomDoubanFetch(params = {}) {
+    const raw = String(params.url || "").trim();
+    let url = raw;
+    const dispatch = raw.match(/uri=([^&]+)/);
+    if (dispatch) url = decodeURIComponent(dispatch[1]);
+    const listId = url.match(/doulist\/(\d+)/)?.[1];
+    const collection = url.match(/subject_collection\/([A-Za-z0-9_]+)/)?.[1];
+    const page = Number(params.page || 1);
+    const start = (page - 1) * 20;
+    let endpoint;
+    if (collection) endpoint = `https://m.douban.com/rexxar/api/v2/subject_collection/${collection}/items?start=${start}&count=20&items_only=1&for_mobile=1`;
+    else if (listId) endpoint = `https://www.douban.com/doulist/${listId}/?start=${start}`;
+    else return [{ id: "custom_url_invalid", type: "text", title: "片单地址格式不支持", description: "请输入豆列、subject_collection 或 App dispatch 地址" }];
+    try {
+        const res = await Widget.http.get(endpoint, { headers: { "User-Agent": LITE_UA_PC, "Referer": "https://m.douban.com/" } });
+        const data = safeJsonParse(res.data);
+        const rows = data?.subject_collection_items || data?.items || data?.subjects || [];
+        if (!rows.length && listId) return await fetchFromDouban({ ...params, list: "custom", url: raw });
+        return rows.map((item, i) => {
+            const subject = item.subject || item;
+            return { id: subject.id || item.id || `custom_${start+i}`, type: "douban", mediaType: subject.subtype === "tv" ? "tv" : "movie", title: subject.title || item.title || "未知标题", posterPath: subject.pic?.normal || subject.cover_url || item.cover_url || "", rating: Number(subject.rating?.value || item.rating?.value || 0), releaseDate: subject.year || item.year || "", description: subject.card_subtitle || item.info || "" };
+        });
+    } catch (e) { return [{ id: "custom_url_error", type: "text", title: "自定义片单读取失败", description: e.message || "豆瓣返回格式异常" }]; }
+}
+
 async function loadLiteCustomDouban(params = {}) {
     const url = String(params.custom_douban_url || "").trim();
     if (!url) return [{ id: "custom_url_empty", type: "text", title: "请输入片单地址" }];
     // 与VOD合集列表的“自定义URL”一致：支持 doulist、subject_collection、豆瓣 App dispatch。
-    return await fetchFromDouban({ ...params, list: "custom", url });
+    return await liteCustomDoubanFetch({ ...params, url });
 }
 
 async function loadLiteHub(params = {}) {
     const source = params.lite_source || "douban";
     if (source === "calendar") return await liteLoadCalendarModule(params);
     if (source === "tmdb") return await liteLoadTMDBModule({ ...params, sort_by: params.tmdb_sort_by || "movie" });
-    if (source === "custom_url") return await loadLiteCustomDouban(params);
+    if (source === "custom_url" || (source === "douban" && params.sort_by === "custom_url")) return await loadLiteCustomDouban(params);
     return await liteLoadDoubanModule(params);
 }
 
