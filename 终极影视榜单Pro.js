@@ -71,19 +71,19 @@ var WidgetMetadata = {
             description: "选填，不填则使用内置。Trakt 榜单专用。",
             value: ""
         },
-        { name: "serverName", title: "🏷️ 源1 名称", type: "input", value: "主源" },
-        { name: "server", title: "🔗 源1 链接", type: "input", value: "https://api.dandanplay.net" },
-        { name: "serverName2", title: "🏷️ 源2 名称", type: "input", value: "" },
-        { name: "server2", title: "🔗 源2 链接", type: "input", value: "" },
-        { name: "serverName3", title: "🏷️ 源3 名称", type: "input", value: "" },
-        { name: "server3", title: "🔗 源3 链接", type: "input", value: "" },
-        { name: "pollServerName", title: "🔄 轮询源1名称", type: "input", value: "轮询主源" },
-        { name: "pollServer", title: "🔄 轮询源1链接", type: "input", value: "https://api.dandanplay.net" },
+        { name: "serverName", title: "🏷️ 源1 名称", type: "input", value: "🅖 🅖ᴳ" },
+        { name: "server", title: "🔗 源1 链接", type: "input", value: "https://danmu-qiguo.vercel.app/guoguo/api/v2" },
+        { name: "serverName2", title: "🏷️ 源2 名称", type: "input", value: "AlphaTV-Pro" },
+        { name: "server2", title: "🔗 源2 链接", type: "input", value: "http://nl.jc.cd/87654321" },
+        { name: "serverName3", title: "🏷️ 源3 名称", type: "input", value: "公益" },
+        { name: "server3", title: "🔗 源3 链接", type: "input", value: "https://Dm.LiaoVm.com/luosen" },
+        { name: "pollServerName", title: "🔄 轮询源1名称", type: "input", value: "SaoDu" },
+        { name: "pollServer", title: "🔄 轮询源1链接", type: "input", value: "https://ybdm.saodu.wang:9999/api/v1/saoduyb" },
         { name: "pollServerName2", title: "🔄 轮询源2名称", type: "input", value: "" },
         { name: "pollServer2", title: "🔄 轮询源2链接", type: "input", value: "" },
         { name: "pollServerName3", title: "🔄 轮询源3名称", type: "input", value: "" },
         { name: "pollServer3", title: "🔄 轮询源3链接", type: "input", value: "" },
-        { name: "maxCount", title: "📊 弹幕数量上限", type: "input", value: "3000" },
+        { name: "maxCount", title: "📊 弹幕数量上限", type: "input", value: "50000" },
         { name: "searchBlockKeywords", title: "👁️ 搜索结果屏蔽词", type: "input", value: "" },
         { name: "convertMode", title: "🔠 弹幕转换", type: "enumeration", value: "none", enumOptions: [{ title: "保持原样", value: "none" }, { title: "转简体 (繁->简)", value: "t2s" }, { title: "转繁体 (简->繁)", value: "s2t" }] },
         { name: "colorMode", title: "🎨 弹幕颜色", type: "enumeration", value: "none", enumOptions: [{ title: "保持原样", value: "none" }, { title: "全部纯白", value: "white" }, { title: "部分彩色", value: "partial" }, { title: "完全彩色", value: "all" }] },
@@ -5526,11 +5526,7 @@ function danmuConvertText(text) {
 // ==========================================
 // 2. 底层工具与多源管理
 // ==========================================
-// 固定默认源配置：重新导入或刷新时始终保留
 const DANMU_DEFAULT_SERVER = "https://api.dandanplay.net";
-const DANMU_DEFAULT_NAME = "主源";
-const POLL_DEFAULT_SERVER = "https://api.dandanplay.net";
-const POLL_DEFAULT_NAME = "轮询主源";
 const DANMU_ID_SEPARATOR = "__FORWARD_DANMU_SERVER__";
 const DANMU_BATCH_SIZE = 5;
 
@@ -5567,7 +5563,7 @@ function danmuParseSourceLine(line) {
 }
 
 function danmuMergedSources(params) {
-  const { server = DANMU_DEFAULT_SERVER, serverName = DANMU_DEFAULT_NAME, server2, serverName2, server3, serverName3 } = params;
+  const { server = "https://danmu-qiguo.vercel.app/guoguo/api/v2", serverName = "🅖 🅖ᴳ", server2 = "http://nl.jc.cd/87654321", serverName2 = "AlphaTV-Pro", server3 = "https://Dm.LiaoVm.com/luosen", serverName3 = "公益" } = params;
   const buildLine = (name, url) => {
       if (!url || String(url).trim().length === 0) return "";
       if (name && String(name).trim().length > 0) return `${String(name).trim()},${String(url).trim()}`;
@@ -6082,6 +6078,7 @@ function pollConvertText(text) {
 // ==========================================
 // 2. 底层工具与多源管理
 // ==========================================
+const POLL_DEFAULT_SERVER = "https://api.dandanplay.net";
 const POLL_ID_SEPARATOR = "__FORWARD_DANMU_SERVER__";
 const POLL_BATCH_SIZE = 5;
 
@@ -6118,7 +6115,7 @@ function pollParseSourceLine(line) {
 }
 
 function pollMergedSources(params) {
-  const { pollServer = POLL_DEFAULT_SERVER, pollServerName = POLL_DEFAULT_NAME, pollServer2, pollServerName2, pollServer3, pollServerName3 } = params;
+  const { pollServer = "https://ybdm.saodu.wang:9999/api/v1/saoduyb", pollServerName = "SaoDu", pollServer2, pollServerName2, pollServer3, pollServerName3 } = params;
   const buildLine = (name, url) => {
       if (!url || String(url).trim().length === 0) return "";
       if (name && String(name).trim().length > 0) return `${String(name).trim()},${String(url).trim()}`;
