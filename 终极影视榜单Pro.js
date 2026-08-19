@@ -142,8 +142,13 @@ var WidgetMetadata = {
                     name: "sort_by", title: "豆瓣选择栏目", type: "enumeration", value: "tv_american",
                     belongTo: { paramName: "lite_source", value: ["douban"] },
                     enumOptions: [
-                        { value: "tv_american", title: "📺 英美剧" }, { value: "tv_korean", title: "📺 韩剧" }, { value: "tv_japanese", title: "📺 日剧" }, { value: "tv_domestic", title: "📺 国产剧" }, { value: "tv_animation", title: "🌸 日本动画" }, { value: "movie_hot", title: "🎬 实时热门电影" }, { value: "movie_weekly", title: "🎬 一周口碑电影" }, { value: "movie_top250", title: "🎬 豆瓣 Top250" }, { value: "movie_showing", title: "🎬 院线热映" }, { value: "show_domestic", title: "🎤 国内综艺" }, { value: "show_foreign", title: "🎤 国外综艺" }, { value: "tv_global_best", title: "🏆 全球口碑剧集" }, { value: "tv_chinese_best", title: "🏆 华语口碑剧集" }, { value: "custom_movie_hot", title: "🔥 自定义：豆瓣电影实时热榜" }, { value: "custom_tv_hot", title: "📺 自定义：豆瓣剧集实时热榜" }, { value: "custom_subject_hot", title: "🌐 自定义：豆瓣书影音实时热榜" }, { value: "custom_movie_weekly", title: "🎬 自定义：一周电影口碑榜" }, { value: "custom_tv_chinese", title: "🏆 自定义：华语口碑剧集榜" }, { value: "custom_tv_global", title: "🌍 自定义：全球口碑剧集榜" }, { value: "custom_show_domestic", title: "🎤 自定义：国内热播综艺" }, { value: "custom_show_foreign", title: "🎤 自定义：国外热播综艺" }, { value: "custom_movie_showing", title: "🍿 自定义：当地影院热映" }, { value: "custom_tv_animation", title: "🌸 自定义：热门动画" }
+                        { value: "tv_american", title: "英美剧" }, { value: "tv_korean", title: "韩剧" }, { value: "tv_japanese", title: "日剧" }, { value: "tv_domestic", title: "国产剧" }, { value: "tv_animation", title: "日本动画" }, { value: "movie_hot", title: "实时热门电影" }, { value: "movie_weekly", title: "一周口碑电影" }, { value: "movie_top250", title: "豆瓣 Top250" }, { value: "movie_showing", title: "院线热映" }, { value: "show_domestic", title: "国内综艺" }, { value: "show_foreign", title: "国外综艺" }, { value: "tv_global_best", title: "全球口碑剧集" }, { value: "tv_chinese_best", title: "华语口碑剧集" }, { value: "custom_movie_hot", title: "豆瓣电影实时热榜" }, { value: "custom_tv_hot", title: "豆瓣剧集实时热榜" }, { value: "custom_subject_hot", title: "豆瓣书影音实时热榜" }, { value: "custom_movie_weekly", title: "一周电影口碑榜" }, { value: "custom_tv_chinese", title: "华语口碑剧集榜" }, { value: "custom_tv_global", title: "全球口碑剧集榜" }, { value: "custom_show_domestic", title: "国内热播综艺" }, { value: "custom_show_foreign", title: "国外热播综艺" }, { value: "custom_movie_showing", title: "当地影院热映" }, { value: "custom_tv_animation", title: "热门动画" }, { value: "custom_url", title: "自定义URL" }
                     ]
+                },
+                {
+                    name: "custom_douban_url", title: "片单地址", type: "input", value: "",
+                    description: "输入豆瓣片单网址，支持 doulist、subject_collection 或豆瓣 App dispatch 地址",
+                    belongTo: { paramName: "sort_by", value: ["custom_url"] }
                 },
                 {
                     name: "dateStr", title: "更新日期", type: "enumeration", value: "today",
@@ -2004,11 +2009,18 @@ async function loadLiteStable_unused(params={}) {
 
 async function loadLiteDouban(params = {}) { const source=params.lite_source||"douban"; if(source==="calendar") return await loadCalendarModule(params); if(source==="tmdb") return await loadTMDBModule(params); return await liteLoadDoubanModule(params); }
 
+async function loadLiteCustomDouban(params = {}) {
+    const url = String(params.custom_douban_url || "").trim();
+    if (!url) return [{ id: "custom_url_empty", type: "text", title: "请输入片单地址" }];
+    // 与VOD合集列表的“自定义URL”一致：支持 doulist、subject_collection、豆瓣 App dispatch。
+    return await fetchFromDouban({ ...params, list: "custom", url });
+}
+
 async function loadLiteHub(params = {}) {
     const source = params.lite_source || "douban";
     if (source === "calendar") return await liteLoadCalendarModule(params);
     if (source === "tmdb") return await liteLoadTMDBModule({ ...params, sort_by: params.tmdb_sort_by || "movie" });
-    if (source === "imdb") return await loadImdbList(params.imdb_sort_by || "trending_week", params.imdb_mediaType || "all", params.page || 1);
+    if (source === "custom_url") return await loadLiteCustomDouban(params);
     return await liteLoadDoubanModule(params);
 }
 
