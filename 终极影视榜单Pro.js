@@ -566,7 +566,7 @@ var WidgetMetadata = {
 
         // ---------------- 大栏目 5：影剧流行风向（独立入口，右上角独立榜单菜单） ----------------
         { title: "🔥 TMDB热门趋势", functionName: "loadTmdbTrendEntry", type: "video", cacheDuration: 0, params: [
-            { name: "tmdb_mode", title: "模式", type: "enumeration", value: "trend", enumOptions: [ { title: "🔥 热门趋势", value: "trend" }, { title: "🎬 电影热榜", value: "movie_hot" }, { title: "📺 剧集热榜", value: "tv_hot" }, { title: "🎬 电影筛选", value: "movie" }, { title: "📺 剧集筛选", value: "tv" } ] },
+            { name: "tmdb_mode", title: "模式", type: "enumeration", value: "trend", enumOptions: [ { title: "🔥 热门趋势", value: "trend" }, { title: "全部 (电影+剧集)", value: "all_hot" }, { title: "🎬 电影热榜", value: "movie_hot" }, { title: "📺 剧集热榜", value: "tv_hot" }, { title: "🎬 电影筛选", value: "movie" }, { title: "📺 剧集筛选", value: "tv" } ] },
             { name: "sort_by", title: "地区", type: "enumeration", value: "", enumOptions: [{ title: "全部地区", value: "" }, { title: "中国", value: "CN" }, { title: "美国", value: "US" }, { title: "韩国", value: "KR" }, { title: "日本", value: "JP" }, { title: "英国", value: "GB" }, { title: "中国香港", value: "HK" }, { title: "中国台湾", value: "TW" }, { title: "泰国", value: "TH" }, { title: "意大利", value: "IT" }, { title: "德国", value: "DE" }, { title: "西班牙", value: "ES" }, { title: "俄罗斯", value: "RU" }, { title: "瑞典", value: "SE" }, { title: "巴西", value: "BR" }, { title: "丹麦", value: "DK" }, { title: "印度", value: "IN" }, { title: "加拿大", value: "CA" }, { title: "爱尔兰", value: "IE" }, { title: "澳大利亚", value: "AU" }] },
             { name: "genre", title: "类型", type: "enumeration", value: "", enumOptions: [ { title: "全部", value: "" }, { title: "动作/冒险", value: "28" }, { title: "科幻/奇幻", value: "878" }, { title: "剧情", value: "18" }, { title: "喜剧", value: "35" }, { title: "动画", value: "16" }, { title: "悬疑/犯罪", value: "9648" }, { title: "恐怖/惊悚", value: "27" }, { title: "爱情", value: "10749" } ] },
             { name: "year", title: "年份", type: "input", value: "", description: "例如: 2024" },
@@ -683,6 +683,16 @@ async function loadTmdbTrendEntry(params = {}) {
     const page = params.page || 1;
     // 保留原热门趋势；电影/剧集筛选复用 Lite 的 TMDB discover 能力。
     if (mode === "trend") return await loadTmdbHotTrend({ mediaType: "all", region: params.sort_by || "", page });
+    // 电影热榜与剧集热榜合并：各取同页数据，按原排行交替展示。
+    if (mode === "all_hot") {
+        const [movies, shows] = await Promise.all([
+            loadTmdbHotTrend({ mediaType: "movie", region: params.sort_by || "", page }),
+            loadTmdbHotTrend({ mediaType: "tv", region: params.sort_by || "", page })
+        ]);
+        const merged = []; const length = Math.max(movies.length, shows.length);
+        for (let i = 0; i < length; i++) { if (movies[i]) merged.push(movies[i]); if (shows[i]) merged.push(shows[i]); }
+        return merged;
+    }
     if (mode === "movie_hot") return await loadTmdbHotTrend({ mediaType: "movie", region: params.sort_by || "", page });
     if (mode === "tv_hot") return await loadTmdbHotTrend({ mediaType: "tv", region: params.sort_by || "", page });
     const isMovie = mode === "movie";
