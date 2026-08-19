@@ -59,7 +59,7 @@ var WidgetMetadata = {
     description: "影视、动漫、综艺、弹幕、全球聚合",
     icon: "https://github.com/qiguo093/Forward-Widget/raw/refs/heads/main/icon.jpeg",
     author: "𝓚𝓾𝓰𝓾𝓸𝔃𝓪𝓲 ⁷",
-    version: "2.0.0",
+    version: "2.0.1",
     requiredVersion: "0.0.1",
     site: "https://t.me/MakkaPakkaOvO",
     
@@ -482,7 +482,7 @@ var WidgetMetadata = {
                     ]
                 },
                 {
-                    name: "tmdb_hot_region", title: "地区", type: "enumeration", value: "",
+                    name: "sort_by", title: "地区", type: "enumeration", value: "",
                     belongTo: { paramName: "hub_source", value: ["tmdb_hot"] },
                     enumOptions: [
                         { title: "全部地区", value: "" }, { title: "中国", value: "CN" }, { title: "美国", value: "US" },
@@ -740,7 +740,7 @@ async function routeTrendsHub(params) {
     if (hubSource === "tmdb_hot") {
         return await loadTmdbHotTrend({
             mediaType: params.tmdb_hot_type || "all",
-            region: params.tmdb_hot_region || "",
+            region: params.sort_by || "",
             page
         });
     }
