@@ -2023,9 +2023,13 @@ async function liteCustomDoubanFetch(params = {}) {
     else if (listId) endpoint = `https://www.douban.com/doulist/${listId}/?start=${start}`;
     else return [{ id: "custom_url_invalid", type: "text", title: "片单地址格式不支持", description: "请输入豆列、subject_collection 或 App dispatch 地址" }];
     try {
-        const res = await Widget.http.get(endpoint, { headers: { "User-Agent": LITE_UA_PC, "Referer": "https://m.douban.com/" } });
+        const res = await Widget.http.get(endpoint, { headers: { "User-Agent": LITE_UA_PC, "Referer": "https://www.douban.com/" } });
         const data = safeJsonParse(res.data);
-        const rows = data?.subject_collection_items || data?.items || data?.subjects || [];
+        let rows = data?.subject_collection_items || data?.items || data?.subjects || [];
+        if (!rows.length && listId && typeof res.data === "string") {
+            const matches = [...res.data.matchAll(/<a[^>]+href=["']https?:\/\/movie\.douban\.com\/subject\/(\d+)[^"']*["'][^>]*>([\s\S]*?)<\/a>/g)];
+            rows = [...new Map(matches.map(m => [m[1], { id: m[1], title: m[2].replace(/<[^>]+>/g, "").trim(), subtype: "movie" }])).values()];
+        }
         if (!rows.length && listId) return await fetchFromDouban({ ...params, list: "custom", url: raw });
         return rows.map((item, i) => {
             const subject = item.subject || item;
