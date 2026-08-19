@@ -500,7 +500,7 @@ var WidgetMetadata = {
                     ]
                 },
                 {
-                    name: "imdb_sort", title: "IMDb 榜单", type: "enumeration", value: "trending_week",
+                    name: "sort_by", title: "IMDb 榜单", type: "enumeration", value: "trending_week",
                     belongTo: { paramName: "hub_source", value: ["imdb"] },
                     enumOptions: [
                         { title: "📅 本周热榜 (Trending Week)", value: "trending_week" }, { title: "🔥 今日热榜 (Trending Day)", value: "trending_day" }, { title: "🌊 流行趋势 (Popular)", value: "popular" }, { title: "💎 高分神作 (Top Rated)", value: "top_rated" }, { title: "🇨🇳 国产剧热度(模拟)", value: "china_tv" }, { title: "🇨🇳 国产电影热度(模拟)", value: "china_movie" }
@@ -508,18 +508,18 @@ var WidgetMetadata = {
                 },
                 {
                     name: "mediaType", title: "范围 (仅全球榜有效)", type: "enumeration", value: "all",
-                    belongTo: { paramName: "imdb_sort", value: ["trending_week", "trending_day", "popular", "top_rated"] },
+                    belongTo: { paramName: "sort_by", value: ["trending_week", "trending_day", "popular", "top_rated"] },
                     enumOptions: [ { title: "全部 (剧集+电影)", value: "all" }, { title: "电影", value: "movie" }, { title: "剧集", value: "tv" } ]
                 },
                 {
-                    name: "rt_sort", title: "烂番茄 榜单", type: "enumeration", value: "rt_movies_home",
+                    name: "sort_by", title: "烂番茄 榜单", type: "enumeration", value: "rt_movies_home",
                     belongTo: { paramName: "hub_source", value: ["rt"] },
                     enumOptions: [
                         { title: "🎬 流媒体热映", value: "rt_movies_home" }, { title: "🍿 院线热映", value: "rt_movies_theater" }, { title: "💎 最佳流媒体", value: "rt_movies_best" }, { title: "📺 热门剧集", value: "rt_tv_popular" }, { title: "🆕 最新上线", value: "rt_tv_new" }
                     ]
                 },
                 {
-                    name: "trakt_sort", title: "Trakt 榜单", type: "enumeration", value: "trending",
+                    name: "sort_by", title: "Trakt 榜单", type: "enumeration", value: "trending",
                     belongTo: { paramName: "hub_source", value: ["trakt"] },
                     enumOptions: [
                         { title: "🔥 实时热播 (Trending)", value: "trending" }, { title: "🌊 最受欢迎 (Popular)", value: "popular" }, { title: "❤️ 最受期待 (Anticipated)", value: "anticipated" }
@@ -531,7 +531,7 @@ var WidgetMetadata = {
                     enumOptions: [ { title: "全部 (剧集+电影)", value: "all" }, { title: "剧集", value: "shows" }, { title: "电影", value: "movies" } ]
                 },
                 {
-                    name: "db_sort", title: "豆瓣 榜单", type: "enumeration", value: "db_tv_cn",
+                    name: "sort_by", title: "豆瓣 榜单", type: "enumeration", value: "db_tv_cn",
                     belongTo: { paramName: "hub_source", value: ["douban"] },
                     enumOptions: [
                         { title: "🇨🇳 热门国产剧", value: "db_tv_cn" }, { title: "🎤 热门综艺", value: "db_variety" }, { title: "🎬 热门电影", value: "db_movie" }, { title: "🇺🇸 热门美剧", value: "db_tv_us" }
@@ -750,22 +750,22 @@ async function routeTrendsHub(params) {
         });
     }
     if (hubSource === "rt") {
-        const rtSort = params.rt_sort || "rt_movies_home";
+        const rtSort = params.sort_by || "rt_movies_home";
         return await loadRottenTomatoesTrends(rtSort, page);
     }
     if (hubSource === "imdb") {
-        const imdbSort = params.imdb_sort || "trending_week";
+        const imdbSort = params.sort_by || "trending_week";
         const mediaType = params.mediaType || "all";
         return await loadImdbList(imdbSort, mediaType, page);
     }
     if (hubSource === "trakt") {
-        const traktSort = params.trakt_sort || "trending";
+        const traktSort = params.sort_by || "trending";
         const traktType = params.traktType || "all";
         const traktClientId = params.traktClientId || DEFAULT_TRAKT_ID;
         return await handleTraktList(traktSort, traktType, traktClientId, page);
     }
     if (hubSource === "douban") {
-        const dbSort = params.db_sort || "db_tv_cn";
+        const dbSort = params.sort_by || "db_tv_cn";
         let tag = "热门", type = "tv";
         if (dbSort === "db_tv_cn") { tag = "国产剧"; type = "tv"; }
         else if (dbSort === "db_variety") { tag = "综艺"; type = "tv"; }
