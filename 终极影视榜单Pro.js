@@ -59,7 +59,7 @@ var WidgetMetadata = {
     description: "影视、动漫、综艺、弹幕、全球聚合",
     icon: "https://github.com/qiguo093/Forward-Widget/raw/refs/heads/main/icon.jpeg",
     author: "𝓚𝓾𝓰𝓾𝓸𝔃𝓪𝓲 ⁷",
-    version: "2.0.1",
+    version: "2.0.0",
     requiredVersion: "0.0.1",
     site: "https://t.me/MakkaPakkaOvO",
     
