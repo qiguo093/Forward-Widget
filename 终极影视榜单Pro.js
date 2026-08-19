@@ -5526,7 +5526,11 @@ function danmuConvertText(text) {
 // ==========================================
 // 2. 底层工具与多源管理
 // ==========================================
+// 固定默认源配置：重新导入或刷新时始终保留
 const DANMU_DEFAULT_SERVER = "https://api.dandanplay.net";
+const DANMU_DEFAULT_NAME = "主源";
+const POLL_DEFAULT_SERVER = "https://api.dandanplay.net";
+const POLL_DEFAULT_NAME = "轮询主源";
 const DANMU_ID_SEPARATOR = "__FORWARD_DANMU_SERVER__";
 const DANMU_BATCH_SIZE = 5;
 
@@ -5563,7 +5567,7 @@ function danmuParseSourceLine(line) {
 }
 
 function danmuMergedSources(params) {
-  const { server, serverName, server2, serverName2, server3, serverName3 } = params;
+  const { server = DANMU_DEFAULT_SERVER, serverName = DANMU_DEFAULT_NAME, server2, serverName2, server3, serverName3 } = params;
   const buildLine = (name, url) => {
       if (!url || String(url).trim().length === 0) return "";
       if (name && String(name).trim().length > 0) return `${String(name).trim()},${String(url).trim()}`;
@@ -6078,7 +6082,6 @@ function pollConvertText(text) {
 // ==========================================
 // 2. 底层工具与多源管理
 // ==========================================
-const POLL_DEFAULT_SERVER = "https://api.dandanplay.net";
 const POLL_ID_SEPARATOR = "__FORWARD_DANMU_SERVER__";
 const POLL_BATCH_SIZE = 5;
 
@@ -6115,7 +6118,7 @@ function pollParseSourceLine(line) {
 }
 
 function pollMergedSources(params) {
-  const { pollServer, pollServerName, pollServer2, pollServerName2, pollServer3, pollServerName3 } = params;
+  const { pollServer = POLL_DEFAULT_SERVER, pollServerName = POLL_DEFAULT_NAME, pollServer2, pollServerName2, pollServer3, pollServerName3 } = params;
   const buildLine = (name, url) => {
       if (!url || String(url).trim().length === 0) return "";
       if (name && String(name).trim().length > 0) return `${String(name).trim()},${String(url).trim()}`;
