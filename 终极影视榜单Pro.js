@@ -571,7 +571,7 @@ var WidgetMetadata = {
             { name: "page", title: "页码", type: "page", startPage: 1 } ] },
         { title: "IMDb权威榜单", functionName: "loadImdbTrendEntry", type: "video", cacheDuration: 3600, params: [
             { name: "sort_by", title: "IMDb榜单", type: "enumeration", value: "trending_week", enumOptions: [{ title: "本周热榜", value: "trending_week" }, { title: "今日热榜", value: "trending_day" }, { title: "流行趋势", value: "popular" }, { title: "高分神作", value: "top_rated" }, { title: "国产剧热度", value: "china_tv" }, { title: "国产电影热度", value: "china_movie" }] },
-            { name: "mediaType", title: "范围", type: "enumeration", value: "all", enumOptions: [ { title: "全部", value: "all" }, { title: "电影", value: "movie" }, { title: "剧集", value: "tv" } ] },
+            { name: "mediaType", title: "范围", type: "enumeration", value: "all", enumOptions: [ { title: "全部 (剧集+电影)", value: "all" }, { title: "电影", value: "movie" }, { title: "剧集", value: "tv" } ] },
             { name: "page", title: "页码", type: "page", startPage: 1 } ] },
         { title: "🍅 烂番茄风向标", functionName: "loadRtTrendEntry", type: "video", cacheDuration: 3600, params: [
             { name: "sort_by", title: "烂番茄 榜单", type: "enumeration", value: "rt_movies_home", enumOptions: [{ title: "🎬 流媒体热映", value: "rt_movies_home" }, { title: "🍿 院线热映", value: "rt_movies_theater" }, { title: "💎 最佳流媒体", value: "rt_movies_best" }, { title: "📺 热门剧集", value: "rt_tv_popular" }, { title: "🆕 最新上线", value: "rt_tv_new" }] },
