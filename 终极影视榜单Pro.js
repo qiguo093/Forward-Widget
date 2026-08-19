@@ -565,7 +565,7 @@ var WidgetMetadata = {
         },
 
         // ---------------- 大栏目 5：影剧流行风向（独立入口，右上角独立榜单菜单） ----------------
-        { title: "🔥 TMDB热门趋势", functionName: "loadTmdbTrendEntry", type: "video", cacheDuration: 3600, params: [
+        { title: "🔥 TMDB热门趋势", functionName: "loadTmdbTrendEntry", type: "video", cacheDuration: 0, params: [
             { name: "tmdb_mode", title: "模式", type: "enumeration", value: "trend", enumOptions: [ { title: "🔥 热门趋势", value: "trend" }, { title: "🎬 电影筛选", value: "movie" }, { title: "📺 剧集筛选", value: "tv" } ] },
             { name: "sort_by", title: "地区", type: "enumeration", value: "", enumOptions: [{ title: "全部地区", value: "" }, { title: "中国", value: "CN" }, { title: "美国", value: "US" }, { title: "韩国", value: "KR" }, { title: "日本", value: "JP" }, { title: "英国", value: "GB" }, { title: "中国香港", value: "HK" }, { title: "中国台湾", value: "TW" }, { title: "泰国", value: "TH" }, { title: "意大利", value: "IT" }, { title: "德国", value: "DE" }, { title: "西班牙", value: "ES" }, { title: "俄罗斯", value: "RU" }, { title: "瑞典", value: "SE" }, { title: "巴西", value: "BR" }, { title: "丹麦", value: "DK" }, { title: "印度", value: "IN" }, { title: "加拿大", value: "CA" }, { title: "爱尔兰", value: "IE" }, { title: "澳大利亚", value: "AU" }] },
             { name: "genre", title: "类型", type: "enumeration", value: "", enumOptions: [ { title: "全部", value: "" }, { title: "动作/冒险", value: "28" }, { title: "科幻/奇幻", value: "878" }, { title: "剧情", value: "18" }, { title: "喜剧", value: "35" }, { title: "动画", value: "16" }, { title: "悬疑/犯罪", value: "9648" }, { title: "恐怖/惊悚", value: "27" }, { title: "爱情", value: "10749" } ] },
@@ -684,13 +684,16 @@ async function loadTmdbTrendEntry(params = {}) {
     // 保留原热门趋势；电影/剧集筛选复用 Lite 的 TMDB discover 能力。
     if (mode === "trend") return await loadTmdbHotTrend({ mediaType: "all", region: params.sort_by || "", page });
     const isMovie = mode === "movie";
-    const query = { language: "zh-CN", page: Number(page) || 1, sort_by: params.tmdb_sort || "popularity.desc" };
+    // 使用 Lite 同一套官方 discover URL，避免 Widget.tmdb 的参数缓存使更改筛选后仍返回旧列表。
+    const query = { api_key: LITE_DEFAULT_TMDB_KEY, language: "zh-CN", page: Number(page) || 1, sort_by: params.tmdb_sort || "popularity.desc", include_adult: false };
     if (params.genre) query.with_genres = params.genre;
     if (params.year) { if (isMovie) query.primary_release_year = params.year; else query.first_air_date_year = params.year; }
-    if (query.sort_by === "vote_average.desc") query["vote_count.gte"] = 20;
+    if (query.sort_by === "vote_average.desc") query["vote_count.gte"] = 100;
     try {
-        const res = await Widget.tmdb.get(`/discover/${isMovie ? "movie" : "tv"}`, { params: query });
-        return (res.results || []).map(item => buildImdbItem(item, isMovie ? "movie" : "tv"));
+        const qs = Object.keys(query).map(k => `${encodeURIComponent(k)}=${encodeURIComponent(query[k])}`).join("&");
+        const res = await Widget.http.get(`https://api.themoviedb.org/3/discover/${isMovie ? "movie" : "tv"}?${qs}`);
+        const data = typeof res.data === "string" ? safeJsonParse(res.data) : res.data;
+        return ((data && data.results) || []).map(item => buildImdbItem(item, isMovie ? "movie" : "tv"));
     } catch (e) { return [{ id: "tmdb_filter_error", type: "text", title: "加载失败", description: e.message || "TMDB 筛选请求失败" }]; }
 }
 async function loadImdbTrendEntry(params = {}) { return await loadImdbList(params.sort_by || "trending_week", params.mediaType || "all", params.page || 1); }
