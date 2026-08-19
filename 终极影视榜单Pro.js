@@ -954,10 +954,14 @@ async function fetchRottenTomatoesList(type) {
         const items = [];
         $('[data-qa="discovery-media-list-item"]').each((i, el) => {
             const $el = $(el);
-            const title = $el.find('[data-qa="discovery-media-list-item-title"]').text().trim();
+            // 标题、评分在 poster-tile 的同级 caption 内，不是 poster-tile 的子元素。
+            const $card = $el.parent();
+            const title = $card.find('[data-qa="discovery-media-list-item-title"]').text().trim();
             if (!title) return;
-            const scoreEl = $el.find('score-pairs');
-            items.push({ title: title, tomatoScore: scoreEl.attr('critics-score') || "", popcornScore: scoreEl.attr('audiencescore') || "", mediaType: type.includes("tv") ? "tv" : "movie" });
+            // RT 2026 页面已由 score-pairs 改为 score-pairs-deprecated + rt-text，兼容两种结构。
+            const scoreEl = $card.find('score-pairs, score-pairs-deprecated');
+            const scores = scoreEl.find('rt-text').map((_, node) => $(node).text().trim()).get();
+            items.push({ title: title, tomatoScore: scoreEl.attr('critics-score') || scores[0] || "", popcornScore: scoreEl.attr('audiencescore') || scores[1] || "", mediaType: type.includes("tv") ? "tv" : "movie" });
         });
         return items;
     } catch (e) { return []; }
