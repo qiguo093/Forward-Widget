@@ -584,7 +584,17 @@ var WidgetMetadata = {
             { name: "traktType", title: "Trakt类型", type: "enumeration", value: "all", enumOptions: [ { title: "全部", value: "all" }, { title: "剧集", value: "shows" }, { title: "电影", value: "movies" } ] },
             { name: "page", title: "页码", type: "page", startPage: 1 } ] },
         { title: "🟢 豆瓣国内风向", functionName: "loadDoubanTrendEntry", type: "video", cacheDuration: 3600, params: [
-            { name: "sort_by", title: "豆瓣 榜单", type: "enumeration", value: "db_tv_cn", enumOptions: [{ title: "🇨🇳 热门国产剧", value: "db_tv_cn" }, { title: "🎤 热门综艺", value: "db_variety" }, { title: "🎬 热门电影", value: "db_movie" }, { title: "🇺🇸 热门美剧", value: "db_tv_us" }] },
+            {
+                name: "sort_by", title: "豆瓣选择栏目", type: "enumeration", value: "tv_american",
+                enumOptions: [
+                    { value: "tv_american", title: "英美剧" }, { value: "tv_korean", title: "韩剧" }, { value: "tv_japanese", title: "日剧" }, { value: "tv_domestic", title: "国产剧" }, { value: "movie_weekly", title: "一周口碑电影" }, { value: "movie_top250", title: "豆瓣 Top250" }, { value: "custom_movie_hot", title: "豆瓣电影实时热榜" }, { value: "custom_tv_hot", title: "豆瓣剧集实时热榜" }, { value: "custom_subject_hot", title: "豆瓣书影音实时热榜" }, { value: "custom_tv_chinese", title: "华语口碑剧集榜" }, { value: "custom_tv_global", title: "全球口碑剧集榜" }, { value: "custom_show_domestic", title: "国内热播综艺" }, { value: "custom_show_foreign", title: "国外热播综艺" }, { value: "custom_movie_showing", title: "当地影院热映" }, { value: "custom_tv_animation", title: "热门动画" }, { value: "custom_url", title: "自定义URL" }
+                ]
+            },
+            {
+                name: "custom_douban_url", title: "片单地址", type: "input", value: "",
+                description: "输入豆瓣片单网址，支持 doulist、subject_collection 或豆瓣 App dispatch 地址",
+                belongTo: { paramName: "sort_by", value: ["custom_url"] }
+            },
             { name: "page", title: "页码", type: "page", startPage: 1 } ] },
 
     ]
@@ -711,7 +721,11 @@ async function loadTmdbTrendEntry(params = {}) {
 async function loadImdbTrendEntry(params = {}) { return await loadImdbList(params.sort_by || "trending_week", params.mediaType || "all", params.page || 1); }
 async function loadRtTrendEntry(params = {}) { return await loadRottenTomatoesTrends(params.sort_by || "rt_movies_home", params.page || 1); }
 async function loadTraktTrendEntry(params = {}) { return await handleTraktList(params.sort_by || "trending", params.traktType || "all", params.traktClientId || DEFAULT_TRAKT_ID, params.page || 1); }
-async function loadDoubanTrendEntry(params = {}) { const x=params.sort_by || "db_tv_cn"; const m={db_tv_cn:["国产剧","tv"],db_variety:["综艺","tv"],db_movie:["热门","movie"],db_tv_us:["美剧","tv"]}[x] || ["国产剧","tv"]; return await fetchDoubanAndMap(m[0],m[1],params.page || 1); }
+async function loadDoubanTrendEntry(params = {}) {
+    const sortBy = params.sort_by || "tv_american";
+    if (sortBy === "custom_url") return await loadLiteCustomDouban(params);
+    return await loadDoubanModule({ sort_by: sortBy, page: params.page || 1 });
+}
 
 async function routeTrendsHub(params) {
     const hubSource = params.hub_source || "imdb";
