@@ -195,7 +195,7 @@ var WidgetMetadata = {
             description: "聚合实时榜单、豆瓣片单、欧乐影视、人人美剧",
             functionName: "loadVodHubMerged",
             type: "video",
-            cacheDuration: 300,
+            cacheDuration: 43200,
             params: [
                 { name: "vod_list", title: "选择子列表", type: "enumeration", value: "榜单", enumOptions: [ { title: "聚合实时榜单", value: "榜单" }, { title: "豆瓣片单", value: "豆瓣" }, { title: "欧乐影视", value: "欧乐" }, { title: "人人美剧", value: "人人" } ] },
                 {"name": "榜单_section", "title": "功能分类", "type": "enumeration", "value": "0", "enumOptions": [{"title": "Netflix新片榜", "value": "0"}, {"title": "Disney+新片榜", "value": "1"}, {"title": "Apple TV+新片榜", "value": "2"}, {"title": "HBOmax新片榜", "value": "3"}, {"title": "prime video新片榜", "value": "4"}, {"title": "本周国剧排行榜", "value": "5"}, {"title": "本周美剧排行榜", "value": "6"}, {"title": "本周动漫排行榜", "value": "7"}, {"title": "本周电影排行榜", "value": "8"}, {"title": "本周韩剧排行榜", "value": "9"}, {"title": "本周英剧排行榜", "value": "10"}, {"title": "本周日剧排行榜", "value": "11"}, {"title": "本周泰剧排行榜", "value": "12"}, {"title": "本周综艺排行榜", "value": "13"}, {"title": "本周纪录片排行榜", "value": "14"}], "belongTo": {"paramName": "vod_list", "value": ["榜单"]}},
