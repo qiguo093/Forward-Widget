@@ -127,7 +127,7 @@ var WidgetMetadata = {
             description: "豆瓣热榜与各平台剧场",
             functionName: "loadTheaterHub",
             type: "video",
-            cacheDuration: 300,
+            cacheDuration: 43200,
             params: [
                 { name: "theater_source", title: "选择子列表", type: "enumeration", value: "douban", enumOptions: [
                     { title: "豆瓣热榜", value: "douban" }, { title: "各平台剧场", value: "theater" }, { title: "芒果TV热榜", value: "mango" }
