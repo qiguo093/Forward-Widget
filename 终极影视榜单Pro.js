@@ -103,7 +103,7 @@ var WidgetMetadata = {
             title: "🎬 新片追踪",
             functionName: "loadUpcomingCenter",
             type: "video",
-            cacheDuration: 3600,
+            cacheDuration: 43200,
             params: [
                 {
                     name: "upcoming_category",
@@ -149,7 +149,7 @@ var WidgetMetadata = {
             description: "聚合全球剧集更新表、综艺排期与动漫周更表",
             functionName: "loadGlobalCalendarHub",
             type: "video",
-            cacheDuration: 3600,
+            cacheDuration: 43200,
             params: [
                 { name: "calendar_source", title: "选择子列表", type: "enumeration", value: "drama", enumOptions: [ { title: "追剧日历", value: "drama" }, { title: "综艺时刻", value: "variety" }, { title: "动漫周更", value: "anime" }, { title: "综艺聚合", value: "aggregate" } ] },
                 { name: "calendar_mode", title: "时间范围", type: "enumeration", value: "update_today", belongTo: { paramName: "calendar_source", value: ["drama"] }, enumOptions: [ { title: "今日更新", value: "update_today" }, { title: "明日首播", value: "premiere_tomorrow" }, { title: "7天内首播", value: "premiere_week" }, { title: "30天内首播", value: "premiere_month" } ] },
@@ -172,7 +172,7 @@ var WidgetMetadata = {
             functionName: "loadGuduoRank",
             type: "video",
             requiresWebView: false,
-            cacheDuration: 21600,
+            cacheDuration: 43200,
             params: [
                 {
                     name: "guduo_category",
@@ -234,7 +234,7 @@ var WidgetMetadata = {
             title: "🌸 动漫全境聚合",
             functionName: "routeAnimeOmni",
             type: "video",
-            cacheDuration: 3600,
+            cacheDuration: 43200,
             params: [
                 {
                     name: "anime_source", title: "选择数据源", type: "enumeration", value: "cal",
@@ -271,7 +271,7 @@ var WidgetMetadata = {
             title: "🎬 全能电影榜单",
             functionName: "routeMovieOmni",
             type: "video",
-            cacheDuration: 3600,
+            cacheDuration: 43200,
             params: [
                 {
                     name: "movie_source", title: "榜单模式", type: "enumeration", value: "general",
@@ -293,7 +293,7 @@ var WidgetMetadata = {
             title: "🏷️ 全球影剧类别",
             functionName: "loadGenreRank",
             type: "video",
-            cacheDuration: 3600,
+            cacheDuration: 43200,
             params: [
                 { name: "sort_by", title: "影视类型", type: "enumeration", value: "all", enumOptions: [ { title: "🌟 全部 (影+剧混合)", value: "all" }, { title: "🎬 电影 (Movie)", value: "movie" }, { title: "📺 电视剧 (TV)", value: "tv" } ] },
                 { name: "genre", title: "题材流派", type: "enumeration", value: "all", enumOptions: [ { title: "🌟 全部题材 (All)", value: "all" }, { title: "🛸 科幻 (Sci-Fi)", value: "scifi" }, { title: "🔍 悬疑 (Mystery)", value: "mystery" }, { title: "👻 恐怖 (Horror)", value: "horror" }, { title: "🔪 犯罪 (Crime)", value: "crime" }, { title: "💥 动作 (Action)", value: "action" }, { title: "😂 喜剧 (Comedy)", value: "comedy" }, { title: "❤️ 爱情 (Romance)", value: "romance" }, { title: "🎭 剧情 (Drama)", value: "drama" }, { title: "🐉 奇幻 (Fantasy)", value: "fantasy" }, { title: "🎨 动画 (Animation)", value: "animation" }, { title: "🎥 纪录片 (Documentary)", value: "documentary" } ] },
@@ -310,7 +310,7 @@ var WidgetMetadata = {
             title: "🌍 全球探索发现",
             functionName: "loadGlobalZoneList",
             type: "video", // 保留你需要的自适应排版
-            cacheDuration: 3600,
+            cacheDuration: 43200,
             params: [
                 {
                     name: "region",
@@ -364,7 +364,7 @@ var WidgetMetadata = {
             title: "📺 全球综艺频道",
             functionName: "loadVarietyShows",
             type: "video",
-            cacheDuration: 3600,
+            cacheDuration: 43200,
             params: [
                 {
                     name: "sort_by", title: "国家/地区", type: "enumeration", value: "cn",
@@ -397,7 +397,7 @@ var WidgetMetadata = {
             title: "🔀 平台分流片库",
             functionName: "loadPlatformFlowHub",
             type: "video", 
-            cacheDuration: 3600,
+            cacheDuration: 43200,
             params: [
                 {
                     name: "platform_flow_source", title: "选择子列表", type: "enumeration", value: "matrix", enumOptions: [ { title: "平台分流片库", value: "matrix" }, { title: "独家原创 & 追更日历", value: "originals" } ] },
@@ -435,7 +435,7 @@ var WidgetMetadata = {
             description: "全网频道与流媒体平台聚合",
             functionName: "loadGlobalNetworkPlatform",
             type: "video",
-            cacheDuration: 3600,
+            cacheDuration: 43200,
             params: [
                 { name: "global_source", title: "选择子列表", type: "enumeration", value: "platform", enumOptions: [
                     { title: "🌐 全球影视平台", value: "platform" }, { title: "🔥 分流聚合（防风控版）", value: "diversion" }
@@ -477,7 +477,7 @@ var WidgetMetadata = {
             title: "🥇 流媒体TOP10",
             functionName: "loadOfficialTop10",
             type: "video", 
-            cacheDuration: 3600,
+            cacheDuration: 43200,
             params: [
                 {
                     name: "sort_by", title: "榜单地区", type: "enumeration", value: "united-states",
@@ -500,25 +500,25 @@ var WidgetMetadata = {
         },
 
         // ---------------- 大栏目 5：影剧流行风向（独立入口，右上角独立榜单菜单） ----------------
-        { title: "🔥 TMDB热门趋势", functionName: "loadTmdbTrendEntry", type: "video", cacheDuration: 0, params: [
+        { title: "🔥 TMDB热门趋势", functionName: "loadTmdbTrendEntry", type: "video", cacheDuration: 43200, params: [
             { name: "tmdb_mode", title: "模式", type: "enumeration", value: "trend", enumOptions: [ { title: "热门趋势", value: "trend" }, { title: "电影热榜", value: "movie_hot" }, { title: "剧集热榜", value: "tv_hot" }, { title: "电影筛选", value: "movie" }, { title: "剧集筛选", value: "tv" }, { title: "全部 (电影+剧集)", value: "all_hot" } ] },
             { name: "sort_by", title: "地区", type: "enumeration", value: "", enumOptions: [{ title: "全部地区", value: "" }, { title: "中国", value: "CN" }, { title: "美国", value: "US" }, { title: "韩国", value: "KR" }, { title: "日本", value: "JP" }, { title: "英国", value: "GB" }, { title: "中国香港", value: "HK" }, { title: "中国台湾", value: "TW" }, { title: "泰国", value: "TH" }, { title: "意大利", value: "IT" }, { title: "德国", value: "DE" }, { title: "西班牙", value: "ES" }, { title: "俄罗斯", value: "RU" }, { title: "瑞典", value: "SE" }, { title: "巴西", value: "BR" }, { title: "丹麦", value: "DK" }, { title: "印度", value: "IN" }, { title: "加拿大", value: "CA" }, { title: "爱尔兰", value: "IE" }, { title: "澳大利亚", value: "AU" }] },
             { name: "genre", title: "类型", type: "enumeration", value: "", enumOptions: [ { title: "全部", value: "" }, { title: "动作/冒险", value: "28" }, { title: "科幻/奇幻", value: "878" }, { title: "剧情", value: "18" }, { title: "喜剧", value: "35" }, { title: "动画", value: "16" }, { title: "悬疑/犯罪", value: "9648" }, { title: "恐怖/惊悚", value: "27" }, { title: "爱情", value: "10749" } ] },
             { name: "year", title: "年份", type: "input", value: "", description: "例如: 2024" },
             { name: "tmdb_sort", title: "排序", type: "enumeration", value: "popularity.desc", enumOptions: [ { title: "🔥 热度最高", value: "popularity.desc" }, { title: "⭐️ 评分最高", value: "vote_average.desc" }, { title: "🆕 最新上映", value: "primary_release_date.desc" } ] },
             { name: "page", title: "页码", type: "page", startPage: 1 } ] },
-        { title: "🟡 IMDb权威榜单", functionName: "loadImdbTrendEntry", type: "video", cacheDuration: 3600, params: [
+        { title: "🟡 IMDb权威榜单", functionName: "loadImdbTrendEntry", type: "video", cacheDuration: 43200, params: [
             { name: "sort_by", title: "IMDb榜单", type: "enumeration", value: "trending_week", enumOptions: [{ title: "本周热榜", value: "trending_week" }, { title: "今日热榜", value: "trending_day" }, { title: "流行趋势", value: "popular" }, { title: "高分神作", value: "top_rated" }, { title: "国产剧热度", value: "china_tv" }, { title: "国产电影热度", value: "china_movie" }] },
             { name: "mediaType", title: "范围", type: "enumeration", value: "all", enumOptions: [ { title: "全部 (剧集+电影)", value: "all" }, { title: "电影", value: "movie" }, { title: "剧集", value: "tv" } ] },
             { name: "page", title: "页码", type: "page", startPage: 1 } ] },
-        { title: "🍅 烂番茄风向标", functionName: "loadRtTrendEntry", type: "video", cacheDuration: 3600, params: [
+        { title: "🍅 烂番茄风向标", functionName: "loadRtTrendEntry", type: "video", cacheDuration: 43200, params: [
             { name: "sort_by", title: "烂番茄 榜单", type: "enumeration", value: "rt_movies_home", enumOptions: [{ title: "🎬 流媒体热映", value: "rt_movies_home" }, { title: "🍿 院线热映", value: "rt_movies_theater" }, { title: "💎 最佳流媒体", value: "rt_movies_best" }, { title: "📺 热门剧集", value: "rt_tv_popular" }, { title: "🆕 最新上线", value: "rt_tv_new" }] },
             { name: "page", title: "页码", type: "page", startPage: 1 } ] },
-        { title: "🌍 Trakt趋势榜", functionName: "loadTraktTrendEntry", type: "video", cacheDuration: 3600, params: [
+        { title: "🌍 Trakt趋势榜", functionName: "loadTraktTrendEntry", type: "video", cacheDuration: 43200, params: [
             { name: "sort_by", title: "Trakt榜单", type: "enumeration", value: "trending", enumOptions: [{ title: "实时热播", value: "trending" }, { title: "最受欢迎", value: "popular" }, { title: "最受期待", value: "anticipated" }] },
             { name: "traktType", title: "Trakt类型", type: "enumeration", value: "all", enumOptions: [ { title: "全部", value: "all" }, { title: "剧集", value: "shows" }, { title: "电影", value: "movies" } ] },
             { name: "page", title: "页码", type: "page", startPage: 1 } ] },
-        { title: "🟢 豆瓣国内风向", functionName: "loadDoubanTrendEntry", type: "video", cacheDuration: 3600, params: [
+        { title: "🟢 豆瓣国内风向", functionName: "loadDoubanTrendEntry", type: "video", cacheDuration: 43200, params: [
             {
                 name: "sort_by", title: "豆瓣 榜单", type: "enumeration", value: "db_tv_cn",
                 enumOptions: [
@@ -2676,22 +2676,22 @@ WidgetMetadata = {
   version: "1.4.3",
   requiredVersion: "0.0.1",
   modules: [
-    { title: "Netflix新片榜", description: "实时获取 Netflix 新片榜真实内容", requiresWebView: false, functionName: "getNetflixNew", cacheDuration: 120, params: [] },
-    { title: "Disney+新片榜", description: "实时获取 Disney+ 新片榜真实内容", requiresWebView: false, functionName: "getDisneyNew", cacheDuration: 120, params: [] },
-    { title: "Apple TV+新片榜", description: "实时获取 Apple TV+ 新片榜真实内容", requiresWebView: false, functionName: "getAppleTvNew", cacheDuration: 120, params: [] },
-    { title: "HBOmax新片榜", description: "实时获取 HBOmax 新片榜真实内容", requiresWebView: false, functionName: "getHboNew", cacheDuration: 120, params: [] },
-    { title: "prime video新片榜", description: "实时获取 prime video 新片榜真实内容", requiresWebView: false, functionName: "getPrimeVideoNew", cacheDuration: 120, params: [] },
-    { title: "本周国剧排行榜", description: "实时获取本周国剧排行榜真实内容", requiresWebView: false, functionName: "getWeeklyDomesticDrama", cacheDuration: 120, params: [] },
-    { title: "本周美剧排行榜", description: "实时获取本周美剧排行榜真实内容", requiresWebView: false, functionName: "getWeeklyUSDrama", cacheDuration: 120, params: [] },
-    { title: "本周动漫排行榜", description: "实时获取本周动漫排行榜真实内容", requiresWebView: false, functionName: "getWeeklyAnime", cacheDuration: 120, params: [] },
-    { title: "本周电影排行榜", description: "实时获取本周电影排行榜真实内容", requiresWebView: false, functionName: "getWeeklyMovie", cacheDuration: 120, params: [] },
-    { title: "本周韩剧排行榜", description: "实时获取本周韩剧排行榜真实内容", requiresWebView: false, functionName: "getWeeklyKDrama", cacheDuration: 120, params: [] },
-    { title: "本周英剧排行榜", description: "实时获取本周英剧排行榜真实内容", requiresWebView: false, functionName: "getWeeklyUKDrama", cacheDuration: 120, params: [] },
-    { title: "本周日剧排行榜", description: "实时获取本周日剧排行榜真实内容", requiresWebView: false, functionName: "getWeeklyJDrama", cacheDuration: 120, params: [] },
-    { title: "本周泰剧排行榜", description: "实时获取本周泰剧排行榜真实内容", requiresWebView: false, functionName: "getWeeklyThaiDrama", cacheDuration: 120, params: [] },
-    { title: "本周综艺排行榜", description: "实时获取本周综艺排行榜真实内容", requiresWebView: false, functionName: "getWeeklyVariety", cacheDuration: 120, params: [] },
-    { title: "本周纪录片排行榜", description: "实时获取本周纪录片排行榜真实内容", requiresWebView: false, functionName: "getWeeklyDocumentary", cacheDuration: 120, params: [] },
-    { id: "loadResource", title: "瓜子影视播放源", description: "返回瓜子影视播放源", functionName: "loadResource", type: "stream", cacheDuration: 0, params: [] }
+    { title: "Netflix新片榜", description: "实时获取 Netflix 新片榜真实内容", requiresWebView: false, functionName: "getNetflixNew", cacheDuration: 43200, params: [] },
+    { title: "Disney+新片榜", description: "实时获取 Disney+ 新片榜真实内容", requiresWebView: false, functionName: "getDisneyNew", cacheDuration: 43200, params: [] },
+    { title: "Apple TV+新片榜", description: "实时获取 Apple TV+ 新片榜真实内容", requiresWebView: false, functionName: "getAppleTvNew", cacheDuration: 43200, params: [] },
+    { title: "HBOmax新片榜", description: "实时获取 HBOmax 新片榜真实内容", requiresWebView: false, functionName: "getHboNew", cacheDuration: 43200, params: [] },
+    { title: "prime video新片榜", description: "实时获取 prime video 新片榜真实内容", requiresWebView: false, functionName: "getPrimeVideoNew", cacheDuration: 43200, params: [] },
+    { title: "本周国剧排行榜", description: "实时获取本周国剧排行榜真实内容", requiresWebView: false, functionName: "getWeeklyDomesticDrama", cacheDuration: 43200, params: [] },
+    { title: "本周美剧排行榜", description: "实时获取本周美剧排行榜真实内容", requiresWebView: false, functionName: "getWeeklyUSDrama", cacheDuration: 43200, params: [] },
+    { title: "本周动漫排行榜", description: "实时获取本周动漫排行榜真实内容", requiresWebView: false, functionName: "getWeeklyAnime", cacheDuration: 43200, params: [] },
+    { title: "本周电影排行榜", description: "实时获取本周电影排行榜真实内容", requiresWebView: false, functionName: "getWeeklyMovie", cacheDuration: 43200, params: [] },
+    { title: "本周韩剧排行榜", description: "实时获取本周韩剧排行榜真实内容", requiresWebView: false, functionName: "getWeeklyKDrama", cacheDuration: 43200, params: [] },
+    { title: "本周英剧排行榜", description: "实时获取本周英剧排行榜真实内容", requiresWebView: false, functionName: "getWeeklyUKDrama", cacheDuration: 43200, params: [] },
+    { title: "本周日剧排行榜", description: "实时获取本周日剧排行榜真实内容", requiresWebView: false, functionName: "getWeeklyJDrama", cacheDuration: 43200, params: [] },
+    { title: "本周泰剧排行榜", description: "实时获取本周泰剧排行榜真实内容", requiresWebView: false, functionName: "getWeeklyThaiDrama", cacheDuration: 43200, params: [] },
+    { title: "本周综艺排行榜", description: "实时获取本周综艺排行榜真实内容", requiresWebView: false, functionName: "getWeeklyVariety", cacheDuration: 43200, params: [] },
+    { title: "本周纪录片排行榜", description: "实时获取本周纪录片排行榜真实内容", requiresWebView: false, functionName: "getWeeklyDocumentary", cacheDuration: 43200, params: [] },
+    { id: "loadResource", title: "瓜子影视播放源", description: "返回瓜子影视播放源", functionName: "loadResource", type: "stream", cacheDuration: 43200, params: [] }
   ]
 };
 
@@ -3739,7 +3739,7 @@ WidgetMetadata = {
       id: "list",
       title: "豆瓣片单",
       functionName: "list",
-      cacheDuration: 86400,
+      cacheDuration: 43200,
       params: [
         {
           name: "list",
@@ -3791,7 +3791,7 @@ WidgetMetadata = {
       id: "comingSoon",
       title: "即将上映",
       functionName: "listComingSoon",
-      cacheDuration: 86400,
+      cacheDuration: 43200,
       params: [
         {
           name: "page",
@@ -4616,12 +4616,12 @@ WidgetMetadata = {
   ],
   search: { title: "搜索", functionName: "searchOle", params: [ { name: "wd", title: "关键词", type: "input", value: "" }, { name: "pg", title: "页码", type: "page", value: "1" } ] },
   modules: [
-    { id: "ole_movie", title: "电影", functionName: "loadMovieList", type: "video", cacheDuration: 3600, params: [ { name: "area", title: "地区", type: "enumeration", value: "0", enumOptions: [ { title: "全部", value: "0" }, { title: "大陆", value: "大陆" }, { title: "香港", value: "香港" }, { title: "台湾", value: "台湾" }, { title: "美国", value: "美国" }, { title: "日本", value: "日本" }, { title: "韩国", value: "韩国" }, { title: "英国", value: "英国" }, { title: "法国", value: "法国" }, { title: "德国", value: "德国" }, { title: "西班牙", value: "西班牙" }, { title: "泰国", value: "泰国" }, { title: "印度", value: "印度" } ] }, { name: "sort_by", title: "榜单类型", type: "enumeration", value: "hot", enumOptions: [ { title: "热门电影", value: "hot" }, { title: "高分电影", value: "score" }, { title: "最新电影", value: "update" }, { title: "最近添加", value: "desc" } ] }, { name: "page", title: "页码", type: "page", startPage: 1 } ] },
-    { id: "ole_tv", title: "剧集", functionName: "loadTvList", type: "video", cacheDuration: 3600, params: [ { name: "area", title: "地区", type: "enumeration", value: "0", enumOptions: [ { title: "全部", value: "0" }, { title: "大陆", value: "大陆" }, { title: "香港", value: "香港" }, { title: "台湾", value: "台湾" }, { title: "美国", value: "美国" }, { title: "日本", value: "日本" }, { title: "韩国", value: "韩国" }, { title: "英国", value: "英国" }, { title: "法国", value: "法国" }, { title: "德国", value: "德国" }, { title: "西班牙", value: "西班牙" }, { title: "泰国", value: "泰国" }, { title: "印度", value: "印度" } ] }, { name: "sort_by", title: "榜单类型", type: "enumeration", value: "hot", enumOptions: [ { title: "热门剧集", value: "hot" }, { title: "高分剧集", value: "score" }, { title: "最新剧集", value: "update" }, { title: "最近添加", value: "desc" } ] }, { name: "page", title: "页码", type: "page", startPage: 1 } ] },
-    { id: "ole_variety", title: "综艺", functionName: "loadVarietyList", type: "video", cacheDuration: 3600, params: [ { name: "area", title: "地区", type: "enumeration", value: "0", enumOptions: [ { title: "全部", value: "0" }, { title: "大陆", value: "大陆" }, { title: "香港", value: "香港" }, { title: "台湾", value: "台湾" }, { title: "美国", value: "美国" }, { title: "日本", value: "日本" }, { title: "韩国", value: "韩国" }, { title: "英国", value: "英国" }, { title: "法国", value: "法国" }, { title: "德国", value: "德国" }, { title: "西班牙", value: "西班牙" }, { title: "泰国", value: "泰国" }, { title: "印度", value: "印度" } ] }, { name: "sort_by", title: "榜单类型", type: "enumeration", value: "hot", enumOptions: [ { title: "热门综艺", value: "hot" }, { title: "高分综艺", value: "score" }, { title: "最新综艺", value: "update" }, { title: "最近添加", value: "desc" } ] }, { name: "page", title: "页码", type: "page", startPage: 1 } ] },
-    { id: "ole_anime", title: "动漫", functionName: "loadAnimeList", type: "video", cacheDuration: 3600, params: [ { name: "area", title: "地区", type: "enumeration", value: "0", enumOptions: [ { title: "全部", value: "0" }, { title: "大陆", value: "大陆" }, { title: "香港", value: "香港" }, { title: "台湾", value: "台湾" }, { title: "美国", value: "美国" }, { title: "日本", value: "日本" }, { title: "韩国", value: "韩国" }, { title: "英国", value: "英国" }, { title: "法国", value: "法国" }, { title: "德国", value: "德国" }, { title: "西班牙", value: "西班牙" }, { title: "泰国", value: "泰国" }, { title: "印度", value: "印度" } ] }, { name: "sort_by", title: "榜单类型", type: "enumeration", value: "hot", enumOptions: [ { title: "热门动漫", value: "hot" }, { title: "高分动漫", value: "score" }, { title: "最新动漫", value: "update" }, { title: "最近添加", value: "desc" } ] }, { name: "page", title: "页码", type: "page", startPage: 1 } ] },
-    { id: "ole_short", title: "短剧", functionName: "loadShortList", type: "video", cacheDuration: 3600, params: [ { name: "area", title: "地区", type: "enumeration", value: "0", enumOptions: [ { title: "全部", value: "0" }, { title: "大陆", value: "大陆" }, { title: "香港", value: "香港" }, { title: "台湾", value: "台湾" }, { title: "美国", value: "美国" }, { title: "日本", value: "日本" }, { title: "韩国", value: "韩国" }, { title: "英国", value: "英国" }, { title: "法国", value: "法国" }, { title: "德国", value: "德国" }, { title: "西班牙", value: "西班牙" }, { title: "泰国", value: "泰国" }, { title: "印度", value: "印度" } ] }, { name: "sort_by", title: "榜单类型", type: "enumeration", value: "hot", enumOptions: [ { title: "热门短剧", value: "hot" }, { title: "高分短剧", value: "score" }, { title: "最新短剧", value: "update" }, { title: "最近添加", value: "desc" } ] }, { name: "page", title: "页码", type: "page", startPage: 1 } ] },
-    { id: "searchOle", title: "搜索", functionName: "searchOle", type: "video", cacheDuration: 300, params: [ { name: "wd", title: "关键词", type: "input", value: "" }, { name: "pg", title: "页码", type: "page", value: "1" } ] },
+    { id: "ole_movie", title: "电影", functionName: "loadMovieList", type: "video", cacheDuration: 43200, params: [ { name: "area", title: "地区", type: "enumeration", value: "0", enumOptions: [ { title: "全部", value: "0" }, { title: "大陆", value: "大陆" }, { title: "香港", value: "香港" }, { title: "台湾", value: "台湾" }, { title: "美国", value: "美国" }, { title: "日本", value: "日本" }, { title: "韩国", value: "韩国" }, { title: "英国", value: "英国" }, { title: "法国", value: "法国" }, { title: "德国", value: "德国" }, { title: "西班牙", value: "西班牙" }, { title: "泰国", value: "泰国" }, { title: "印度", value: "印度" } ] }, { name: "sort_by", title: "榜单类型", type: "enumeration", value: "hot", enumOptions: [ { title: "热门电影", value: "hot" }, { title: "高分电影", value: "score" }, { title: "最新电影", value: "update" }, { title: "最近添加", value: "desc" } ] }, { name: "page", title: "页码", type: "page", startPage: 1 } ] },
+    { id: "ole_tv", title: "剧集", functionName: "loadTvList", type: "video", cacheDuration: 43200, params: [ { name: "area", title: "地区", type: "enumeration", value: "0", enumOptions: [ { title: "全部", value: "0" }, { title: "大陆", value: "大陆" }, { title: "香港", value: "香港" }, { title: "台湾", value: "台湾" }, { title: "美国", value: "美国" }, { title: "日本", value: "日本" }, { title: "韩国", value: "韩国" }, { title: "英国", value: "英国" }, { title: "法国", value: "法国" }, { title: "德国", value: "德国" }, { title: "西班牙", value: "西班牙" }, { title: "泰国", value: "泰国" }, { title: "印度", value: "印度" } ] }, { name: "sort_by", title: "榜单类型", type: "enumeration", value: "hot", enumOptions: [ { title: "热门剧集", value: "hot" }, { title: "高分剧集", value: "score" }, { title: "最新剧集", value: "update" }, { title: "最近添加", value: "desc" } ] }, { name: "page", title: "页码", type: "page", startPage: 1 } ] },
+    { id: "ole_variety", title: "综艺", functionName: "loadVarietyList", type: "video", cacheDuration: 43200, params: [ { name: "area", title: "地区", type: "enumeration", value: "0", enumOptions: [ { title: "全部", value: "0" }, { title: "大陆", value: "大陆" }, { title: "香港", value: "香港" }, { title: "台湾", value: "台湾" }, { title: "美国", value: "美国" }, { title: "日本", value: "日本" }, { title: "韩国", value: "韩国" }, { title: "英国", value: "英国" }, { title: "法国", value: "法国" }, { title: "德国", value: "德国" }, { title: "西班牙", value: "西班牙" }, { title: "泰国", value: "泰国" }, { title: "印度", value: "印度" } ] }, { name: "sort_by", title: "榜单类型", type: "enumeration", value: "hot", enumOptions: [ { title: "热门综艺", value: "hot" }, { title: "高分综艺", value: "score" }, { title: "最新综艺", value: "update" }, { title: "最近添加", value: "desc" } ] }, { name: "page", title: "页码", type: "page", startPage: 1 } ] },
+    { id: "ole_anime", title: "动漫", functionName: "loadAnimeList", type: "video", cacheDuration: 43200, params: [ { name: "area", title: "地区", type: "enumeration", value: "0", enumOptions: [ { title: "全部", value: "0" }, { title: "大陆", value: "大陆" }, { title: "香港", value: "香港" }, { title: "台湾", value: "台湾" }, { title: "美国", value: "美国" }, { title: "日本", value: "日本" }, { title: "韩国", value: "韩国" }, { title: "英国", value: "英国" }, { title: "法国", value: "法国" }, { title: "德国", value: "德国" }, { title: "西班牙", value: "西班牙" }, { title: "泰国", value: "泰国" }, { title: "印度", value: "印度" } ] }, { name: "sort_by", title: "榜单类型", type: "enumeration", value: "hot", enumOptions: [ { title: "热门动漫", value: "hot" }, { title: "高分动漫", value: "score" }, { title: "最新动漫", value: "update" }, { title: "最近添加", value: "desc" } ] }, { name: "page", title: "页码", type: "page", startPage: 1 } ] },
+    { id: "ole_short", title: "短剧", functionName: "loadShortList", type: "video", cacheDuration: 43200, params: [ { name: "area", title: "地区", type: "enumeration", value: "0", enumOptions: [ { title: "全部", value: "0" }, { title: "大陆", value: "大陆" }, { title: "香港", value: "香港" }, { title: "台湾", value: "台湾" }, { title: "美国", value: "美国" }, { title: "日本", value: "日本" }, { title: "韩国", value: "韩国" }, { title: "英国", value: "英国" }, { title: "法国", value: "法国" }, { title: "德国", value: "德国" }, { title: "西班牙", value: "西班牙" }, { title: "泰国", value: "泰国" }, { title: "印度", value: "印度" } ] }, { name: "sort_by", title: "榜单类型", type: "enumeration", value: "hot", enumOptions: [ { title: "热门短剧", value: "hot" }, { title: "高分短剧", value: "score" }, { title: "最新短剧", value: "update" }, { title: "最近添加", value: "desc" } ] }, { name: "page", title: "页码", type: "page", startPage: 1 } ] },
+    { id: "searchOle", title: "搜索", functionName: "searchOle", type: "video", cacheDuration: 43200, params: [ { name: "wd", title: "关键词", type: "input", value: "" }, { name: "pg", title: "页码", type: "page", value: "1" } ] },
     { id: "loadResource", title: "测试", functionName: "loadResource", type: "stream", params: [] }
   ]
 };
