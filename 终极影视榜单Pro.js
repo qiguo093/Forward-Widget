@@ -596,8 +596,8 @@ async function loadMonthlyUpcomingStrict(params = {}) {
         sort_by: "first_air_date.asc"
     };
     try {
-        // 首页只取两页，足够填满 20 项；并发可显著降低首次加载时间
-        const pages = await Promise.all([1, 2].map(p =>
+        // 同时取 8 页保证翻页有足够数据；并发请求避免原先的 8 次串行等待。
+        const pages = await Promise.all([1, 2, 3, 4, 5, 6, 7, 8].map(p =>
             Widget.tmdb.get("/discover/tv", { params: { ...baseQuery, page: p } }).catch(() => ({ results: [] }))
         ));
         const seen = new Set();
@@ -617,8 +617,9 @@ async function loadMonthlyUpcomingStrict(params = {}) {
             const isVariety = genres.includes(10764) || genres.includes(10767);
             if (date < start || date > end) return;
             if (genres.some(id => blockedGenreIds.includes(id))) return;
-            // 日本正剧/新季保留；仅排除日本真人秀、脱口秀等同类节目
-            if (isVariety && (!countries.includes("CN") || countries.includes("JP"))) return;
+            // 日本来源仅保留动画，避免 TMDB 未标真人秀类型的日综混入；韩剧保留。
+            if (countries.includes("JP") && !genres.includes(16)) return;
+            if (isVariety && !countries.includes("CN")) return;
             if (!item.poster_path) return;
             if (blockedTitleWords.some(w => title.toLowerCase().includes(w.toLowerCase()))) return;
             items.push(item);
@@ -650,7 +651,9 @@ async function loadMonthlyUpcomingStrict(params = {}) {
                 const genres = detail.genres || [];
                 if (genres.some(g => blockedGenreIds.includes(g.id))) return;
                 const isVariety = genres.some(g => g.id === 10764 || g.id === 10767);
-                if (isVariety && (!countries.includes("CN") || countries.includes("JP"))) return;
+                // 日本来源只允许动画新季，防止日综因 TMDB 漏标类型进入
+                if (countries.includes("JP") && !genres.some(g => g.id === 16)) return;
+                if (isVariety && !countries.includes("CN")) return;
                 const newSeason = (detail.seasons || []).find(season =>
                     season.season_number > 1 && season.air_date && season.air_date >= start && season.air_date <= end
                 );
