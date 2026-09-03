@@ -589,28 +589,49 @@ async function loadUpcomingCenter(params = {}) {
             const now = new Date();
             const today = new Date(now.getFullYear(), now.getMonth(), now.getDate());
             const monthEnd = new Date(now.getFullYear(), now.getMonth() + 1, 0);
-            const toDate = date => date.toISOString().split("T")[0];
+            // 使用本地日期，避免中国时区被 toISOString 转成前一天
+            const toDate = date => {
+                const y = date.getFullYear();
+                const m = String(date.getMonth() + 1).padStart(2, "0");
+                const d = String(date.getDate()).padStart(2, "0");
+                return `${y}-${m}-${d}`;
+            };
             query = {
-                language: "zh-CN", page: 1, include_adult: false,
+                language: "zh-CN", page, include_adult: false,
                 include_null_first_air_dates: false,
-                // 先拉取本月全部候选，避免 TMDB 分页先被国外综艺占满
+                // 由 TMDB 分页返回，保持应用分页正常工作
                 "first_air_date.gte": toDate(today),
                 "first_air_date.lte": toDate(monthEnd),
                 sort_by: "first_air_date.asc"
             };
         }
-        const res = await Widget.tmdb.get(route[0], { params: query });
-        return (res.results || []).filter(item => {
+        let rawItems = [];
+        if (category === "tv_monthly_upcoming") {
+            // 多拉几页再过滤，避免某一页被国外综艺占满后返回空列表
+            const pages = await Promise.all([1, 2, 3, 4, 5].map(p =>
+                Widget.tmdb.get(route[0], { params: { ...query, page: p } })
+            ));
+            const seen = new Set();
+            pages.forEach(res => (res.results || []).forEach(item => {
+                if (!seen.has(item.id)) { seen.add(item.id); rawItems.push(item); }
+            }));
+        } else {
+            const res = await Widget.tmdb.get(route[0], { params: query });
+            rawItems = res.results || [];
+        }
+        const filtered = rawItems.filter(item => {
             if (category !== "tv_monthly_upcoming") return true;
             const date = item.first_air_date || "";
             if (date < query["first_air_date.gte"] || date > query["first_air_date.lte"]) return false;
-            // 排除动画、纪录片、新闻、电视电影；综艺仅保留中国大陆
+            // 排除动画、纪录片、新闻、电视电影；国外综艺排除，国内综艺保留
             const genres = item.genre_ids || [];
             if (genres.some(id => [16, 99, 10763, 10770].includes(id))) return false;
             const isVariety = genres.includes(10764) || genres.includes(10767);
             if (isVariety && !(item.origin_country || []).includes("CN")) return false;
             return true;
-        }).map(item => buildUpcomingItem(item, route[1])).filter(Boolean);
+        }).sort((a, b) => String(a.first_air_date || "").localeCompare(String(b.first_air_date || "")));
+        const output = category === "tv_monthly_upcoming" ? filtered.slice((page - 1) * 20, page * 20) : filtered;
+        return output.map(item => buildUpcomingItem(item, route[1])).filter(Boolean);
     } catch (error) {
         console.error("[loadUpcomingCenter] 请求失败:", error.message || error);
         return [{ id: "error", type: "text", title: "加载失败", description: "获取最新上映数据失败，请下拉刷新或检查网络" }];
