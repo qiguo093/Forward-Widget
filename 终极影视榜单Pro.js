@@ -113,7 +113,7 @@ var WidgetMetadata = {
                     enumOptions: [
                         { title: "🍿 即将上映 (期待榜)", value: "movie_upcoming" },
                         { title: "🔥 正在热映 (院线)", value: "movie_now_playing" },
-                        { title: "📺 本月定档待播 (新剧集)", value: "tv_on_the_air" },
+                        { title: "📺 本月定档待播 (新剧集)", value: "tv_monthly_upcoming" },
                         { title: "📅 今日首播 (追更)", value: "tv_airing_today" }
                     ]
                 },
@@ -578,13 +578,13 @@ async function loadUpcomingCenter(params = {}) {
     const routes = {
         movie_upcoming: ["movie/upcoming", "movie"],
         movie_now_playing: ["movie/now_playing", "movie"],
-        tv_on_the_air: ["/discover/tv", "tv"],
+        tv_monthly_upcoming: ["/discover/tv", "tv"],
         tv_airing_today: ["tv/airing_today", "tv"]
     };
     const route = routes[category] || routes.movie_upcoming;
     try {
         let query = { language: "zh-CN", page, region: "US" };
-        if (category === "tv_on_the_air") {
+        if (category === "tv_monthly_upcoming") {
             // 仅查询从今天起至本月月底、已有明确首播日期的待播剧集
             const now = new Date();
             const today = new Date(now.getFullYear(), now.getMonth(), now.getDate());
