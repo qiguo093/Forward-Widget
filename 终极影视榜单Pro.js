@@ -2473,9 +2473,15 @@ async function calendarLoadDrama(params = {}) {
     try {
         const res = await Widget.tmdb.get("/discover/tv", { params: queryParams });
         const data = res || {};
-        if (!data.results || data.results.length === 0) return page === 1 ? [{ id: "empty", type: "text", title: "暂无更新" }] : [];
+        const nonDramaGenreIds = [16, 99, 10763, 10764, 10766, 10767, 10768, 10770];
+        const results = mode === "update_today"
+            ? (data.results || []).filter(item =>
+                !(item.genre_ids || []).some(id => nonDramaGenreIds.includes(Number(id)))
+            )
+            : (data.results || []);
+        if (results.length === 0) return page === 1 ? [{ id: "empty", type: "text", title: "暂无更新" }] : [];
 
-        return data.results.map(item => {
+        return results.map(item => {
             const fullDate = (mode === "update_today") ? dates.start : (item.first_air_date || "");
             
             const yearStr = fullDate.substring(0, 4);
