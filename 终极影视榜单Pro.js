@@ -615,7 +615,10 @@ async function loadMonthlyUpcomingStrict(params = {}) {
             const genres = item.genre_ids || [];
             const countries = item.origin_country || [];
             const isVariety = genres.includes(10764) || genres.includes(10767);
+            // 用户不看泰语、泰米尔语/印地语及俄语内容：按 TMDB 来源地区排除泰国、印度、俄罗斯。
+            const blockedCountries = ["TH", "IN", "RU"];
             if (date < start || date > end) return;
+            if (countries.some(code => blockedCountries.includes(code))) return;
             if (genres.some(id => blockedGenreIds.includes(id))) return;
             // 保留日剧、日漫与动画；仅按 TMDB 明确的综艺类型过滤非国内节目。
             if (isVariety && !countries.includes("CN")) return;
@@ -648,6 +651,7 @@ async function loadMonthlyUpcomingStrict(params = {}) {
             details.filter(Boolean).forEach(({ item, detail }) => {
                 const countries = detail.origin_country || [];
                 const genres = detail.genres || [];
+                if (countries.some(code => ["TH", "IN", "RU"].includes(code))) return;
                 if (genres.some(g => blockedGenreIds.includes(g.id))) return;
                 const isVariety = genres.some(g => g.id === 10764 || g.id === 10767);
                 // 保留日本正剧、日漫和动画的新季；仅过滤非国内的明确综艺类型。
