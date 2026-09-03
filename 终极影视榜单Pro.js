@@ -596,18 +596,10 @@ async function loadMonthlyUpcomingStrict(params = {}) {
         sort_by: "first_air_date.asc"
     };
     try {
-        // 顺序拉取候选页，避免并发中断；合并后再由下方统一分页，防止第 2 页起被二次切空
-        const pages = [];
-        for (let p = 1; p <= 8; p++) {
-            try {
-                const result = await Widget.tmdb.get("/discover/tv", { params: { ...baseQuery, page: p } });
-                pages.push(result);
-                if (!result.results || result.results.length === 0) break;
-            } catch (e) {
-                console.error(`[loadMonthlyUpcomingStrict] 第 ${p} 页失败:`, e.message || e);
-                break;
-            }
-        }
+        // 首页只取两页，足够填满 20 项；并发可显著降低首次加载时间
+        const pages = await Promise.all([1, 2].map(p =>
+            Widget.tmdb.get("/discover/tv", { params: { ...baseQuery, page: p } }).catch(() => ({ results: [] }))
+        ));
         const seen = new Set();
         const blockedGenreIds = [99, 10763, 10770]; // 纪录片/新闻/电视电影；保留正经动画剧集
         const blockedTitleWords = [
@@ -634,40 +626,40 @@ async function loadMonthlyUpcomingStrict(params = {}) {
         // 通过 air_date 搜索本月有新一季/新集开播的既有剧（例如《流人》第六季）
         const seasonRaw = [];
         const seasonSeen = new Set();
-        for (let p = 1; p <= 8; p++) {
-            try {
-                const res = await Widget.tmdb.get("/discover/tv", { params: {
-                    language: "zh-CN", include_adult: false, page: p,
-                    "air_date.gte": start, "air_date.lte": end,
-                    sort_by: "popularity.desc"
-                } });
-                (res.results || []).forEach(item => {
-                    if (item && !seasonSeen.has(item.id)) { seasonSeen.add(item.id); seasonRaw.push(item); }
-                });
-                if (!res.results || res.results.length === 0) break;
-            } catch (e) { break; }
-        }
+        // 新季候选仅取前两页；详情以 8 路并发加载，避免 80 次串行请求卡住页面
+        const seasonPages = await Promise.all([1, 2].map(p =>
+            Widget.tmdb.get("/discover/tv", { params: {
+                language: "zh-CN", include_adult: false, page: p,
+                "air_date.gte": start, "air_date.lte": end,
+                sort_by: "popularity.desc"
+            } }).catch(() => ({ results: [] }))
+        ));
+        seasonPages.forEach(res => (res.results || []).forEach(item => {
+            if (item && !seasonSeen.has(item.id)) { seasonSeen.add(item.id); seasonRaw.push(item); }
+        }));
         const seasonCandidates = [];
-        // 限制详情请求量，避免刷新超时；置顶检索结果覆盖本月热度较高的新季
-        for (const item of seasonRaw.slice(0, 80)) {
-            try {
-                const detail = await Widget.tmdb.get(`/tv/${item.id}`, { params: { language: "zh-CN" } });
+        // 详情最多检查 24 项、每批 8 项并发，兼顾《流人》等热门新季与加载速度。
+        const detailTargets = seasonRaw.slice(0, 24);
+        for (let offset = 0; offset < detailTargets.length; offset += 8) {
+            const details = await Promise.all(detailTargets.slice(offset, offset + 8).map(async item => {
+                try { return { item, detail: await Widget.tmdb.get(`/tv/${item.id}`, { params: { language: "zh-CN" } }) }; }
+                catch (e) { return null; }
+            }));
+            details.filter(Boolean).forEach(({ item, detail }) => {
                 const countries = detail.origin_country || [];
                 const genres = detail.genres || [];
-                if (genres.some(g => blockedGenreIds.includes(g.id))) continue;
+                if (genres.some(g => blockedGenreIds.includes(g.id))) return;
                 const isVariety = genres.some(g => g.id === 10764 || g.id === 10767);
-                // 日韩正剧与新季保留，仅过滤非国内真人秀/脱口秀
-                if (isVariety && (!countries.includes("CN") || countries.includes("JP"))) continue;
-                // 只认“季”的首播日：不再用 next_episode_to_air，避免把日常更新误报成新季。
+                if (isVariety && (!countries.includes("CN") || countries.includes("JP"))) return;
                 const newSeason = (detail.seasons || []).find(season =>
                     season.season_number > 1 && season.air_date && season.air_date >= start && season.air_date <= end
                 );
-                if (!newSeason) continue;
+                if (!newSeason) return;
                 item._seasonNumber = newSeason.season_number;
                 item._seasonAirDate = newSeason.air_date;
                 item._seasonTitle = detail.name || item.name || item.title;
                 seasonCandidates.push(item);
-            } catch (e) { /* 单项详情失败不影响列表 */ }
+            });
         }
         const merged = [];
         const mergedIds = new Set();
