@@ -2376,6 +2376,11 @@ async function calendarLoadAnime(params = {}) {
         targetDayId = jsDay === 0 ? 7 : jsDay;
     }
     const dayName = calendarGetWeekdayName(targetDayId);
+    // 显示本次所选周更日，而非作品最初首播日；指定星期则取最近一次该星期。
+    const updateDateObj = new Date();
+    const currentDayId = updateDateObj.getDay() || 7;
+    updateDateObj.setDate(updateDateObj.getDate() + ((targetDayId - currentDayId + 7) % 7));
+    const updateDate = [updateDateObj.getFullYear(), String(updateDateObj.getMonth() + 1).padStart(2, "0"), String(updateDateObj.getDate()).padStart(2, "0")].join("-");
 
     try {
         const res = await Widget.http.get("https://api.bgm.tv/calendar");
@@ -2387,6 +2392,13 @@ async function calendarLoadAnime(params = {}) {
         }
 
         const allItems = dayData.items;
+        // 补充 TMDB 当天更新的国产动画（Bangumi 日历主要覆盖日漫）。
+        const cnAnimeRes = await Widget.tmdb.get("/discover/tv", { params: {
+            language: "zh-CN", sort_by: "popularity.desc", page,
+            with_origin_country: "CN", with_genres: "16",
+            "air_date.gte": updateDate, "air_date.lte": updateDate,
+            include_null_first_air_dates: false, timezone: "Asia/Shanghai"
+        }}).catch(() => ({ results: [] }));
         const start = (page - 1) * pageSize;
         const end = start + pageSize;
         if (start >= allItems.length) return [];
@@ -2421,10 +2433,12 @@ async function calendarLoadAnime(params = {}) {
                 itemData.desc = tmdbItem.overview || itemData.desc;
                 itemData.rating = tmdbItem.vote_average?.toFixed(1) || itemData.rating;
                 itemData.year = fullDate.substring(0, 4);
-                itemData.releaseDate = fullDate; // 为竖版海报提供日期
             }
+            // 周更列表统一显示本次更新日，避免显示作品多年前的首次播出日。
+            itemData.year = updateDate.substring(0, 4);
+            itemData.releaseDate = updateDate;
             
-            const displaySubtitle = `${dayName} ${itemData.genreText}`;
+            const displaySubtitle = `${updateDate} ${dayName} ${itemData.genreText}`;
 
             return calendarBuildItem({
                 ...itemData,
@@ -2432,7 +2446,18 @@ async function calendarLoadAnime(params = {}) {
             });
         });
 
-        return await Promise.all(promises);
+        const bangumiItems = await Promise.all(promises);
+        const existingIds = new Set(bangumiItems.map(x => String(x.tmdbId || x.id)));
+        const cnItems = (cnAnimeRes.results || [])
+            .filter(item => !existingIds.has(String(item.id)))
+            .map(item => calendarBuildItem({
+                id: item.id, tmdbId: item.id, type: "tv", title: item.name,
+                poster: item.poster_path, backdrop: item.backdrop_path,
+                rating: item.vote_average?.toFixed(1) || "0.0",
+                subTitle: `${updateDate} ${dayName} 国产动画`, desc: item.overview,
+                year: updateDate.substring(0, 4), releaseDate: updateDate
+            }));
+        return [...bangumiItems, ...cnItems];
 
     } catch (e) {
         return [{ id: "err", type: "text", title: "加载失败", subTitle: e.message }];
