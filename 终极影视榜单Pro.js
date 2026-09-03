@@ -596,9 +596,18 @@ async function loadMonthlyUpcomingStrict(params = {}) {
         sort_by: "first_air_date.asc"
     };
     try {
-        // 单次刷新并发请求过多会被运行环境或 TMDB 中断；按当前页逐页请求
-        const result = await Widget.tmdb.get("/discover/tv", { params: { ...baseQuery, page } });
-        const pages = [result];
+        // 顺序拉取候选页，避免并发中断；合并后再由下方统一分页，防止第 2 页起被二次切空
+        const pages = [];
+        for (let p = 1; p <= 8; p++) {
+            try {
+                const result = await Widget.tmdb.get("/discover/tv", { params: { ...baseQuery, page: p } });
+                pages.push(result);
+                if (!result.results || result.results.length === 0) break;
+            } catch (e) {
+                console.error(`[loadMonthlyUpcomingStrict] 第 ${p} 页失败:`, e.message || e);
+                break;
+            }
+        }
         const seen = new Set();
         const blockedGenreIds = [99, 10763, 10770]; // 纪录片/新闻/电视电影；保留正经动画剧集
         const blockedTitleWords = [
