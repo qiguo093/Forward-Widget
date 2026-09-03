@@ -2252,7 +2252,7 @@ async function loadTheaterDouban(params = {}) {
 /**
  * 模块 2：加载精选剧场
  */
-const THEATER_DATA_URL = "https://raw.githubusercontent.com/qiguo093/-/main/data/theater-data.json?v=20260814";
+const THEATER_DATA_URL = "https://raw.githubusercontent.com/MakkaPakka518/List/refs/heads/main/data/theater-data.json";
 
 function theaterPageItems(items, page) {
   const p = Math.max(1, Number(page) || 1);
