@@ -624,14 +624,66 @@ async function loadMonthlyUpcomingStrict(params = {}) {
             const countries = item.origin_country || [];
             const isVariety = genres.includes(10764) || genres.includes(10767);
             if (date < start || date > end) return;
+            if (countries.includes("JP")) return; // 排除日本剧集/真人秀等内容
             if (genres.some(id => blockedGenreIds.includes(id))) return;
             if (isVariety && !countries.includes("CN")) return;
             if (!item.poster_path) return;
             if (blockedTitleWords.some(w => title.toLowerCase().includes(w.toLowerCase()))) return;
             items.push(item);
         }));
-        items.sort((a, b) => String(a.first_air_date || "").localeCompare(String(b.first_air_date || "")) || ((b.popularity || 0) - (a.popularity || 0)));
-        return items.slice((page - 1) * 20, page * 20).map(item => buildUpcomingItem(item, "tv")).filter(Boolean);
+        // 通过 air_date 搜索本月有新一季/新集开播的既有剧（例如《流人》第六季）
+        const seasonRaw = [];
+        const seasonSeen = new Set();
+        for (let p = 1; p <= 4; p++) {
+            try {
+                const res = await Widget.tmdb.get("/discover/tv", { params: {
+                    language: "zh-CN", include_adult: false, page: p,
+                    "air_date.gte": start, "air_date.lte": end,
+                    sort_by: "popularity.desc"
+                } });
+                (res.results || []).forEach(item => {
+                    if (item && !seasonSeen.has(item.id)) { seasonSeen.add(item.id); seasonRaw.push(item); }
+                });
+                if (!res.results || res.results.length === 0) break;
+            } catch (e) { break; }
+        }
+        const seasonCandidates = [];
+        for (const item of seasonRaw.slice(0, 30)) {
+            try {
+                const detail = await Widget.tmdb.get(`/tv/${item.id}`, { params: { language: "zh-CN" } });
+                const next = detail.next_episode_to_air;
+                if (!next || next.air_date < start || next.air_date > end || (detail.origin_country || []).includes("JP")) continue;
+                const genres = detail.genres || [];
+                if (genres.some(g => blockedGenreIds.includes(g.id))) continue;
+                const isVariety = genres.some(g => g.id === 10764 || g.id === 10767);
+                if (isVariety && !(detail.origin_country || []).includes("CN")) continue;
+                item._seasonNumber = next.season_number || 1;
+                item._seasonAirDate = next.air_date;
+                item._seasonTitle = detail.name || item.name || item.title;
+                seasonCandidates.push(item);
+            } catch (e) { /* 单项详情失败不影响列表 */ }
+        }
+        const merged = [];
+        const mergedIds = new Set();
+        seasonCandidates.forEach(item => {
+            if (!mergedIds.has(item.id)) { mergedIds.add(item.id); merged.push(item); }
+        });
+        items.forEach(item => {
+            if (!mergedIds.has(item.id)) { mergedIds.add(item.id); merged.push(item); }
+        });
+        merged.sort((a, b) => String(a._seasonAirDate || a.first_air_date || "").localeCompare(String(b._seasonAirDate || b.first_air_date || "")) || ((b.popularity || 0) - (a.popularity || 0)));
+        return merged.slice((page - 1) * 20, page * 20).map(item => {
+            const card = buildUpcomingItem(item, "tv");
+            if (item._seasonNumber) {
+                const seasonName = `${item._seasonTitle} 第${item._seasonNumber}季`;
+                card.title = seasonName;
+                card.releaseDate = item._seasonAirDate;
+                card.subTitle = `📺 新季开播 · 第${item._seasonNumber}季`;
+                card.genreTitle = card.subTitle;
+                card.description = `📅 第${item._seasonNumber}季首集：${item._seasonAirDate}\n${item.overview || "暂无简介"}`;
+            }
+            return card;
+        }).filter(Boolean);
     } catch (error) {
         console.error("[loadMonthlyUpcomingStrict] 请求失败:", error.message || error);
         return [{ id: "error", type: "text", title: "加载失败", description: "获取本月定档待播剧集失败，请下拉刷新或检查网络" }];
