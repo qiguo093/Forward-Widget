@@ -113,7 +113,7 @@ var WidgetMetadata = {
                     enumOptions: [
                         { title: "🍿 即将上映 (期待榜)", value: "movie_upcoming" },
                         { title: "🔥 正在热映 (院线)", value: "movie_now_playing" },
-                        { title: "📺 近期开播 (新剧集)", value: "tv_on_the_air" },
+                        { title: "📺 本月定档待播 (新剧集)", value: "tv_on_the_air" },
                         { title: "📅 今日首播 (追更)", value: "tv_airing_today" }
                     ]
                 },
@@ -578,13 +578,32 @@ async function loadUpcomingCenter(params = {}) {
     const routes = {
         movie_upcoming: ["movie/upcoming", "movie"],
         movie_now_playing: ["movie/now_playing", "movie"],
-        tv_on_the_air: ["tv/on_the_air", "tv"],
+        tv_on_the_air: ["discover/tv", "tv"],
         tv_airing_today: ["tv/airing_today", "tv"]
     };
     const route = routes[category] || routes.movie_upcoming;
     try {
-        const res = await Widget.tmdb.get(route[0], { params: { language: "zh-CN", page, region: "US" } });
-        return (res.results || []).map(item => buildUpcomingItem(item, route[1])).filter(Boolean);
+        let query = { language: "zh-CN", page, region: "US" };
+        if (category === "tv_on_the_air") {
+            // 仅查询从今天起至本月月底、已有明确首播日期的待播剧集
+            const now = new Date();
+            const today = new Date(now.getFullYear(), now.getMonth(), now.getDate());
+            const monthEnd = new Date(now.getFullYear(), now.getMonth() + 1, 0);
+            const toDate = date => date.toISOString().split("T")[0];
+            query = {
+                language: "zh-CN", page, include_adult: false,
+                include_null_first_air_dates: false,
+                "first_air_date.gte": toDate(today),
+                "first_air_date.lte": toDate(monthEnd),
+                sort_by: "first_air_date.asc"
+            };
+        }
+        const res = await Widget.tmdb.get(route[0], { params: query });
+        return (res.results || []).filter(item => {
+            if (category !== "tv_on_the_air") return true;
+            const date = item.first_air_date || "";
+            return date >= query["first_air_date.gte"] && date <= query["first_air_date.lte"];
+        }).map(item => buildUpcomingItem(item, route[1])).filter(Boolean);
     } catch (error) {
         console.error("[loadUpcomingCenter] 请求失败:", error.message || error);
         return [{ id: "error", type: "text", title: "加载失败", description: "获取最新上映数据失败，请下拉刷新或检查网络" }];
