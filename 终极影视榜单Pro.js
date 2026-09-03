@@ -648,17 +648,21 @@ async function loadMonthlyUpcomingStrict(params = {}) {
             } catch (e) { break; }
         }
         const seasonCandidates = [];
-        for (const item of seasonRaw.slice(0, 30)) {
+        for (const item of seasonRaw.slice(0, 60)) {
             try {
                 const detail = await Widget.tmdb.get(`/tv/${item.id}`, { params: { language: "zh-CN" } });
-                const next = detail.next_episode_to_air;
-                if (!next || next.air_date < start || next.air_date > end || (detail.origin_country || []).includes("JP")) continue;
+                if ((detail.origin_country || []).includes("JP")) continue;
                 const genres = detail.genres || [];
                 if (genres.some(g => blockedGenreIds.includes(g.id))) continue;
                 const isVariety = genres.some(g => g.id === 10764 || g.id === 10767);
                 if (isVariety && !(detail.origin_country || []).includes("CN")) continue;
-                item._seasonNumber = next.season_number || 1;
-                item._seasonAirDate = next.air_date;
+                // 只认“季”的首播日：不再用 next_episode_to_air，避免把日常更新误报成新季。
+                const newSeason = (detail.seasons || []).find(season =>
+                    season.season_number > 1 && season.air_date && season.air_date >= start && season.air_date <= end
+                );
+                if (!newSeason) continue;
+                item._seasonNumber = newSeason.season_number;
+                item._seasonAirDate = newSeason.air_date;
                 item._seasonTitle = detail.name || item.name || item.title;
                 seasonCandidates.push(item);
             } catch (e) { /* 单项详情失败不影响列表 */ }
@@ -678,9 +682,9 @@ async function loadMonthlyUpcomingStrict(params = {}) {
                 const seasonName = `${item._seasonTitle} 第${item._seasonNumber}季`;
                 card.title = seasonName;
                 card.releaseDate = item._seasonAirDate;
-                card.subTitle = `📺 新季开播 · 第${item._seasonNumber}季`;
+                card.subTitle = `📺 ${item._seasonAirDate} · 第${item._seasonNumber}季上线`;
                 card.genreTitle = card.subTitle;
-                card.description = `📅 第${item._seasonNumber}季首集：${item._seasonAirDate}\n${item.overview || "暂无简介"}`;
+                card.description = `📅 ${item._seasonAirDate} 上线第${item._seasonNumber}季\n${item.overview || "暂无简介"}`;
             }
             return card;
         }).filter(Boolean);
