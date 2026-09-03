@@ -593,6 +593,8 @@ async function loadUpcomingCenter(params = {}) {
             query = {
                 language: "zh-CN", page, include_adult: false,
                 include_null_first_air_dates: false,
+                // 排除动画、纪录片、真人秀、脱口秀、新闻及电视电影等非正剧类型
+                without_genres: "16,99,10764,10767,10763,10770",
                 "first_air_date.gte": toDate(today),
                 "first_air_date.lte": toDate(monthEnd),
                 sort_by: "first_air_date.asc"
@@ -600,7 +602,7 @@ async function loadUpcomingCenter(params = {}) {
         }
         const res = await Widget.tmdb.get(route[0], { params: query });
         return (res.results || []).filter(item => {
-            if (category !== "tv_on_the_air") return true;
+            if (category !== "tv_monthly_upcoming") return true;
             const date = item.first_air_date || "";
             return date >= query["first_air_date.gte"] && date <= query["first_air_date.lte"];
         }).map(item => buildUpcomingItem(item, route[1])).filter(Boolean);
