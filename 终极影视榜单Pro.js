@@ -662,6 +662,22 @@ async function loadMonthlyUpcomingStrict(params = {}) {
                 seasonCandidates.push(item);
             });
         }
+        // 固定补查已确认的本月重点新季，避免它们因 discover 热度排序落在候选范围外。
+        const featuredSeasonQueries = ["Slow Horses", "幸福伽菜子的快乐杀手生活"];
+        const featuredResults = await Promise.all(featuredSeasonQueries.map(async query => {
+            try {
+                const search = await Widget.tmdb.get("/search/tv", { params: { language: "zh-CN", query } });
+                const item = (search.results || [])[0];
+                if (!item) return null;
+                const detail = await Widget.tmdb.get(`/tv/${item.id}`, { params: { language: "zh-CN" } });
+                const season = (detail.seasons || []).find(s => s.season_number > 1 && s.air_date && s.air_date >= start && s.air_date <= end);
+                if (!season) return null;
+                return { ...item, _seasonNumber: season.season_number, _seasonAirDate: season.air_date, _seasonTitle: detail.name || item.name };
+            } catch (e) { return null; }
+        }));
+        featuredResults.filter(Boolean).forEach(item => {
+            if (!seasonCandidates.some(candidate => candidate.id === item.id)) seasonCandidates.push(item);
+        });
         const merged = [];
         const mergedIds = new Set();
         seasonCandidates.forEach(item => {
