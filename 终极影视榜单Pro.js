@@ -101,9 +101,9 @@ var WidgetMetadata = {
         // ---------------- 大栏目 0：新片追踪 ----------------
         {
             title: "🎬 新片追踪",
-            functionName: "loadUpcomingCenter",
+            functionName: "loadMonthlyUpcomingStrict",
             type: "video",
-            cacheDuration: 43200,
+            cacheDuration: 60,
             params: [
                 {
                     name: "upcoming_category",
@@ -570,6 +570,63 @@ function buildUpcomingItem(item, mediaType) {
         description: `${dateLabel} | ⭐ 评分: ${score}\n${item.overview || "这部影片目前还没有中文简介，敬请期待！"}`,
         rating: item.vote_average || 0, releaseDate
     };
+}
+
+async function loadMonthlyUpcomingStrict(params = {}) {
+    const category = params.upcoming_category || "movie_upcoming";
+    if (category !== "tv_monthly_upcoming") return await loadUpcomingCenter(params);
+    const page = Math.max(1, Number(params.page || 1));
+    const now = new Date();
+    const today = new Date(now.getFullYear(), now.getMonth(), now.getDate());
+    const monthEnd = new Date(now.getFullYear(), now.getMonth() + 1, 0);
+    const toDate = date => {
+        const y = date.getFullYear();
+        const m = String(date.getMonth() + 1).padStart(2, "0");
+        const d = String(date.getDate()).padStart(2, "0");
+        return `${y}-${m}-${d}`;
+    };
+    const start = toDate(today);
+    const end = toDate(monthEnd);
+    const baseQuery = {
+        language: "zh-CN",
+        include_adult: false,
+        include_null_first_air_dates: false,
+        "first_air_date.gte": start,
+        "first_air_date.lte": end,
+        sort_by: "first_air_date.asc"
+    };
+    try {
+        const pages = await Promise.all([1, 2, 3, 4, 5, 6, 7, 8].map(p =>
+            Widget.tmdb.get("/discover/tv", { params: { ...baseQuery, page: p } })
+        ));
+        const seen = new Set();
+        const blockedGenreIds = [16, 99, 10763, 10770]; // 动画/纪录片/新闻/电视电影
+        const blockedTitleWords = [
+            "TikTok", "Talent", "Kevin", "Langue", "Mesa", "Cristina", "Botched", "Kolonihaver",
+            "Quel est", "Got Talent", "Locker Diaries", "Samson", "Karlchen", "Joy of Life"
+        ];
+        const items = [];
+        pages.forEach(res => (res.results || []).forEach(item => {
+            if (!item || seen.has(item.id)) return;
+            seen.add(item.id);
+            const title = item.name || item.title || "";
+            const date = item.first_air_date || "";
+            const genres = item.genre_ids || [];
+            const countries = item.origin_country || [];
+            const isVariety = genres.includes(10764) || genres.includes(10767);
+            if (date < start || date > end) return;
+            if (genres.some(id => blockedGenreIds.includes(id))) return;
+            if (isVariety && !countries.includes("CN")) return;
+            if (!item.poster_path) return;
+            if (blockedTitleWords.some(w => title.toLowerCase().includes(w.toLowerCase()))) return;
+            items.push(item);
+        }));
+        items.sort((a, b) => String(a.first_air_date || "").localeCompare(String(b.first_air_date || "")) || ((b.popularity || 0) - (a.popularity || 0)));
+        return items.slice((page - 1) * 20, page * 20).map(item => buildUpcomingItem(item, "tv")).filter(Boolean);
+    } catch (error) {
+        console.error("[loadMonthlyUpcomingStrict] 请求失败:", error.message || error);
+        return [{ id: "error", type: "text", title: "加载失败", description: "获取本月定档待播剧集失败，请下拉刷新或检查网络" }];
+    }
 }
 
 async function loadUpcomingCenter(params = {}) {
