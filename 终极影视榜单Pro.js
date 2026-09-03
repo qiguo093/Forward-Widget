@@ -578,7 +578,7 @@ async function loadUpcomingCenter(params = {}) {
     const routes = {
         movie_upcoming: ["movie/upcoming", "movie"],
         movie_now_playing: ["movie/now_playing", "movie"],
-        tv_on_the_air: ["discover/tv", "tv"],
+        tv_on_the_air: ["/discover/tv", "tv"],
         tv_airing_today: ["tv/airing_today", "tv"]
     };
     const route = routes[category] || routes.movie_upcoming;
