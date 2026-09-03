@@ -596,9 +596,9 @@ async function loadMonthlyUpcomingStrict(params = {}) {
         sort_by: "first_air_date.asc"
     };
     try {
-        const pages = await Promise.all([1, 2, 3, 4, 5, 6, 7, 8].map(p =>
-            Widget.tmdb.get("/discover/tv", { params: { ...baseQuery, page: p } })
-        ));
+        // 单次刷新并发请求过多会被运行环境或 TMDB 中断；按当前页逐页请求
+        const result = await Widget.tmdb.get("/discover/tv", { params: { ...baseQuery, page } });
+        const pages = [result];
         const seen = new Set();
         const blockedGenreIds = [99, 10763, 10770]; // 纪录片/新闻/电视电影；保留正经动画剧集
         const blockedTitleWords = [
