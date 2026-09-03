@@ -591,10 +591,9 @@ async function loadUpcomingCenter(params = {}) {
             const monthEnd = new Date(now.getFullYear(), now.getMonth() + 1, 0);
             const toDate = date => date.toISOString().split("T")[0];
             query = {
-                language: "zh-CN", page, include_adult: false,
+                language: "zh-CN", page: 1, include_adult: false,
                 include_null_first_air_dates: false,
-                // 排除动画、纪录片、新闻、电视电影；综艺在结果中仅保留中国大陆
-                without_genres: "16,99,10763,10770",
+                // 先拉取本月全部候选，避免 TMDB 分页先被国外综艺占满
                 "first_air_date.gte": toDate(today),
                 "first_air_date.lte": toDate(monthEnd),
                 sort_by: "first_air_date.asc"
@@ -605,8 +604,9 @@ async function loadUpcomingCenter(params = {}) {
             if (category !== "tv_monthly_upcoming") return true;
             const date = item.first_air_date || "";
             if (date < query["first_air_date.gte"] || date > query["first_air_date.lte"]) return false;
-            // TMDB 的综艺类型：真人秀 10764、脱口秀 10767；仅保留中国大陆节目
+            // 排除动画、纪录片、新闻、电视电影；综艺仅保留中国大陆
             const genres = item.genre_ids || [];
+            if (genres.some(id => [16, 99, 10763, 10770].includes(id))) return false;
             const isVariety = genres.includes(10764) || genres.includes(10767);
             if (isVariety && !(item.origin_country || []).includes("CN")) return false;
             return true;
