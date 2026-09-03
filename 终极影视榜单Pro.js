@@ -59,7 +59,7 @@ var WidgetMetadata = {
     description: "影视、动漫、综艺、弹幕、全球聚合",
     icon: "https://github.com/qiguo093/Forward-Widget/raw/refs/heads/main/icon2.png",
     author: "𝓚𝓾𝓰𝓾𝓸𝔃𝓪𝓲 ⁷",
-    version: "2.0.1",
+    version: "2.0.0",
     requiredVersion: "0.0.1",
     site: "https://t.me/MakkaPakkaOvO",
     
@@ -600,7 +600,7 @@ async function loadMonthlyUpcomingStrict(params = {}) {
             Widget.tmdb.get("/discover/tv", { params: { ...baseQuery, page: p } })
         ));
         const seen = new Set();
-        const blockedGenreIds = [16, 99, 10763, 10770]; // 动画/纪录片/新闻/电视电影
+        const blockedGenreIds = [99, 10763, 10770]; // 纪录片/新闻/电视电影；保留正经动画剧集
         const blockedTitleWords = [
             "TikTok", "Talent", "Kevin", "Langue", "Mesa", "Cristina", "Botched", "Kolonihaver",
             "Quel est", "Got Talent", "Locker Diaries", "Samson", "Karlchen", "Joy of Life"
