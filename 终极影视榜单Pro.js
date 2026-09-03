@@ -624,9 +624,9 @@ async function loadMonthlyUpcomingStrict(params = {}) {
             const countries = item.origin_country || [];
             const isVariety = genres.includes(10764) || genres.includes(10767);
             if (date < start || date > end) return;
-            if (countries.includes("JP")) return; // 排除日本剧集/真人秀等内容
             if (genres.some(id => blockedGenreIds.includes(id))) return;
-            if (isVariety && !countries.includes("CN")) return;
+            // 日本正剧/新季保留；仅排除日本真人秀、脱口秀等同类节目
+            if (isVariety && (!countries.includes("CN") || countries.includes("JP"))) return;
             if (!item.poster_path) return;
             if (blockedTitleWords.some(w => title.toLowerCase().includes(w.toLowerCase()))) return;
             items.push(item);
@@ -634,7 +634,7 @@ async function loadMonthlyUpcomingStrict(params = {}) {
         // 通过 air_date 搜索本月有新一季/新集开播的既有剧（例如《流人》第六季）
         const seasonRaw = [];
         const seasonSeen = new Set();
-        for (let p = 1; p <= 4; p++) {
+        for (let p = 1; p <= 8; p++) {
             try {
                 const res = await Widget.tmdb.get("/discover/tv", { params: {
                     language: "zh-CN", include_adult: false, page: p,
@@ -648,14 +648,16 @@ async function loadMonthlyUpcomingStrict(params = {}) {
             } catch (e) { break; }
         }
         const seasonCandidates = [];
-        for (const item of seasonRaw.slice(0, 60)) {
+        // 限制详情请求量，避免刷新超时；置顶检索结果覆盖本月热度较高的新季
+        for (const item of seasonRaw.slice(0, 80)) {
             try {
                 const detail = await Widget.tmdb.get(`/tv/${item.id}`, { params: { language: "zh-CN" } });
-                if ((detail.origin_country || []).includes("JP")) continue;
+                const countries = detail.origin_country || [];
                 const genres = detail.genres || [];
                 if (genres.some(g => blockedGenreIds.includes(g.id))) continue;
                 const isVariety = genres.some(g => g.id === 10764 || g.id === 10767);
-                if (isVariety && !(detail.origin_country || []).includes("CN")) continue;
+                // 日韩正剧与新季保留，仅过滤非国内真人秀/脱口秀
+                if (isVariety && (!countries.includes("CN") || countries.includes("JP"))) continue;
                 // 只认“季”的首播日：不再用 next_episode_to_air，避免把日常更新误报成新季。
                 const newSeason = (detail.seasons || []).find(season =>
                     season.season_number > 1 && season.air_date && season.air_date >= start && season.air_date <= end
