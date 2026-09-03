@@ -593,8 +593,8 @@ async function loadUpcomingCenter(params = {}) {
             query = {
                 language: "zh-CN", page, include_adult: false,
                 include_null_first_air_dates: false,
-                // 排除动画、纪录片、真人秀、脱口秀、新闻及电视电影等非正剧类型
-                without_genres: "16,99,10764,10767,10763,10770",
+                // 排除动画、纪录片、新闻、电视电影；综艺在结果中仅保留中国大陆
+                without_genres: "16,99,10763,10770",
                 "first_air_date.gte": toDate(today),
                 "first_air_date.lte": toDate(monthEnd),
                 sort_by: "first_air_date.asc"
@@ -604,7 +604,12 @@ async function loadUpcomingCenter(params = {}) {
         return (res.results || []).filter(item => {
             if (category !== "tv_monthly_upcoming") return true;
             const date = item.first_air_date || "";
-            return date >= query["first_air_date.gte"] && date <= query["first_air_date.lte"];
+            if (date < query["first_air_date.gte"] || date > query["first_air_date.lte"]) return false;
+            // TMDB 的综艺类型：真人秀 10764、脱口秀 10767；仅保留中国大陆节目
+            const genres = item.genre_ids || [];
+            const isVariety = genres.includes(10764) || genres.includes(10767);
+            if (isVariety && !(item.origin_country || []).includes("CN")) return false;
+            return true;
         }).map(item => buildUpcomingItem(item, route[1])).filter(Boolean);
     } catch (error) {
         console.error("[loadUpcomingCenter] 请求失败:", error.message || error);
