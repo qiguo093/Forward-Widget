@@ -587,12 +587,26 @@ async function loadMonthlyUpcomingStrict(params = {}) {
     };
     const start = toDate(today);
     const end = toDate(monthEnd);
+    // 本模块仅过滤指定国家/语言，避免 TMDB 列表或详情缺少 origin_country 时漏网。
+    const blockedCountries = ["TH", "IN", "RU", "TR"];
+    const blockedLanguages = ["th", "hi", "ta", "ru", "tr"];
+    const isBlockedOrigin = (item, detail = item) => {
+        const countries = [
+            ...(item?.origin_country || []),
+            ...(detail?.origin_country || []),
+            ...((detail?.production_countries || []).map(c => c.iso_3166_1).filter(Boolean))
+        ];
+        return countries.some(code => blockedCountries.includes(String(code).toUpperCase())) ||
+            [item?.original_language, detail?.original_language].some(lang => blockedLanguages.includes(String(lang || "").toLowerCase()));
+    };
     const baseQuery = {
         language: "zh-CN",
         include_adult: false,
         include_null_first_air_dates: false,
         "first_air_date.gte": start,
         "first_air_date.lte": end,
+        without_origin_country: blockedCountries.join("|"),
+        without_original_language: blockedLanguages.join("|"),
         sort_by: "first_air_date.asc"
     };
     try {
@@ -615,10 +629,8 @@ async function loadMonthlyUpcomingStrict(params = {}) {
             const genres = item.genre_ids || [];
             const countries = item.origin_country || [];
             const isVariety = genres.includes(10764) || genres.includes(10767);
-            // 用户不看泰语、泰米尔语/印地语及俄语内容：按 TMDB 来源地区排除泰国、印度、俄罗斯。
-            const blockedCountries = ["TH", "IN", "RU"];
             if (date < start || date > end) return;
-            if (countries.some(code => blockedCountries.includes(code))) return;
+            if (isBlockedOrigin(item)) return;
             if (genres.some(id => blockedGenreIds.includes(id))) return;
             // 保留日剧、日漫与动画；仅按 TMDB 明确的综艺类型过滤非国内节目。
             if (isVariety && !countries.includes("CN")) return;
@@ -634,6 +646,8 @@ async function loadMonthlyUpcomingStrict(params = {}) {
             Widget.tmdb.get("/discover/tv", { params: {
                 language: "zh-CN", include_adult: false, page: p,
                 "air_date.gte": start, "air_date.lte": end,
+                without_origin_country: blockedCountries.join("|"),
+                without_original_language: blockedLanguages.join("|"),
                 sort_by: "popularity.desc"
             } }).catch(() => ({ results: [] }))
         ));
@@ -651,7 +665,7 @@ async function loadMonthlyUpcomingStrict(params = {}) {
             details.filter(Boolean).forEach(({ item, detail }) => {
                 const countries = detail.origin_country || [];
                 const genres = detail.genres || [];
-                if (countries.some(code => ["TH", "IN", "RU"].includes(code))) return;
+                if (isBlockedOrigin(item, detail)) return;
                 if (genres.some(g => blockedGenreIds.includes(g.id))) return;
                 const isVariety = genres.some(g => g.id === 10764 || g.id === 10767);
                 // 保留日本正剧、日漫和动画的新季；仅过滤非国内的明确综艺类型。
@@ -674,6 +688,7 @@ async function loadMonthlyUpcomingStrict(params = {}) {
                 const item = (search.results || [])[0];
                 if (!item) return null;
                 const detail = await Widget.tmdb.get(`/tv/${item.id}`, { params: { language: "zh-CN" } });
+                if (isBlockedOrigin(item, detail)) return null;
                 const season = (detail.seasons || []).find(s => s.season_number > 1 && s.air_date && s.air_date >= start && s.air_date <= end);
                 if (!season) return null;
                 return { ...item, _seasonNumber: season.season_number, _seasonAirDate: season.air_date, _seasonTitle: detail.name || item.name };
