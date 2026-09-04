@@ -654,9 +654,25 @@ async function loadMonthlyUpcomingStrict(params = {}) {
         seasonPages.forEach(res => (res.results || []).forEach(item => {
             if (item && !seasonSeen.has(item.id)) { seasonSeen.add(item.id); seasonRaw.push(item); }
         }));
+        // 国内综艺单独补查，不受全站 popularity 排序和前 24 个详情候选限制。
+        const domesticVarietyPages = await Promise.all([1, 2, 3].map(p =>
+            Widget.tmdb.get("/discover/tv", { params: {
+                language: "zh-CN", include_adult: false, page: p,
+                with_origin_country: "CN", with_genres: "10764|10767",
+                "air_date.gte": start, "air_date.lte": end,
+                sort_by: "popularity.desc"
+            } }).catch(() => ({ results: [] }))
+        ));
+        const domesticVarietyRaw = [];
+        domesticVarietyPages.forEach(res => (res.results || []).forEach(item => {
+            if (item && !domesticVarietyRaw.some(existing => existing.id === item.id)) domesticVarietyRaw.push(item);
+        }));
         const seasonCandidates = [];
         // 详情最多检查 24 项、每批 8 项并发，兼顾《流人》等热门新季与加载速度。
-        const detailTargets = seasonRaw.slice(0, 24);
+        const detailTargetMap = new Map();
+        seasonRaw.slice(0, 24).forEach(item => detailTargetMap.set(item.id, item));
+        domesticVarietyRaw.forEach(item => detailTargetMap.set(item.id, item));
+        const detailTargets = Array.from(detailTargetMap.values());
         for (let offset = 0; offset < detailTargets.length; offset += 8) {
             const details = await Promise.all(detailTargets.slice(offset, offset + 8).map(async item => {
                 try { return { item, detail: await Widget.tmdb.get(`/tv/${item.id}`, { params: { language: "zh-CN" } }) }; }
