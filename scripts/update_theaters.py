@@ -27,7 +27,7 @@ GENRE_MAP = {
 # 填入 {"title": "剧名", "year": "可选开播年份"}，脚本会在抓取时自动去重并合并进 TMDB 匹配与排序。
 THEATERS = [
     { "name": "迷雾剧场", "id": "128396349", "custom_items": [{"title": "深渊无间", "year": "2026"}] },
-    { "name": "白夜剧场", "id": "158539495", "custom_items": [] },
+    { "name": "白夜剧场", "id": "158539495", "custom_items": [{"title": "冬城猎凶", "year": "2026"}] },
     { "name": "X剧场", "id": "155026800", "custom_items": [] },
     { "name": "玛卡巴卡的悬疑剧", "id": "160885987", "custom_items": [] },
     { "name": "横屏短剧", "id": "152299516", "custom_items": [] },
