@@ -40,7 +40,8 @@ THEATERS = [
     { "name": "正午阳光", "id": "125370543", "custom_items": [] },
     { "name": "恋恋剧场", "id": "156086548", "custom_items": [] },
     { "name": "悬疑剧场", "id": "128400108", "custom_items": [] },
-    { "name": "微尘剧场", "id": "161658331", "custom_items": [] }
+    { "name": "微尘剧场", "id": "161658331", "custom_items": [] },
+    { "name": "暗流剧场", "id": "164879624", "custom_items": [] }
 ]
 
 def clean_douban_title(raw_title):

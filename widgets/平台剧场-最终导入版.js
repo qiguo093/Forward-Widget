@@ -33,7 +33,8 @@ WidgetMetadata = {
             { title: "正午阳光", value: "正午阳光" },
             { title: "恋恋剧场", value: "恋恋剧场" },
             { title: "悬疑剧场", value: "悬疑剧场" },
-            { title: "微尘剧场", value: "微尘剧场" }
+            { title: "微尘剧场", value: "微尘剧场" },
+            { title: "暗流剧场", value: "暗流剧场" }
           ]
         },
         {
