@@ -1,5 +1,5 @@
 {
-  "last_updated": "2026-09-10 18:51:27",
+  "last_updated": "2026-09-10 19:35:16",
   "迷雾剧场": {
     "aired": [
       {
@@ -5968,6 +5968,43 @@
     ],
     "upcoming": [],
     "totalItems": 3,
+    "totalPages": 1
+  },
+  "暗流剧场": {
+    "aired": [
+      {
+        "id": "319659",
+        "type": "tmdb",
+        "title": "重案六组：消失的警号",
+        "description": "剧情核心围绕“消失的警号”展开，通过“老警号传承”设计致敬原版角色，并融入科技办案、新老刑侦理念碰撞等创新元素。",
+        "rating": 8.0,
+        "voteCount": 1,
+        "popularity": 13.3732,
+        "releaseDate": "2026-08-31",
+        "lastUpdateDate": "2026-09-03",
+        "posterPath": "/xiq23i6XsryjJvxYvqQsyE9Nzen.jpg",
+        "backdropPath": "/nr1uqvJs4kqtGcBTwIAew5OiSXI.jpg",
+        "mediaType": "tv",
+        "genreTitle": "剧情,悬疑"
+      },
+      {
+        "id": "327916",
+        "type": "tmdb",
+        "title": "凛冬下的罪恶",
+        "description": "凛冬，一精神病女子拦车报案，称丈夫杀人，刑警沈栋梁吴红兵由此揭开系列碎尸案真相。然而风浪未平，储蓄所抢劫杀人案，少女失踪案，流窜抢车案接连发生，沈栋梁与吴红兵追凶之际，竟牵出改变二人命运的人性悲剧。",
+        "rating": 7.5,
+        "voteCount": 2,
+        "popularity": 5.1345,
+        "releaseDate": "2026-08-04",
+        "lastUpdateDate": "2026-08-08",
+        "posterPath": "/8PbjBwbkZgFj8k2bitxMFkllal5.jpg",
+        "backdropPath": "/gN3vSMrarrirco31Af8bUsSHBYZ.jpg",
+        "mediaType": "tv",
+        "genreTitle": "悬疑"
+      }
+    ],
+    "upcoming": [],
+    "totalItems": 2,
     "totalPages": 1
   }
 }
