@@ -10,6 +10,8 @@ import datetime
 TMDB_API_KEY = os.environ.get('TMDB_API_KEY')
 DATA_DIR = "data"
 OUTPUT_FILE = os.path.join(DATA_DIR, "theater-data.json")
+MAX_FETCH_RETRIES = 3
+REQUEST_TIMEOUT = aiohttp.ClientTimeout(total=45)
 
 # TMDB 类型映射表
 GENRE_MAP = {
@@ -58,54 +60,68 @@ def clean_douban_title(raw_title):
     return title
 
 async def fetch_doulist_pages(session, theater):
-    """翻页抓取豆瓣片单里的所有剧集"""
+    """翻页抓取豆瓣片单里的所有剧集；失败时抛错，禁止用空结果覆盖旧数据。"""
     print(f"🎬 开始获取 [{theater['name']}] 数据...")
     all_items = []
     start = 0
     page_size = 25
     page_count = 0
-    
+
     headers = {
-        "User-Agent": "Mozilla/5.0 (iPhone; CPU iPhone OS 17_0 like Mac OS X) AppleWebKit/605.1.15 (KHTML, like Gecko) Version/17.0 Mobile/15E148 Safari/604.1"
+        "User-Agent": "Mozilla/5.0 (iPhone; CPU iPhone OS 17_0 like Mac OS X) AppleWebKit/605.1.15 (KHTML, like Gecko) Version/17.0 Mobile/15E148 Safari/604.1",
+        "Accept": "text/html,application/xhtml+xml,application/xml;q=0.9,*/*;q=0.8",
+        "Accept-Language": "zh-CN,zh;q=0.9,en;q=0.8",
+        "Referer": "https://m.douban.com/"
     }
 
     while True:
         page_count += 1
         url = f"https://m.douban.com/doulist/{theater['id']}/?start={start}"
-        try:
-            async with session.get(url, headers=headers) as resp:
-                if resp.status != 200: break
-                html = await resp.text()
-                soup = BeautifulSoup(html, 'html.parser')
-                items = soup.select('ul.doulist-items > li')
-                
-                if not items: break
-                
-                for item in items:
-                    title_elem = item.select_one('.info .title')
-                    meta_elem = item.select_one('.info .meta')
-                    
-                    if title_elem:
-                        raw_title = title_elem.text.strip()
-                        clean_title = clean_douban_title(raw_title)
-                        
-                        year = None
-                        if meta_elem:
-                            meta_text = meta_elem.text.strip()
-                            year_match = re.search(r'(\d{4})(?=-\d{2}-\d{2})', meta_text)
-                            if year_match:
-                                year = year_match.group(1)
-                        
-                        all_items.append({"title": clean_title, "year": year})
-                
-                if len(items) < page_size:
+        last_error = None
+        for attempt in range(1, MAX_FETCH_RETRIES + 1):
+            try:
+                async with session.get(url, headers=headers, timeout=REQUEST_TIMEOUT) as resp:
+                    html = await resp.text(errors="replace")
+                    if resp.status != 200:
+                        raise RuntimeError(f"HTTP {resp.status}")
+                    soup = BeautifulSoup(html, 'html.parser')
+                    items = soup.select('ul.doulist-items > li')
+                    if not items:
+                        # 豆瓣风控/验证页不能被误判为“片单为空”。
+                        if start == 0:
+                            raise RuntimeError("返回页面没有 doulist-items，可能触发豆瓣风控或页面结构已变化")
+                        break
+                    last_error = None
                     break
-                start += page_size
-                await asyncio.sleep(0.5) 
-        except Exception as e:
-            print(f"获取 {theater['name']} 第 {page_count} 页出错: {e}")
+            except Exception as e:
+                last_error = e
+                if attempt < MAX_FETCH_RETRIES:
+                    await asyncio.sleep(attempt * 2)
+        if last_error:
+            raise RuntimeError(f"第 {page_count} 页抓取失败（重试 {MAX_FETCH_RETRIES} 次）: {last_error}")
+        if not items:
             break
-            
+
+        for item in items:
+            title_elem = item.select_one('.info .title')
+            meta_elem = item.select_one('.info .meta')
+            if title_elem:
+                raw_title = title_elem.get_text(strip=True)
+                clean_title = clean_douban_title(raw_title)
+                year = None
+                if meta_elem:
+                    year_match = re.search(r'(\d{4})(?=-\d{2}-\d{2})', meta_elem.get_text(strip=True))
+                    if year_match:
+                        year = year_match.group(1)
+                all_items.append({"title": clean_title, "year": year})
+
+        if len(items) < page_size:
+            break
+        start += page_size
+        await asyncio.sleep(0.5)
+
+    if not all_items:
+        raise RuntimeError("片单页面成功返回，但未解析到任何有效条目")
     return {"items": all_items, "page_count": page_count}
 
 async def search_tmdb(session, item, cache):
@@ -246,16 +262,21 @@ async def main():
         "last_updated": datetime.datetime.now(tz_bj).strftime("%Y-%m-%d %H:%M:%S")
     }
 
-    async with aiohttp.ClientSession() as session:
+    async with aiohttp.ClientSession(timeout=REQUEST_TIMEOUT) as session:
         cache = {}
         for theater in THEATERS:
             theater_result = await process_theater(session, theater, cache)
+            result = theater_result[theater["name"]]
+            if result["totalItems"] <= 0:
+                raise RuntimeError(f"[{theater['name']}] 未抓到片单条目，停止写入，保留旧数据")
             final_data.update(theater_result)
 
-    with open(OUTPUT_FILE, "w", encoding="utf-8") as f:
+    # 只有全部剧场成功抓取后才原子替换；任何异常都会保留仓库中的上一版数据。
+    tmp_file = OUTPUT_FILE + ".tmp"
+    with open(tmp_file, "w", encoding="utf-8") as f:
         json.dump(final_data, f, ensure_ascii=False, indent=2)
-        
-    print(f"\n🎉 伟大工程完成！所有洁净版剧场数据已保存至 {OUTPUT_FILE}")
+        f.write("\n")
+    os.replace(tmp_file, OUTPUT_FILE)
 
 if __name__ == "__main__":
     asyncio.run(main())
