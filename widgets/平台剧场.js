@@ -73,6 +73,7 @@ WidgetMetadata = {
           value: "迷雾剧场",
           enumOptions: [
             { title: "迷霧劇場", value: "迷雾剧场" },
+            { title: "暗流劇場", value: "暗流剧场" },
             { title: "白夜劇場", value: "白夜剧场" },
             { title: " X 劇場", value: "X剧场" },
             { title: "瑪卡的片單", value: "玛卡巴卡的悬疑剧" },
