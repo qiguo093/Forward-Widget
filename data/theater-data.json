@@ -3,6 +3,21 @@
   "迷雾剧场": {
     "aired": [
       {
+        "id": "301489",
+        "type": "tmdb",
+        "title": "深渊无间",
+        "description": "一篇名为《深渊》的推理网文悄然上线，打破了保守小城多年来的平静，文中诸多情节与警方未曾公布的多年前悬案案情有着惊人的相似。热血正义的新警李成，与多方嫌疑人，一次次上演高智对弈。",
+        "rating": 0.0,
+        "voteCount": 0,
+        "popularity": 5.9585,
+        "releaseDate": "2026-09-09",
+        "lastUpdateDate": "2026-09-09",
+        "posterPath": "/b9ngtGNgaHBbLihRrT0MsPRY0GW.jpg",
+        "backdropPath": "/s9YSQAJtXjimsjBVsqLtJNnIjEs.jpg",
+        "mediaType": "tv",
+        "genreTitle": "悬疑"
+      },
+      {
         "id": "291947",
         "type": "tmdb",
         "title": "昨夜将至",
@@ -454,7 +469,7 @@
       }
     ],
     "upcoming": [],
-    "totalItems": 30,
+    "totalItems": 31,
     "totalPages": 2
   },
   "白夜剧场": {

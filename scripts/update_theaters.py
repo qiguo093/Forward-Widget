@@ -24,7 +24,7 @@ GENRE_MAP = {
 
 # 你的终极片单宇宙！
 THEATERS = [
-    { "name": "迷雾剧场", "id": "128396349" },
+    { "name": "迷雾剧场", "id": "128396349", "custom_items": [{"title": "深渊无间", "year": "2026"}] },
     { "name": "白夜剧场", "id": "158539495" },
     { "name": "X剧场", "id": "155026800" },
     { "name": "玛卡巴卡的悬疑剧", "id": "160885987" },
@@ -220,7 +220,15 @@ async def search_tmdb(session, item, cache):
 
 async def process_theater(session, theater, cache):
     douban_data = await fetch_doulist_pages(session, theater)
-    items = douban_data["items"]
+    items = list(douban_data["items"])
+    
+    # 支持自定义追加片单（去重）
+    existing_titles = {it["title"].strip().lower() for it in items}
+    for custom in theater.get("custom_items", []):
+        c_title = custom.get("title", "").strip()
+        if c_title and c_title.lower() not in existing_titles:
+            items.append({"title": c_title, "year": custom.get("year")})
+            existing_titles.add(c_title.lower())
     
     shows = []
     # 控制并发，防止 TMDB 报错
