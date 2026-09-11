@@ -26,8 +26,8 @@ GENRE_MAP = {
 # 每个剧场均支持 custom_items 自定义追加列表。当豆瓣片单更新不及时或漏掉剧集时，
 # 填入 {"title": "剧名", "year": "可选开播年份"}，脚本会在抓取时自动去重并合并进 TMDB 匹配与排序。
 THEATERS = [
-    { "name": "迷雾剧场", "id": "164880152", "custom_items": [{"title": "深渊无间", "year": "2026"}] },
-    { "name": "白夜剧场", "id": "164880158", "custom_items": [{"title": "冬城猎凶", "year": "2026"}] },
+    { "name": "迷雾剧场", "id": "164880152", "custom_items": [] },
+    { "name": "白夜剧场", "id": "164880158", "custom_items": [] },
     { "name": "X剧场", "id": "164880165", "custom_items": [] },
     { "name": "横屏短剧", "id": "152299516", "custom_items": [] },
     { "name": "生花剧场", "id": "164880852", "custom_items": [] },
