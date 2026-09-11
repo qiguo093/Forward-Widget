@@ -2,7 +2,10 @@ name: 🎬 Update Douban Rankings
 
 on:
   schedule:
-    - cron: '30 16 * * *'
+    # 北京时间每天 08:00（UTC 00:00）
+    - cron: '0 0 * * *'
+    # 北京时间每天 20:00（UTC 12:00）
+    - cron: '0 12 * * *'
   workflow_dispatch:
 
 permissions:
