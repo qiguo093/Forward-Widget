@@ -26,19 +26,19 @@ GENRE_MAP = {
 # 每个剧场均支持 custom_items 自定义追加列表。当豆瓣片单更新不及时或漏掉剧集时，
 # 填入 {"title": "剧名", "year": "可选开播年份"}，脚本会在抓取时自动去重并合并进 TMDB 匹配与排序。
 THEATERS = [
-    { "name": "迷雾剧场", "id": "128396349", "custom_items": [{"title": "深渊无间", "year": "2026"}] },
-    { "name": "白夜剧场", "id": "158539495", "custom_items": [{"title": "冬城猎凶", "year": "2026"}] },
-    { "name": "X剧场", "id": "155026800", "custom_items": [] },
+    { "name": "迷雾剧场", "id": "164880152", "custom_items": [{"title": "深渊无间", "year": "2026"}] },
+    { "name": "白夜剧场", "id": "164880158", "custom_items": [{"title": "冬城猎凶", "year": "2026"}] },
+    { "name": "X剧场", "id": "164880165", "custom_items": [] },
     { "name": "玛卡巴卡的悬疑剧", "id": "160885987", "custom_items": [] },
     { "name": "横屏短剧", "id": "152299516", "custom_items": [] },
-    { "name": "生花剧场", "id": "159069554", "custom_items": [] },
+    { "name": "生花剧场", "id": "164880852", "custom_items": [] },
     { "name": "大家剧场", "id": "160644809", "custom_items": [] },
     { "name": "小逗剧场", "id": "146055365", "custom_items": [] },
     { "name": "十分剧场", "id": "147708618", "custom_items": [] },
     { "name": "板凳单元", "id": "163392459", "custom_items": [] },
-    { "name": "萤火单元", "id": "163549603", "custom_items": [] },
-    { "name": "正午阳光", "id": "125370543", "custom_items": [] },
-    { "name": "恋恋剧场", "id": "156086548", "custom_items": [] },
+    { "name": "萤火单元", "id": "164881201", "custom_items": [] },
+    { "name": "正午阳光", "id": "164881266", "custom_items": [] },
+    { "name": "恋恋剧场", "id": "164880465", "custom_items": [] },
     { "name": "悬疑剧场", "id": "128400108", "custom_items": [] },
     { "name": "微尘剧场", "id": "161658331", "custom_items": [] },
     { "name": "暗流剧场", "id": "164879624", "custom_items": [] }
