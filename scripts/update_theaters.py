@@ -288,9 +288,19 @@ async def search_tmdb(session, item, cache):
     return None
 
 
+def normalize_douban_cover(url):
+    """把豆瓣签名图片地址转换为稳定的公开地址（签名地址会过期）。"""
+    if not url:
+        return ""
+    m = re.search(r'public/(p\d+\.jpg)', url)
+    if m:
+        return f"https://img1.doubanio.com/view/photo/m_ratio_poster/public/{m.group(1)}"
+    return url.split("?")[0]
+
+
 def build_douban_fallback(item):
     """TMDB 无匹配时保留豆瓣条目，供剧场列表显示。"""
-    cover = item.get("douban_cover") or ""
+    cover = normalize_douban_cover(item.get("douban_cover") or "")
     return {
         "id": str(item.get("douban_id") or "douban_" + item["title"]),
         "type": "douban",
