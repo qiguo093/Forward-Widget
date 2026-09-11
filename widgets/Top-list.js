@@ -100,7 +100,7 @@ var WidgetMetadata = {
         { id: "getComments", title: "获取弹幕", functionName: "getCommentsById", type: "danmu", params: [] },
         // ---------------- 大栏目 0：新片追踪 ----------------
         {
-            title: "🎬 新片追踪",
+            title: "新片追踪",
             functionName: "loadMonthlyUpcomingStrict",
             type: "video",
             cacheDuration: 43200,
@@ -123,7 +123,7 @@ var WidgetMetadata = {
 
         // ---------------- 大栏目 1：豆瓣热榜（独立模块） ----------------
         {
-            title: "🔥 豆瓣热榜",
+            title: "豆瓣热榜",
             description: "豆瓣影视与综艺热门榜单",
             functionName: "loadTheaterDouban",
             type: "video",
@@ -139,7 +139,7 @@ var WidgetMetadata = {
 
         // ---------------- 大栏目 6：平台剧场 ----------------
         {
-            title: "🎭 平台剧场",
+            title: "平台剧场",
             description: "各平台剧场与芒果TV热榜",
             functionName: "loadTheaterHub",
             type: "video",
@@ -148,7 +148,7 @@ var WidgetMetadata = {
                 { name: "theater_source", title: "选择子列表", type: "enumeration", value: "theater", enumOptions: [
                     { title: "各平台剧场", value: "theater" }, { title: "芒果TV热榜", value: "mango" }
                 ] },
-                { name: "brand", title: "剧场品牌", type: "enumeration", value: "迷雾剧场", belongTo: { paramName: "theater_source", value: ["theater"] }, enumOptions: [ { title: "迷雾剧场", value: "迷雾剧场" }, { title: "暗流剧场", value: "暗流剧场" }, { title: "白夜剧场", value: "白夜剧场" }, { title: "X剧场", value: "X剧场" }, { title: "横屏短剧", value: "横屏短剧" }, { title: "生花剧场", value: "生花剧场" }, { title: "大家剧场", value: "大家剧场" }, { title: "小逗剧场", value: "小逗剧场" }, { title: "十分剧场", value: "十分剧场" }, { title: "板凳单元", value: "板凳单元" }, { title: "萤火单元", value: "萤火单元" }, { title: "正午阳光", value: "正午阳光" }, { title: "恋恋剧场", value: "恋恋剧场" }, { title: "悬疑剧场", value: "悬疑剧场" }, { title: "微尘剧场", value: "微尘剧场" } ] },
+                { name: "brand", title: "剧场品牌", type: "enumeration", value: "迷雾剧场", belongTo: { paramName: "theater_source", value: ["theater"] }, enumOptions: [ { title: "迷雾剧场", value: "迷雾剧场" }, { title: "暗流剧场", value: "暗流剧场" }, { title: "白夜剧场", value: "白夜剧场" }, { title: "X剧场", value: "X剧场" }, { title: "横屏短剧", value: "横屏短剧" }, { title: "生花剧场", value: "生花剧场" }, { title: "大家剧场", value: "大家剧场" }, { title: "小逗剧场", value: "小逗剧场" }, { title: "十分剧场", value: "十分剧场" }, { title: "板凳单元", value: "板凳单元" }, { title: "萤火单元", value: "萤火单元" }, { title: "正午阳光", value: "正午阳光" }, { title: "恋恋剧场", value: "恋恋剧场" }, { title: "微尘剧场", value: "微尘剧场" } ] },
                 { name: "status", title: "播出状态", type: "enumeration", value: "all", belongTo: { paramName: "theater_source", value: ["theater"] }, enumOptions: [ { title: "全部", value: "all" }, { title: "已开播", value: "aired" }, { title: "即将推出", value: "upcoming" } ] },
                 { name: "mango_sort_by", title: "类型", type: "enumeration", value: "tv", belongTo: { paramName: "theater_source", value: ["mango"] }, enumOptions: [ { title: "全部剧集", value: "tv" }, { title: "王牌综艺", value: "show" } ] },
                 { name: "sort_type", title: "排序方式", type: "enumeration", value: "default", enumOptions: [ { title: "默认原序", value: "default" }, { title: "最近更新", value: "updated" }, { title: "最近发布", value: "recent" }, { title: "热度最高", value: "heat" }, { title: "流行趋势", value: "trending" }, { title: "高分优先", value: "rating" } ] },
@@ -158,7 +158,7 @@ var WidgetMetadata = {
 
         // ---------------- 大栏目 6：全球追剧时刻表 ----------------
         {
-            title: "📅 全球追剧时刻表",
+            title: "全球追剧时刻表",
             description: "聚合全球剧集更新表、综艺排期与动漫周更表",
             functionName: "loadGlobalCalendarHub",
             type: "video",
@@ -180,7 +180,7 @@ var WidgetMetadata = {
 
         // ---------------- 大栏目 7：骨朵热度指数榜 ----------------
         {
-            title: "📈 骨朵热度指数榜",
+            title: "骨朵热度指数榜",
             description: "每日更新的剧集、动漫、综艺、电影全网热度排行",
             functionName: "loadGuduoRank",
             type: "video",
@@ -204,7 +204,7 @@ var WidgetMetadata = {
 
         // ---------------- VOD合集列表 ----------------
         {
-            title: "📦 VOD合集列表",
+            title: "VOD合集列表",
             description: "聚合实时榜单、豆瓣片单、欧乐影视、人人美剧",
             functionName: "loadVodHubMerged",
             type: "video",
@@ -244,7 +244,7 @@ var WidgetMetadata = {
 
         // ---------------- 大栏目 8：二次元全境聚合 ----------------
         {
-            title: "🌸 动漫全境聚合",
+            title: "动漫全境聚合",
             functionName: "routeAnimeOmni",
             type: "video",
             cacheDuration: 43200,
@@ -281,7 +281,7 @@ var WidgetMetadata = {
 
         // ---------------- 大栏目 3：全能电影榜 ----------------
         {
-            title: "🎬 全能电影榜单",
+            title: "全能电影榜单",
             functionName: "routeMovieOmni",
             type: "video",
             cacheDuration: 43200,
@@ -303,7 +303,7 @@ var WidgetMetadata = {
 
         // ---------------- 大栏目 2：全球影剧类别 ----------------
         {
-            title: "🏷️ 全球影剧类别",
+            title: "全球影剧类别",
             functionName: "loadGenreRank",
             type: "video",
             cacheDuration: 43200,
@@ -320,7 +320,7 @@ var WidgetMetadata = {
         // ---------------- 全球影视专区 ----------------
 // ================= 模块 1：全球探索发现 =================
         {
-            title: "🌍 全球探索发现",
+            title: "全球探索发现",
             functionName: "loadGlobalZoneList",
             type: "video", // 保留你需要的自适应排版
             cacheDuration: 43200,
@@ -374,7 +374,7 @@ var WidgetMetadata = {
         },
         // ---------------- 大栏目 4：全球综艺频道 ----------------
         {
-            title: "📺 全球综艺频道",
+            title: "全球综艺频道",
             functionName: "loadVarietyShows",
             type: "video",
             cacheDuration: 43200,
@@ -513,25 +513,25 @@ var WidgetMetadata = {
         },
 
         // ---------------- 大栏目 5：影剧流行风向（独立入口，右上角独立榜单菜单） ----------------
-        { title: "🔥 TMDB热门趋势", functionName: "loadTmdbTrendEntry", type: "video", cacheDuration: 43200, params: [
+        { title: "TMDB热门趋势", functionName: "loadTmdbTrendEntry", type: "video", cacheDuration: 43200, params: [
             { name: "tmdb_mode", title: "模式", type: "enumeration", value: "trend", enumOptions: [ { title: "热门趋势", value: "trend" }, { title: "电影热榜", value: "movie_hot" }, { title: "剧集热榜", value: "tv_hot" }, { title: "电影筛选", value: "movie" }, { title: "剧集筛选", value: "tv" }, { title: "全部 (电影+剧集)", value: "all_hot" } ] },
             { name: "sort_by", title: "地区", type: "enumeration", value: "", enumOptions: [{ title: "全部地区", value: "" }, { title: "中国", value: "CN" }, { title: "美国", value: "US" }, { title: "韩国", value: "KR" }, { title: "日本", value: "JP" }, { title: "英国", value: "GB" }, { title: "中国香港", value: "HK" }, { title: "中国台湾", value: "TW" }, { title: "泰国", value: "TH" }, { title: "意大利", value: "IT" }, { title: "德国", value: "DE" }, { title: "西班牙", value: "ES" }, { title: "俄罗斯", value: "RU" }, { title: "瑞典", value: "SE" }, { title: "巴西", value: "BR" }, { title: "丹麦", value: "DK" }, { title: "印度", value: "IN" }, { title: "加拿大", value: "CA" }, { title: "爱尔兰", value: "IE" }, { title: "澳大利亚", value: "AU" }] },
             { name: "genre", title: "类型", type: "enumeration", value: "", enumOptions: [ { title: "全部", value: "" }, { title: "动作/冒险", value: "28" }, { title: "科幻/奇幻", value: "878" }, { title: "剧情", value: "18" }, { title: "喜剧", value: "35" }, { title: "动画", value: "16" }, { title: "悬疑/犯罪", value: "9648" }, { title: "恐怖/惊悚", value: "27" }, { title: "爱情", value: "10749" } ] },
             { name: "year", title: "年份", type: "input", value: "", description: "例如: 2024" },
             { name: "tmdb_sort", title: "排序", type: "enumeration", value: "popularity.desc", enumOptions: [ { title: "🔥 热度最高", value: "popularity.desc" }, { title: "⭐️ 评分最高", value: "vote_average.desc" }, { title: "🆕 最新上映", value: "primary_release_date.desc" } ] },
             { name: "page", title: "页码", type: "page", startPage: 1 } ] },
-        { title: "🟡 IMDb权威榜单", functionName: "loadImdbTrendEntry", type: "video", cacheDuration: 43200, params: [
+        { title: "IMDb权威榜单", functionName: "loadImdbTrendEntry", type: "video", cacheDuration: 43200, params: [
             { name: "sort_by", title: "IMDb榜单", type: "enumeration", value: "trending_week", enumOptions: [{ title: "本周热榜", value: "trending_week" }, { title: "今日热榜", value: "trending_day" }, { title: "流行趋势", value: "popular" }, { title: "高分神作", value: "top_rated" }, { title: "国产剧热度", value: "china_tv" }, { title: "国产电影热度", value: "china_movie" }] },
             { name: "mediaType", title: "范围", type: "enumeration", value: "all", enumOptions: [ { title: "全部 (剧集+电影)", value: "all" }, { title: "电影", value: "movie" }, { title: "剧集", value: "tv" } ] },
             { name: "page", title: "页码", type: "page", startPage: 1 } ] },
-        { title: "🍅 烂番茄风向标", functionName: "loadRtTrendEntry", type: "video", cacheDuration: 43200, params: [
+        { title: "烂番茄风向标", functionName: "loadRtTrendEntry", type: "video", cacheDuration: 43200, params: [
             { name: "sort_by", title: "烂番茄 榜单", type: "enumeration", value: "rt_movies_home", enumOptions: [{ title: "🎬 流媒体热映", value: "rt_movies_home" }, { title: "🍿 院线热映", value: "rt_movies_theater" }, { title: "💎 最佳流媒体", value: "rt_movies_best" }, { title: "📺 热门剧集", value: "rt_tv_popular" }, { title: "🆕 最新上线", value: "rt_tv_new" }] },
             { name: "page", title: "页码", type: "page", startPage: 1 } ] },
-        { title: "🌍 Trakt趋势榜", functionName: "loadTraktTrendEntry", type: "video", cacheDuration: 43200, params: [
+        { title: "Trakt趋势榜", functionName: "loadTraktTrendEntry", type: "video", cacheDuration: 43200, params: [
             { name: "sort_by", title: "Trakt榜单", type: "enumeration", value: "trending", enumOptions: [{ title: "实时热播", value: "trending" }, { title: "最受欢迎", value: "popular" }, { title: "最受期待", value: "anticipated" }] },
             { name: "traktType", title: "Trakt类型", type: "enumeration", value: "all", enumOptions: [ { title: "全部", value: "all" }, { title: "剧集", value: "shows" }, { title: "电影", value: "movies" } ] },
             { name: "page", title: "页码", type: "page", startPage: 1 } ] },
-        { title: "🟢 豆瓣国内风向", functionName: "loadDoubanTrendEntry", type: "video", cacheDuration: 43200, params: [
+        { title: "豆瓣国内风向", functionName: "loadDoubanTrendEntry", type: "video", cacheDuration: 43200, params: [
             {
                 name: "sort_by", title: "豆瓣 榜单", type: "enumeration", value: "db_tv_cn",
                 enumOptions: [
