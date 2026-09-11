@@ -20,8 +20,10 @@ KEEP = ["tv", "tv_domestic", "tv_american", "tv_japanese", "tv_korean",
 
 # 豆瓣实时热门 subject_collection
 COLLECTIONS = [
-    {"key": "movie_real_time_hotest", "media": "movie", "fallback": "电影实时热门"},
-    {"key": "tv_real_time_hotest", "media": "tv", "fallback": "剧集实时热门"},
+    {"key": "movie_real_time_hotest", "media": "movie", "fallback": "电影实时热门", "limit": 20},
+    {"key": "tv_real_time_hotest", "media": "tv", "fallback": "剧集实时热门", "limit": 20},
+    {"key": "subject_real_time_hotest", "media": "mixed", "fallback": "书影音实时热门", "limit": 30},
+    {"key": "movie_showing", "media": "movie", "fallback": "影院热映", "limit": 64},
 ]
 
 UA = ("Mozilla/5.0 (iPhone; CPU iPhone OS 17_0 like Mac OS X) "
@@ -69,6 +71,12 @@ def fetch_collection(key, limit=20):
 
 def tmdb_search(media, title, year):
     if not TMDB_API_KEY:
+        return None
+    if media == "mixed":
+        for kind in ("tv", "movie"):
+            hit = tmdb_search(kind, title, year)
+            if hit:
+                return hit
         return None
     params = {"query": title, "language": "zh-CN"}
     headers = {"User-Agent": "qiguo093-List/1.0"}

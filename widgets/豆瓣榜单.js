@@ -17,7 +17,8 @@ WidgetMetadata = {
         { title: "欧美剧集", value: "tv_american" }, { title: "日本剧集", value: "tv_japanese" },
         { title: "韩国剧集", value: "tv_korean" }, { title: "动漫番剧", value: "tv_animation" },
         { title: "大陆综艺", value: "show_domestic" }, { title: "国外综艺", value: "show_foreign" },
-        { title: "电影实时热门", value: "movie_real_time_hotest" }, { title: "剧集实时热门", value: "tv_real_time_hotest" }
+        { title: "电影实时热门", value: "movie_real_time_hotest" }, { title: "剧集实时热门", value: "tv_real_time_hotest" },
+        { title: "书影音实时热门", value: "subject_real_time_hotest" }, { title: "影院热映", value: "movie_showing" }
       ]},
       { name: "sort_type", title: "排序方式", type: "enumeration", value: "default", enumOptions: [
         { title: "默认原序", value: "default" }, { title: "最近更新", value: "updated" },
