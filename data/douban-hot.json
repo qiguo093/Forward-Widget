@@ -4547,22 +4547,6 @@
       "genreTitle": "剧情,战争"
     },
     {
-      "id": "10756537",
-      "type": "douban",
-      "title": "杀死比尔：血色全传",
-      "description": "2004 / 美国 / 动作 犯罪 / 昆汀·塔伦蒂诺 / 乌玛·瑟曼 刘玉玲",
-      "rating": 8.7,
-      "voteCount": 95589,
-      "popularity": 144880,
-      "releaseDate": "2004",
-      "lastUpdateDate": "2004",
-      "posterPath": "https://img9.doubanio.com/view/photo/m_ratio_poster/public/p2933745954.jpg",
-      "backdropPath": "https://img9.doubanio.com/view/photo/m_ratio_poster/public/p2933745954.jpg",
-      "mediaType": "movie",
-      "genreTitle": "电影",
-      "doubanUrl": "https://www.douban.com/doubanapp/dispatch/movie/10756537"
-    },
-    {
       "id": "1483525",
       "type": "tmdb",
       "title": "可能的爱情",
@@ -4713,22 +4697,6 @@
       "backdropPath": "/s9YSQAJtXjimsjBVsqLtJNnIjEs.jpg",
       "mediaType": "tv",
       "genreTitle": "悬疑"
-    },
-    {
-      "id": "37817080",
-      "type": "douban",
-      "title": "花儿与少年 第八季",
-      "description": "2026 / 中国大陆 / 真人秀 / 吴君如 殷桃",
-      "rating": 0,
-      "voteCount": 0,
-      "popularity": 479060,
-      "releaseDate": "2026",
-      "lastUpdateDate": "2026",
-      "posterPath": "https://img9.doubanio.com/view/photo/m_ratio_poster/public/p2935688706.jpg",
-      "backdropPath": "https://img9.doubanio.com/view/photo/m_ratio_poster/public/p2935688706.jpg",
-      "mediaType": "tv",
-      "genreTitle": "综艺",
-      "doubanUrl": "https://www.douban.com/doubanapp/dispatch/movie/37817080"
     },
     {
       "id": "301418",

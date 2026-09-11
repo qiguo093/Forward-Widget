@@ -141,11 +141,30 @@ def build_collection(cfg):
     def convert(raw):
         year = (raw.get("year") or "").strip()
         item = tmdb_search(cfg["media"], raw.get("title") or "", year)
-        return item or fallback_item(raw, cfg["media"])
+        if not item:
+            return None
+        # 与电视/综艺分类保持完全一致的字段结构，避免 App 端解析失败
+        return {
+            "id": item["id"],
+            "type": "tmdb",
+            "title": item["title"],
+            "description": item["description"],
+            "rating": item["rating"],
+            "voteCount": item["voteCount"],
+            "popularity": item["popularity"],
+            "releaseDate": item["releaseDate"],
+            "lastUpdateDate": item["lastUpdateDate"],
+            "posterPath": item["posterPath"],
+            "backdropPath": item["backdropPath"],
+            "mediaType": item["mediaType"],
+            "genreTitle": item["genreTitle"],
+        }
 
     with ThreadPoolExecutor(max_workers=6) as pool:
-        result = [x for x in pool.map(convert, raw_items) if x and x.get("posterPath")]
-    print(f"  {cfg['key']}: 豆瓣 {len(raw_items)} 条 -> 输出 {len(result)} 条")
+        result = [x for x in pool.map(convert, raw_items) if x]
+    if not result:
+        raise RuntimeError(f"{cfg['key']} TMDB 全部匹配失败，保留旧数据")
+    print(f"  {cfg['key']}: 豆瓣 {len(raw_items)} 条 -> 匹配成功 {len(result)} 条")
     return result
 
 
