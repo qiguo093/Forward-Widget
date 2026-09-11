@@ -29,7 +29,6 @@ THEATERS = [
     { "name": "迷雾剧场", "id": "164880152", "custom_items": [{"title": "深渊无间", "year": "2026"}] },
     { "name": "白夜剧场", "id": "164880158", "custom_items": [{"title": "冬城猎凶", "year": "2026"}] },
     { "name": "X剧场", "id": "164880165", "custom_items": [] },
-    { "name": "玛卡巴卡的悬疑剧", "id": "160885987", "custom_items": [] },
     { "name": "横屏短剧", "id": "152299516", "custom_items": [] },
     { "name": "生花剧场", "id": "164880852", "custom_items": [] },
     { "name": "大家剧场", "id": "160644809", "custom_items": [] },

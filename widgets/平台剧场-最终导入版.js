@@ -23,7 +23,6 @@ WidgetMetadata = {
             { title: "暗流剧场", value: "暗流剧场" },
             { title: "白夜剧场", value: "白夜剧场" },
             { title: "X剧场", value: "X剧场" },
-            { title: "玛卡巴卡的悬疑剧", value: "玛卡巴卡的悬疑剧" },
             { title: "横屏短剧", value: "横屏短剧" },
             { title: "生花剧场", value: "生花剧场" },
             { title: "大家剧场", value: "大家剧场" },
