@@ -1,5 +1,5 @@
 {
-  "last_updated": "2026-09-11 11:07:48",
+  "last_updated": "2026-09-11 11:32:11",
   "迷雾剧场": {
     "aired": [
       {
@@ -174,7 +174,7 @@
         "description": "2002年冬，雪城刑警队长彭兆林接报案，该城一栋居民楼中发生杀人案。警方在搜查犯罪现场后，掌握了以邓立钢为首的四名疑犯的身份信息，而他们已经流窜到外省，警方辗转数省追踪，犯罪团伙却突然销声匿迹。2004年初，彭兆林接到了女高中生甄珍被绑架的报案。甄珍在与母亲吵架后离家出走，来到南方城市滦城，其间遭到绑架。令彭兆林意外的是，绑架甄珍的竟然就是藏匿已久的邓立钢团伙。雪城公安立即赶往滦城，成功解救甄珍，但邓立钢团伙又一次狡猾逃脱。2011年冬，彭兆林发现邓立钢弟弟曾在雪城就医的线索，他顺藤摸瓜，通过排查发现邓立钢等人已改名换姓，躲藏在西北小城绥鹿市。雪城公安在当地警方的协助下，严密布控，将邓立钢及其团伙绳之以法。",
         "rating": 6.857,
         "voteCount": 14,
-        "popularity": 4.6311,
+        "popularity": 4.1197,
         "releaseDate": "2025-01-17",
         "lastUpdateDate": "2025-01-22",
         "posterPath": "/bEcFBnDwUXXDizdaR5EiC0qRhS3.jpg",
@@ -475,6 +475,21 @@
   "白夜剧场": {
     "aired": [
       {
+        "id": "290863",
+        "type": "tmdb",
+        "title": "冬城猎凶",
+        "description": "银行大劫案，搅动大城风云；儿童拐卖案，重起罪恶迷雾。双时空、案中案，极致追凶。",
+        "rating": 7.0,
+        "voteCount": 1,
+        "popularity": 9.3676,
+        "releaseDate": "2026-09-10",
+        "lastUpdateDate": "2026-09-10",
+        "posterPath": "/64NVbdSuNgrK90wqhtnlR2S4sPK.jpg",
+        "backdropPath": "/yfJn4TktTqvFr5DCTqd1dC8I16M.jpg",
+        "mediaType": "tv",
+        "genreTitle": "犯罪"
+      },
+      {
         "id": "273114",
         "type": "tmdb",
         "title": "悬案",
@@ -686,7 +701,7 @@
       }
     ],
     "upcoming": [],
-    "totalItems": 17,
+    "totalItems": 16,
     "totalPages": 1
   },
   "X剧场": {
@@ -2145,7 +2160,7 @@
         "description": "　　以大唐洛阳的美妆世家顾家四个非同一般的女儿为落点，讲述了在父母失踪后，面对突如其来的家族危机，女孩们放下过往嫌隙恩怨，齐心协力应对内外敌人，成功守护传承秘术的故事，展现古代女子的智勇英气和爱恨情仇。",
         "rating": 0.0,
         "voteCount": 0,
-        "popularity": 1.6085,
+        "popularity": 1.5797,
         "releaseDate": "2022-05-11",
         "lastUpdateDate": "2022-06-04",
         "posterPath": "/ttlweD6bvIfpAalBQl05xi5WFAS.jpg",
@@ -3373,7 +3388,7 @@
         "description": "　　以大唐洛阳的美妆世家顾家四个非同一般的女儿为落点，讲述了在父母失踪后，面对突如其来的家族危机，女孩们放下过往嫌隙恩怨，齐心协力应对内外敌人，成功守护传承秘术的故事，展现古代女子的智勇英气和爱恨情仇。",
         "rating": 0.0,
         "voteCount": 0,
-        "popularity": 1.6085,
+        "popularity": 1.5797,
         "releaseDate": "2022-05-11",
         "lastUpdateDate": "2022-06-04",
         "posterPath": "/ttlweD6bvIfpAalBQl05xi5WFAS.jpg",
@@ -3642,7 +3657,7 @@
         "description": "讲述了杨小芳与同村的祁小伟未婚先孕，杨家人紧急回村为小芳出谋划策，祁杨两家态度不一，意外掀起了一场“婚恋风暴”，两家谈判失败，小芳“带球相亲”，却受到全村追捧并引发了一系列让人啼笑皆非的事件。",
         "rating": 8.7,
         "voteCount": 3,
-        "popularity": 5.0881,
+        "popularity": 4.7495,
         "releaseDate": "2026-07-13",
         "lastUpdateDate": "2026-07-21",
         "posterPath": "/dF8AzhhHtOLHTmuZ12Wx2if7oz2.jpg",
