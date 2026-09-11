@@ -417,23 +417,20 @@ async def process_theater(session, theater, cache):
 
     tmdb_count = len(seen_tmdb)
     fallback_count = len(fallback_aired) + len(fallback_upcoming)
-    movie_count = sum(
-        1
-        for show in aired
-        if show.get("mediaType") == "movie"
-    )
+    # 恢复为旧行为：只输出 TMDB 匹配成功的条目，不保留豆瓣兜底项。
+    aired = [show for show in aired if show.get("type") == "tmdb"]
+    fallback_upcoming = []
+    movie_count = sum(1 for show in aired if show.get("mediaType") == "movie")
 
     print(
         f"✅ [{theater['name']}] 处理完成: 共发现 {len(items)} 部，"
-        f"TMDB 匹配 {tmdb_count} 部，豆瓣兜底 {fallback_count} 部"
-        f"（其中即将推出 {len(fallback_upcoming)} 部），"
-        f"电影 {movie_count} 部"
+        f"TMDB 匹配 {len(aired)} 部，豆瓣兜底 0 部，电影 {movie_count} 部"
     )
 
     return {
         theater["name"]: {
             "aired": aired,
-            "upcoming": fallback_upcoming,
+            "upcoming": [],
             "totalItems": len(items),
             "totalPages": douban_data["page_count"],
         }
