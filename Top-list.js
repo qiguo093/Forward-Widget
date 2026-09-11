@@ -57,7 +57,7 @@ var WidgetMetadata = {
     id: "🅖 🅖ᴳMedia.library",
     title: "终极影视榜单Pro",
     description: "影视、动漫、综艺、弹幕、全球聚合",
-    icon: "https://github.com/qiguo093/List/raw/refs/heads/main/icon2.png",
+    icon: "https://github.com/qiguo093/Forward-Widget/raw/refs/heads/main/icon2.png",
     author: "𝓚𝓾𝓰𝓾𝓸𝔃𝓪𝓲 ⁷",
     version: "2.0.0",
     requiredVersion: "0.0.1",
@@ -2337,25 +2337,25 @@ async function loadTheaterDouban(params = {}) {
 /**
  * 模块 2：加载精选剧场
  */
-const THEATER_DATA_URL = "https://raw.githubusercontent.com/qiguo093/List/main/data/theater-data.json";
+const THEATER_DATA_URL = "https://raw.githubusercontent.com/qiguo093/Forward-Widget/main/data/theater-data.json";
 const THEATER_DATA_URLS = [
   THEATER_DATA_URL,
-  "https://gcore.jsdelivr.net/gh/qiguo093/List@main/data/theater-data.json",
-  "https://fastly.jsdelivr.net/gh/qiguo093/List@main/data/theater-data.json",
-  "https://raw.githack.com/qiguo093/List/main/data/theater-data.json",
-  "https://ghfast.top/https://raw.githubusercontent.com/qiguo093/List/main/data/theater-data.json",
-  "https://gh-proxy.com/https://raw.githubusercontent.com/qiguo093/List/main/data/theater-data.json",
-  "https://raw.githubusercontent.com/qiguo093/List/main/data/theater-data.json"
+  "https://gcore.jsdelivr.net/gh/qiguo093/Forward-Widget@main/data/theater-data.json",
+  "https://fastly.jsdelivr.net/gh/qiguo093/Forward-Widget@main/data/theater-data.json",
+  "https://raw.githack.com/qiguo093/Forward-Widget/main/data/theater-data.json",
+  "https://ghfast.top/https://raw.githubusercontent.com/qiguo093/Forward-Widget/main/data/theater-data.json",
+  "https://gh-proxy.com/https://raw.githubusercontent.com/qiguo093/Forward-Widget/main/data/theater-data.json",
+  "https://raw.githubusercontent.com/qiguo093/Forward-Widget/main/data/theater-data.json"
 ];
-const DOUBAN_RANKINGS_URL = "https://cdn.jsdelivr.net/gh/qiguo093/List@main/data/douban-hot.json";
+const DOUBAN_RANKINGS_URL = "https://cdn.jsdelivr.net/gh/qiguo093/Forward-Widget@main/data/douban-hot.json";
 const DOUBAN_RANKINGS_URLS = [
   DOUBAN_RANKINGS_URL,
-  "https://gcore.jsdelivr.net/gh/qiguo093/List@main/data/douban-hot.json",
-  "https://fastly.jsdelivr.net/gh/qiguo093/List@main/data/douban-hot.json",
-  "https://raw.githack.com/qiguo093/List/main/data/douban-hot.json",
-  "https://ghfast.top/https://raw.githubusercontent.com/qiguo093/List/main/data/douban-hot.json",
-  "https://gh-proxy.com/https://raw.githubusercontent.com/qiguo093/List/main/data/douban-hot.json",
-  "https://raw.githubusercontent.com/qiguo093/List/main/data/douban-hot.json"
+  "https://gcore.jsdelivr.net/gh/qiguo093/Forward-Widget@main/data/douban-hot.json",
+  "https://fastly.jsdelivr.net/gh/qiguo093/Forward-Widget@main/data/douban-hot.json",
+  "https://raw.githack.com/qiguo093/Forward-Widget/main/data/douban-hot.json",
+  "https://ghfast.top/https://raw.githubusercontent.com/qiguo093/Forward-Widget/main/data/douban-hot.json",
+  "https://gh-proxy.com/https://raw.githubusercontent.com/qiguo093/Forward-Widget/main/data/douban-hot.json",
+  "https://raw.githubusercontent.com/qiguo093/Forward-Widget/main/data/douban-hot.json"
 ];
 
 const THEATER_SHARD_FILES = {
@@ -2369,9 +2369,9 @@ function theaterShardUrls(name) {
   const file = THEATER_SHARD_FILES[name];
   if (!file) return [];
   return [
-    `https://raw.githubusercontent.com/qiguo093/List/main/data/theaters/${file}.json`,
-    `https://cdn.jsdelivr.net/gh/qiguo093/List@main/data/theaters/${file}.json`,
-    `https://fastly.jsdelivr.net/gh/qiguo093/List@main/data/theaters/${file}.json`
+    `https://raw.githubusercontent.com/qiguo093/Forward-Widget/main/data/theaters/${file}.json`,
+    `https://cdn.jsdelivr.net/gh/qiguo093/Forward-Widget@main/data/theaters/${file}.json`,
+    `https://fastly.jsdelivr.net/gh/qiguo093/Forward-Widget@main/data/theaters/${file}.json`
   ];
 }
 
@@ -2394,11 +2394,11 @@ function theaterSortItems(items, mode) {
   return copy;
 }
 
-// 平台剧场：读取 qiguo093/List 自己生成的纯 TMDB 数据。
+// 平台剧场：读取 qiguo093/Forward-Widget 自己生成的纯 TMDB 数据。
 const OWN_PLATFORM_THEATER = {
   emptyTips: [{ id: "empty", type: "text", title: "加载失败", description: "请检查网络连接" }],
   async fetch(filename) {
-    const url = `https://raw.githubusercontent.com/qiguo093/List/main/data/${filename}`;
+    const url = `https://raw.githubusercontent.com/qiguo093/Forward-Widget/main/data/${filename}`;
     try {
       const resp = await Widget.http.get(url, { decodable: true });
       if (!resp?.data) return this.emptyTips;
