@@ -62,8 +62,62 @@ def clean_douban_title(raw_title):
     return title
 
 async def fetch_doulist_pages(session, theater):
-    """翻页抓取豆瓣片单里的所有剧集；失败时抛错，禁止用空结果覆盖旧数据。"""
-    print(f"🎬 开始获取 [{theater['name']}] 数据...")
+    """优先走豆瓣接口（可识别条目是剧集还是电影），失败时回退网页解析。"""
+    try:
+        return await fetch_doulist_pages_api(session, theater)
+    except Exception as e:
+        print(f"⚠️ [{theater['name']}] 接口模式失败（{e}），回退网页解析")
+        return await fetch_doulist_pages_html(session, theater)
+
+
+async def fetch_doulist_pages_api(session, theater):
+    """通过豆瓣接口抓取片单，保留 type 字段（tv / movie）。"""
+    print(f"🎬 开始获取 [{theater['name']}] 数据（接口模式）...")
+    all_items = []
+    start = 0
+    page_count = 0
+    total = None
+    headers = {
+        "User-Agent": "Mozilla/5.0 (iPhone; CPU iPhone OS 17_0 like Mac OS X) AppleWebKit/605.1.15 (KHTML, like Gecko) Version/17.0 Mobile/15E148 Safari/604.1",
+        "Accept": "application/json",
+        "Referer": f"https://m.douban.com/doulist/{theater['id']}/"
+    }
+    while True:
+        url = (f"https://m.douban.com/rexxar/api/v2/doulist/{theater['id']}/items"
+               f"?start={start}&count=25&items_only=1")
+        async with session.get(url, headers=headers, timeout=REQUEST_TIMEOUT) as resp:
+            if resp.status != 200:
+                raise RuntimeError(f"HTTP {resp.status}")
+            data = await resp.json(content_type=None)
+        batch = data.get("items") or []
+        if total is None:
+            total = data.get("total")
+        if not batch:
+            break
+        for it in batch:
+            title = clean_douban_title((it.get("title") or "").strip())
+            if not title:
+                continue
+            ym = re.search(r"(\d{4})", it.get("subtitle") or "")
+            all_items.append({
+                "title": title,
+                "year": ym.group(1) if ym else None,
+                "type": it.get("type") or "tv",
+            })
+        page_count += 1
+        start += len(batch)
+        if total and start >= total:
+            break
+        await asyncio.sleep(0.4)
+    if not all_items:
+        raise RuntimeError("片单接口返回 0 条")
+    print(f"   ↳ 接口解析到 {len(all_items)} 条（其中电影 {sum(1 for x in all_items if x['type'] == 'movie')} 条）")
+    return {"items": all_items, "page_count": max(1, page_count)}
+
+
+async def fetch_doulist_pages_html(session, theater):
+    """网页解析兜底：无法识别条目类型，统一按剧集处理。"""
+    print(f"🎬 开始获取 [{theater['name']}] 数据（网页模式）...")
     all_items = []
     start = 0
     page_size = 25
@@ -115,7 +169,7 @@ async def fetch_doulist_pages(session, theater):
                     year_match = re.search(r'(\d{4})(?=-\d{2}-\d{2})', meta_elem.get_text(strip=True))
                     if year_match:
                         year = year_match.group(1)
-                all_items.append({"title": clean_title, "year": year})
+                all_items.append({"title": clean_title, "year": year, "type": "tv"})
 
         if len(items) < page_size:
             break
@@ -127,14 +181,17 @@ async def fetch_doulist_pages(session, theater):
     return {"items": all_items, "page_count": page_count}
 
 async def search_tmdb(session, item, cache):
-    """在 TMDB 中进行严格匹配"""
+    """在 TMDB 中进行严格匹配（按豆瓣条目类型区分剧集 / 电影）"""
     title = item['title']
     year = item['year']
-    cache_key = f"{title}_{year}"
+    media = item.get('type') or 'tv'
+    if media not in ('tv', 'movie'):
+        media = 'tv'
+    cache_key = f"{media}_{title}_{year}"
     
     if cache_key in cache: return cache[cache_key]
 
-    url = "https://api.themoviedb.org/3/search/tv"
+    url = f"https://api.themoviedb.org/3/search/{media}"
     headers = {"accept": "application/json"}
     params = {"query": title, "language": "zh-CN"}
     
@@ -143,7 +200,8 @@ async def search_tmdb(session, item, cache):
     else:
         params["api_key"] = TMDB_API_KEY
 
-    if year: params["first_air_date_year"] = year
+    if year:
+        params["first_air_date_year" if media == "tv" else "primary_release_year"] = year
 
     try:
         async with session.get(url, params=params, headers=headers) as resp:
@@ -156,13 +214,13 @@ async def search_tmdb(session, item, cache):
                 today_str = datetime.datetime.now(tz_bj).strftime("%Y-%m-%d")
                 
                 for res in results:
-                    tmdb_name = (res.get("name") or "").strip().lower()
+                    tmdb_name = (res.get("name") or res.get("title") or "").strip().lower()
                     query_name = title.strip().lower()
                     
                     # 宽松一点包含匹配，兼容部分副标题
                     is_title_match = (query_name in tmdb_name or tmdb_name in query_name)
                     is_year_match = True
-                    first_air = res.get("first_air_date")
+                    first_air = res.get("first_air_date") or res.get("release_date")
                     
                     if year and first_air:
                         is_year_match = first_air.startswith(year)
@@ -182,20 +240,20 @@ async def search_tmdb(session, item, cache):
                             # 未到开播时间，或者 TMDB 根本没写开播时间，直接跳过
                             continue
 
-                        # 🔴 新增：拿着 id 去请求详情，获取最新更新日期 (last_air_date)
-                        detail_url = f"https://api.themoviedb.org/3/tv/{tmdb_id}"
-                        detail_params = {"language": "zh-CN"}
-                        if not TMDB_API_KEY.startswith("eyJ"):
-                            detail_params["api_key"] = TMDB_API_KEY
-                            
+                        # 🔴 新增：剧集再请求详情，获取最新更新日期 (last_air_date)
                         last_update_date = first_air # 默认用首播日期兜底
-                        try:
-                            async with session.get(detail_url, params=detail_params, headers=headers) as d_resp:
-                                if d_resp.status == 200:
-                                    d_data = await d_resp.json()
-                                    last_update_date = d_data.get("last_air_date") or first_air
-                        except Exception as e:
-                            pass # 详情获取失败不影响主体逻辑
+                        if media == "tv":
+                            detail_url = f"https://api.themoviedb.org/3/tv/{tmdb_id}"
+                            detail_params = {"language": "zh-CN"}
+                            if not TMDB_API_KEY.startswith("eyJ"):
+                                detail_params["api_key"] = TMDB_API_KEY
+                            try:
+                                async with session.get(detail_url, params=detail_params, headers=headers) as d_resp:
+                                    if d_resp.status == 200:
+                                        d_data = await d_resp.json()
+                                        last_update_date = d_data.get("last_air_date") or first_air
+                            except Exception as e:
+                                pass # 详情获取失败不影响主体逻辑
 
                         genre_ids = res.get("genre_ids", [])
                         genre_names = ",".join([GENRE_MAP.get(gid) for gid in genre_ids if GENRE_MAP.get(gid)])
@@ -203,7 +261,7 @@ async def search_tmdb(session, item, cache):
                         info = {
                             "id": str(tmdb_id),
                             "type": "tmdb",
-                            "title": res.get("name"),
+                            "title": res.get("name") or res.get("title"),
                             "description": res.get("overview"),
                             "rating": res.get("vote_average"),
                             "voteCount": res.get("vote_count"),
@@ -212,7 +270,7 @@ async def search_tmdb(session, item, cache):
                             "lastUpdateDate": last_update_date, # 🔴 新增：这里保存给前端排序用
                             "posterPath": poster_path,
                             "backdropPath": backdrop_path,
-                            "mediaType": "tv",
+                            "mediaType": media,
                             "genreTitle": genre_names
                         }
                         cache[cache_key] = info
@@ -244,13 +302,20 @@ async def process_theater(session, theater, cache):
         await asyncio.sleep(0.3) # ⚠️ 稍微放慢一点点，因为多了二次详情请求
 
     # 经过 search_tmdb 过滤，能留下的 100% 都是已开播的数据，所以 upcoming 恒定为空数组即可
-    aired = shows
+    # 去重：同一部作品（同媒体类型 + 同 TMDB ID）只保留一次
+    seen, aired = set(), []
+    for s in shows:
+        key = (s.get("mediaType"), s.get("id"))
+        if key in seen:
+            continue
+        seen.add(key)
+        aired.append(s)
     upcoming = []
             
     # 已开播按时间倒序排列 (最新的在前面)
     aired.sort(key=lambda x: x.get("releaseDate") or "0000-00-00", reverse=True)
     
-    print(f"✅ [{theater['name']}] 处理完成: 共发现 {len(items)} 部，完美匹配 {len(shows)} 部 (全部为已播双图精品)")
+    print(f"✅ [{theater['name']}] 处理完成: 共发现 {len(items)} 部，完美匹配 {len(aired)} 部 (含电影 {sum(1 for x in aired if x['mediaType'] == 'movie')} 部)")
     
     return {
         theater["name"]: {
