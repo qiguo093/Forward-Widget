@@ -1,5 +1,5 @@
 {
-  "last_updated": "2026-09-11 18:45:21",
+  "last_updated": "2026-09-11 22:48:57",
   "迷雾剧场": {
     "aired": [
       {
@@ -698,22 +698,6 @@
         "backdropPath": "/9h8H5KJw3thVseDncppTianstOK.jpg",
         "mediaType": "tv",
         "genreTitle": "剧情,悬疑"
-      },
-      {
-        "id": "27140256",
-        "type": "douban",
-        "title": "白夜破晓",
-        "description": "2024 / 中国大陆 / 剧情 悬疑 犯罪 / 刘英剑 / 潘粤明 王龙正",
-        "rating": 5.9,
-        "voteCount": 133678,
-        "popularity": 0,
-        "releaseDate": "2024-01-01",
-        "lastUpdateDate": "2024-01-01",
-        "posterPath": "https://img1.doubanio.com/view/photo/m_ratio_poster/public/p2915507895.jpg",
-        "backdropPath": "https://img1.doubanio.com/view/photo/m_ratio_poster/public/p2915507895.jpg",
-        "mediaType": "tv",
-        "genreTitle": "",
-        "doubanUrl": "https://movie.douban.com/subject/27140256/"
       }
     ],
     "upcoming": [],
@@ -1540,38 +1524,6 @@
         "genreTitle": "剧情,科幻奇幻"
       },
       {
-        "id": "37346611",
-        "type": "douban",
-        "title": "你好同窗妈妈",
-        "description": "2025 / 中国大陆 / 马应寿 / 洪欣 都兰",
-        "rating": 0,
-        "voteCount": 0,
-        "popularity": 0,
-        "releaseDate": "2025-01-01",
-        "lastUpdateDate": "2025-01-01",
-        "posterPath": "https://img1.doubanio.com/view/photo/m_ratio_poster/public/p2921346245.jpg",
-        "backdropPath": "https://img1.doubanio.com/view/photo/m_ratio_poster/public/p2921346245.jpg",
-        "mediaType": "tv",
-        "genreTitle": "",
-        "doubanUrl": "https://movie.douban.com/subject/37346611/"
-      },
-      {
-        "id": "37315612",
-        "type": "douban",
-        "title": "从深渊到云端",
-        "description": "2025 / 中国大陆 / 剧情 爱情 短片 / 杨晨 郑千亦",
-        "rating": 0,
-        "voteCount": 0,
-        "popularity": 0,
-        "releaseDate": "2025-01-01",
-        "lastUpdateDate": "2025-01-01",
-        "posterPath": "https://img1.doubanio.com/view/photo/m_ratio_poster/public/p2921680185.jpg",
-        "backdropPath": "https://img1.doubanio.com/view/photo/m_ratio_poster/public/p2921680185.jpg",
-        "mediaType": "tv",
-        "genreTitle": "",
-        "doubanUrl": "https://movie.douban.com/subject/37315612/"
-      },
-      {
         "id": "280706",
         "type": "tmdb",
         "title": "爱神迎光来",
@@ -1752,38 +1704,6 @@
         "genreTitle": "剧情"
       },
       {
-        "id": "36539522",
-        "type": "douban",
-        "title": "怪奇笔记",
-        "description": "2024 / 中国大陆 / 悬疑 奇幻 / 施磊 / 杨新鸣 蒲巴甲",
-        "rating": 7.1,
-        "voteCount": 3643,
-        "popularity": 0,
-        "releaseDate": "2024-01-01",
-        "lastUpdateDate": "2024-01-01",
-        "posterPath": "https://img1.doubanio.com/view/photo/m_ratio_poster/public/p2917517311.jpg",
-        "backdropPath": "https://img1.doubanio.com/view/photo/m_ratio_poster/public/p2917517311.jpg",
-        "mediaType": "tv",
-        "genreTitle": "",
-        "doubanUrl": "https://movie.douban.com/subject/36539522/"
-      },
-      {
-        "id": "37139571",
-        "type": "douban",
-        "title": "我和我爸的十八岁",
-        "description": "2024 / 中国大陆 / 剧情 奇幻 / 赵子俊 / 邱鼎杰 柯博伦",
-        "rating": 0,
-        "voteCount": 0,
-        "popularity": 0,
-        "releaseDate": "2024-01-01",
-        "lastUpdateDate": "2024-01-01",
-        "posterPath": "https://img1.doubanio.com/view/photo/m_ratio_poster/public/p2915988868.jpg",
-        "backdropPath": "https://img1.doubanio.com/view/photo/m_ratio_poster/public/p2915988868.jpg",
-        "mediaType": "tv",
-        "genreTitle": "",
-        "doubanUrl": "https://movie.douban.com/subject/37139571/"
-      },
-      {
         "id": "242341",
         "type": "tmdb",
         "title": "镜中的完美丈夫",
@@ -1887,21 +1807,6 @@
         "backdropPath": "/ax0sFSJT0Kp788gFZILk2wKnchT.jpg",
         "mediaType": "tv",
         "genreTitle": "动作冒险"
-      },
-      {
-        "id": "232639",
-        "type": "tmdb",
-        "title": "抉择",
-        "description": "1936年上海滩，爱国组织成员黄伟杰接到除掉协助日本黑商走私鸦片马会长的任务，巧遇爱国商人冯冠宇竟是儿时挚友。阔别多年再见面却剑拔弩张，只因冯冠宇在年少时失约导致黄伟杰差点被日本浪人打死。冯冠宇因心中亏欠，想要修复友谊弥补心结。在冯冠宇的强势手腕下，黄伟杰被迫成为其保镖。虽然两人矛盾不断，但在一次次共同患难中，二人重拾兄弟情义。随着日本侵华的涌现，怀揣着正义理想的两人，携手共抗，英勇投身爱国主义事业。虽然黑夜已至，但黎明和曙光亦在前方。",
-        "rating": 7.8,
-        "voteCount": 4,
-        "popularity": 2.0212,
-        "releaseDate": "2023-08-17",
-        "lastUpdateDate": "2023-09-01",
-        "posterPath": "/gRA8yrkFlXwfXWjc4BXCdFUOkiF.jpg",
-        "backdropPath": "/rKMSN6Lw0vqz6PSGP5j7Vsf5asb.jpg",
-        "mediaType": "tv",
-        "genreTitle": "剧情,犯罪"
       },
       {
         "id": "231488",
@@ -2024,21 +1929,6 @@
         "genreTitle": "剧情"
       },
       {
-        "id": "218017",
-        "type": "tmdb",
-        "title": "盲少爷的小女仆",
-        "description": "任浩铭，作为任家最受器重的长子，纵横商场无敌手。但他最近实惨，因为一场车祸双目失明，变成一个吃饭洗澡都需要人帮忙的大冤种！更惨的是，与别有用心的阮清恬定了婚约！两人同居以主仆相称，不过这个女仆做饭做不好，洗澡帮不了，任浩铭的眼睛更疼了！这个家霸总不像霸总，仆人不像仆人！任浩铭他这小子惨了，坠入爱河了！",
-        "rating": 7.7,
-        "voteCount": 5,
-        "popularity": 1.9176,
-        "releaseDate": "2023-01-09",
-        "lastUpdateDate": "2023-01-09",
-        "posterPath": "/AlpYJPFFnhOZ8XmKvBwWqu3vl4g.jpg",
-        "backdropPath": "/21PYFXDOSd9i5H41M6o4v4ALH9H.jpg",
-        "mediaType": "tv",
-        "genreTitle": "喜剧,剧情,悬疑"
-      },
-      {
         "id": "219030",
         "type": "tmdb",
         "title": "城主是我的",
@@ -2054,38 +1944,6 @@
         "genreTitle": "剧情"
       },
       {
-        "id": "36093592",
-        "type": "douban",
-        "title": "夜夜相见不识君",
-        "description": "2023 / 中国大陆 / 剧情 短片 古装 / 喜子 / 李菲 孙雪宁",
-        "rating": 6.1,
-        "voteCount": 3737,
-        "popularity": 0,
-        "releaseDate": "2023-01-01",
-        "lastUpdateDate": "2023-01-01",
-        "posterPath": "https://img1.doubanio.com/view/photo/m_ratio_poster/public/p2889722472.jpg",
-        "backdropPath": "https://img1.doubanio.com/view/photo/m_ratio_poster/public/p2889722472.jpg",
-        "mediaType": "tv",
-        "genreTitle": "",
-        "doubanUrl": "https://movie.douban.com/subject/36093592/"
-      },
-      {
-        "id": "35925503",
-        "type": "douban",
-        "title": "绝色小神医",
-        "description": "2023 / 中国大陆 / 喜剧 古装 / 雷影 / 潘悦 曹君豪",
-        "rating": 0,
-        "voteCount": 0,
-        "popularity": 0,
-        "releaseDate": "2023-01-01",
-        "lastUpdateDate": "2023-01-01",
-        "posterPath": "https://img1.doubanio.com/view/photo/m_ratio_poster/public/p2897069313.jpg",
-        "backdropPath": "https://img1.doubanio.com/view/photo/m_ratio_poster/public/p2897069313.jpg",
-        "mediaType": "tv",
-        "genreTitle": "",
-        "doubanUrl": "https://movie.douban.com/subject/35925503/"
-      },
-      {
         "id": "217770",
         "type": "tmdb",
         "title": "我迟到了那么多年",
@@ -2099,21 +1957,6 @@
         "backdropPath": "/aQ7XUwjOAwEzOxCuWyYYANQjqq1.jpg",
         "mediaType": "tv",
         "genreTitle": "剧情,喜剧"
-      },
-      {
-        "id": "218560",
-        "type": "tmdb",
-        "title": "三生缘起是清欢",
-        "description": "清欢本是忘川河边一朵鸢尾花，意外得到神君白泽点化，二人却因此情根深种、卷入轮回。三生情劫中，白泽与清欢历经悲欢离合，尝尽爱恨情仇，终于参透“情”之一字，收获了凄美动人、感人至深的爱情。",
-        "rating": 7.3,
-        "voteCount": 3,
-        "popularity": 1.4956,
-        "releaseDate": "2022-12-30",
-        "lastUpdateDate": "2023-01-20",
-        "posterPath": "/hMe0UjQqQtHJOvHwGX89XDe0mOM.jpg",
-        "backdropPath": "/ghDpTAXdo8zG8oRm2xWQwfVFf9t.jpg",
-        "mediaType": "tv",
-        "genreTitle": "剧情"
       },
       {
         "id": "214740",
@@ -2371,134 +2214,6 @@
         "genreTitle": "剧情"
       },
       {
-        "id": "36058097",
-        "type": "douban",
-        "title": "我才不要和人类恋爱呢",
-        "description": "2022 / 中国大陆 / 剧情 爱情 短片 奇幻 / 潘真 / 熊玉婷 陈建宇",
-        "rating": 0,
-        "voteCount": 0,
-        "popularity": 0,
-        "releaseDate": "2022-01-01",
-        "lastUpdateDate": "2022-01-01",
-        "posterPath": "https://img1.doubanio.com/view/photo/m_ratio_poster/public/p2877960118.jpg",
-        "backdropPath": "https://img1.doubanio.com/view/photo/m_ratio_poster/public/p2877960118.jpg",
-        "mediaType": "tv",
-        "genreTitle": "",
-        "doubanUrl": "https://movie.douban.com/subject/36058097/"
-      },
-      {
-        "id": "36198411",
-        "type": "douban",
-        "title": "锦衣迷踪",
-        "description": "2022 / 中国大陆 / 动作 悬疑 短片 奇幻 / 伊翔宇 / 刘芮麟 王瑄",
-        "rating": 6.8,
-        "voteCount": 731,
-        "popularity": 0,
-        "releaseDate": "2022-01-01",
-        "lastUpdateDate": "2022-01-01",
-        "posterPath": "https://img1.doubanio.com/view/photo/m_ratio_poster/public/p2886709064.jpg",
-        "backdropPath": "https://img1.doubanio.com/view/photo/m_ratio_poster/public/p2886709064.jpg",
-        "mediaType": "tv",
-        "genreTitle": "",
-        "doubanUrl": "https://movie.douban.com/subject/36198411/"
-      },
-      {
-        "id": "35797559",
-        "type": "douban",
-        "title": "一双绣花鞋",
-        "description": "2022 / 中国大陆 / 悬疑 恐怖 短片 犯罪 / 司承 / 淮文 叶可儿",
-        "rating": 0,
-        "voteCount": 0,
-        "popularity": 0,
-        "releaseDate": "2022-01-01",
-        "lastUpdateDate": "2022-01-01",
-        "posterPath": "https://img1.doubanio.com/view/photo/m_ratio_poster/public/p2885284788.jpg",
-        "backdropPath": "https://img1.doubanio.com/view/photo/m_ratio_poster/public/p2885284788.jpg",
-        "mediaType": "tv",
-        "genreTitle": "",
-        "doubanUrl": "https://movie.douban.com/subject/35797559/"
-      },
-      {
-        "id": "35914389",
-        "type": "douban",
-        "title": "长安秘闻录",
-        "description": "2022 / 中国大陆 / 剧情 悬疑 犯罪 古装 / 王俊 / 书亚信 白宸溪",
-        "rating": 3.7,
-        "voteCount": 1135,
-        "popularity": 0,
-        "releaseDate": "2022-01-01",
-        "lastUpdateDate": "2022-01-01",
-        "posterPath": "https://img1.doubanio.com/view/photo/m_ratio_poster/public/p2884368746.jpg",
-        "backdropPath": "https://img1.doubanio.com/view/photo/m_ratio_poster/public/p2884368746.jpg",
-        "mediaType": "tv",
-        "genreTitle": "",
-        "doubanUrl": "https://movie.douban.com/subject/35914389/"
-      },
-      {
-        "id": "35925101",
-        "type": "douban",
-        "title": "片场日记 杀不了青",
-        "description": "2022 / 中国大陆 / 喜剧 短片 / 王大头 / 王大头 赵铁柱",
-        "rating": 8.4,
-        "voteCount": 3798,
-        "popularity": 0,
-        "releaseDate": "2022-01-01",
-        "lastUpdateDate": "2022-01-01",
-        "posterPath": "https://img1.doubanio.com/view/photo/m_ratio_poster/public/p2874424779.jpg",
-        "backdropPath": "https://img1.doubanio.com/view/photo/m_ratio_poster/public/p2874424779.jpg",
-        "mediaType": "tv",
-        "genreTitle": "",
-        "doubanUrl": "https://movie.douban.com/subject/35925101/"
-      },
-      {
-        "id": "36072046",
-        "type": "douban",
-        "title": "女神酒店",
-        "description": "2022 / 中国大陆 / 悬疑 奇幻 / 巨兴茂 郭世民 周颖波 / 岳丽娜 于非凡",
-        "rating": 0,
-        "voteCount": 0,
-        "popularity": 0,
-        "releaseDate": "2022-01-01",
-        "lastUpdateDate": "2022-01-01",
-        "posterPath": "https://img1.doubanio.com/view/photo/m_ratio_poster/public/p2878784715.jpg",
-        "backdropPath": "https://img1.doubanio.com/view/photo/m_ratio_poster/public/p2878784715.jpg",
-        "mediaType": "tv",
-        "genreTitle": "",
-        "doubanUrl": "https://movie.douban.com/subject/36072046/"
-      },
-      {
-        "id": "35574136",
-        "type": "douban",
-        "title": "女神酒店",
-        "description": "2022 / 中国大陆 / 爱情 悬疑 奇幻 / 巨兴茂 郭世民 周颖波 / 岳丽娜 于非凡",
-        "rating": 0,
-        "voteCount": 0,
-        "popularity": 0,
-        "releaseDate": "2022-01-01",
-        "lastUpdateDate": "2022-01-01",
-        "posterPath": "https://img1.doubanio.com/view/photo/m_ratio_poster/public/p2874932506.jpg",
-        "backdropPath": "https://img1.doubanio.com/view/photo/m_ratio_poster/public/p2874932506.jpg",
-        "mediaType": "tv",
-        "genreTitle": "",
-        "doubanUrl": "https://movie.douban.com/subject/35574136/"
-      },
-      {
-        "id": "36056290",
-        "type": "douban",
-        "title": "浮生之异想世界",
-        "description": "2022 / 中国大陆 / 剧情 奇幻 / 卫立洲 / 秦俊杰 景瓷",
-        "rating": 0,
-        "voteCount": 0,
-        "popularity": 0,
-        "releaseDate": "2022-01-01",
-        "lastUpdateDate": "2022-01-01",
-        "posterPath": "https://img1.doubanio.com/view/photo/m_ratio_poster/public/p2880804176.jpg",
-        "backdropPath": "https://img1.doubanio.com/view/photo/m_ratio_poster/public/p2880804176.jpg",
-        "mediaType": "tv",
-        "genreTitle": "",
-        "doubanUrl": "https://movie.douban.com/subject/36056290/"
-      },
-      {
         "id": "197629",
         "type": "tmdb",
         "title": "别惹白鸽",
@@ -2527,21 +2242,6 @@
         "backdropPath": "/h0pRz5rMq5gouiE2lasOImeqvKJ.jpg",
         "mediaType": "tv",
         "genreTitle": "喜剧"
-      },
-      {
-        "id": "154307",
-        "type": "tmdb",
-        "title": "贩卖法术的杂货铺",
-        "description": "　　为帮助小七修炼成仙，啸天、金城和小七开了一间贩卖法术的杂货铺，通过传授法术来帮助人们实现心愿。在这期间，他们遇到了形形色色的人与各种各样的人间烦心事，但因为法术需要用人的恶念交换，从而上演了许多令人啼笑皆非的闹剧。  　　最终，金城找到了自己失散许久的爱人小翠；初到人间的小七，也在这历练中感受到了人间的有趣，更对啸天产生了难以名状的情愫；一心捉妖的捉妖师啸天发现，世间竟有小七这般善良可爱的妖，而所谓“捉妖”竟是一场蓄谋多时的阴谋……",
-        "rating": 5.0,
-        "voteCount": 1,
-        "popularity": 1.7751,
-        "releaseDate": "2021-12-28",
-        "lastUpdateDate": "2021-12-31",
-        "posterPath": "/5Xo6cKRWBOzuAtZMLGqnHTxwXRo.jpg",
-        "backdropPath": "/yWqk5sjxRP3MBT9p24m6VpL46ku.jpg",
-        "mediaType": "tv",
-        "genreTitle": ""
       },
       {
         "id": "137610",
@@ -2649,38 +2349,6 @@
         "genreTitle": "喜剧,剧情"
       },
       {
-        "id": "35307434",
-        "type": "douban",
-        "title": "做梦吧！晶晶",
-        "description": "2021 / 中国大陆 / 喜剧 爱情 / 胡国瀚 / 金靖 陈赫",
-        "rating": 6.2,
-        "voteCount": 3607,
-        "popularity": 0,
-        "releaseDate": "2021-01-01",
-        "lastUpdateDate": "2021-01-01",
-        "posterPath": "https://img1.doubanio.com/view/photo/m_ratio_poster/public/p2631714777.jpg",
-        "backdropPath": "https://img1.doubanio.com/view/photo/m_ratio_poster/public/p2631714777.jpg",
-        "mediaType": "tv",
-        "genreTitle": "",
-        "doubanUrl": "https://movie.douban.com/subject/35307434/"
-      },
-      {
-        "id": "36107269",
-        "type": "douban",
-        "title": "这个男主有点冷",
-        "description": "2021 / 中国大陆 / 剧情 爱情 短片 / 周潇 / 李璐璐 李梦然",
-        "rating": 0,
-        "voteCount": 0,
-        "popularity": 0,
-        "releaseDate": "2021-01-01",
-        "lastUpdateDate": "2021-01-01",
-        "posterPath": "https://img1.doubanio.com/view/photo/m_ratio_poster/public/p2881036233.jpg",
-        "backdropPath": "https://img1.doubanio.com/view/photo/m_ratio_poster/public/p2881036233.jpg",
-        "mediaType": "tv",
-        "genreTitle": "",
-        "doubanUrl": "https://movie.douban.com/subject/36107269/"
-      },
-      {
         "id": "104993",
         "type": "tmdb",
         "title": "亲爱的没想到吧",
@@ -2694,44 +2362,11 @@
         "backdropPath": "/gQnAJda34LjhVLiGFJphTmPqlKS.jpg",
         "mediaType": "tv",
         "genreTitle": "喜剧"
-      },
-      {
-        "id": "35064502",
-        "type": "douban",
-        "title": "东北风云",
-        "description": "2020 / 中国大陆 / 喜剧 短片 / 王紫萱 / 宋晓峰 贾冰",
-        "rating": 0,
-        "voteCount": 0,
-        "popularity": 0,
-        "releaseDate": "2020-01-01",
-        "lastUpdateDate": "2020-01-01",
-        "posterPath": "https://img1.doubanio.com/view/photo/m_ratio_poster/public/p2602535984.jpg",
-        "backdropPath": "https://img1.doubanio.com/view/photo/m_ratio_poster/public/p2602535984.jpg",
-        "mediaType": "tv",
-        "genreTitle": "",
-        "doubanUrl": "https://movie.douban.com/subject/35064502/"
       }
     ],
-    "upcoming": [
-      {
-        "id": "35912037",
-        "type": "douban",
-        "title": "恭王府",
-        "description": "2030 / 中国大陆",
-        "rating": 0,
-        "voteCount": 0,
-        "popularity": 0,
-        "releaseDate": "2030-01-01",
-        "lastUpdateDate": "2030-01-01",
-        "posterPath": "https://img1.doubanio.com/view/photo/m_ratio_poster/public/p2873520890.jpg",
-        "backdropPath": "https://img1.doubanio.com/view/photo/m_ratio_poster/public/p2873520890.jpg",
-        "mediaType": "tv",
-        "genreTitle": "",
-        "doubanUrl": "https://movie.douban.com/subject/35912037/"
-      }
-    ],
+    "upcoming": [],
     "totalItems": 122,
-    "totalPages": 5
+    "totalPages": 6
   },
   "生花剧场": {
     "aired": [
@@ -3178,22 +2813,6 @@
         "genreTitle": "剧情"
       },
       {
-        "id": "35321446",
-        "type": "douban",
-        "title": "大江大河之岁月如歌",
-        "description": "2024 / 中国大陆 / 剧情 / 孔笙 孙墨龙 刘洪源 / 王凯 杨烁",
-        "rating": 8.0,
-        "voteCount": 75929,
-        "popularity": 0,
-        "releaseDate": "2024-01-01",
-        "lastUpdateDate": "2024-01-01",
-        "posterPath": "https://img1.doubanio.com/view/photo/m_ratio_poster/public/p2902867531.jpg",
-        "backdropPath": "https://img1.doubanio.com/view/photo/m_ratio_poster/public/p2902867531.jpg",
-        "mediaType": "tv",
-        "genreTitle": "",
-        "doubanUrl": "https://movie.douban.com/subject/35321446/"
-      },
-      {
         "id": "222663",
         "type": "tmdb",
         "title": "人生之路",
@@ -3239,22 +2858,6 @@
         "genreTitle": "剧情"
       },
       {
-        "id": "30423905",
-        "type": "douban",
-        "title": "大江大河2",
-        "description": "2020 / 中国大陆 / 剧情 历史 / 李雪 黄伟 / 王凯 杨烁",
-        "rating": 8.7,
-        "voteCount": 211759,
-        "popularity": 0,
-        "releaseDate": "2020-01-01",
-        "lastUpdateDate": "2020-01-01",
-        "posterPath": "https://img1.doubanio.com/view/photo/m_ratio_poster/public/p2628760333.jpg",
-        "backdropPath": "https://img1.doubanio.com/view/photo/m_ratio_poster/public/p2628760333.jpg",
-        "mediaType": "tv",
-        "genreTitle": "",
-        "doubanUrl": "https://movie.douban.com/subject/30423905/"
-      },
-      {
         "id": "84856",
         "type": "tmdb",
         "title": "大江大河",
@@ -3270,56 +2873,7 @@
         "genreTitle": "剧情"
       }
     ],
-    "upcoming": [
-      {
-        "id": "36866384",
-        "type": "douban",
-        "title": "一日三秋",
-        "description": "2027 / 中国大陆 / 剧情",
-        "rating": 0,
-        "voteCount": 0,
-        "popularity": 0,
-        "releaseDate": "2027-01-01",
-        "lastUpdateDate": "2027-01-01",
-        "posterPath": "https://img1.doubanio.com/view/photo/m_ratio_poster/public/p2907329004.jpg",
-        "backdropPath": "https://img1.doubanio.com/view/photo/m_ratio_poster/public/p2907329004.jpg",
-        "mediaType": "tv",
-        "genreTitle": "",
-        "doubanUrl": "https://movie.douban.com/subject/36866384/"
-      },
-      {
-        "id": "36877264",
-        "type": "douban",
-        "title": "平原客",
-        "description": "2027 / 中国大陆 / 管虎",
-        "rating": 0,
-        "voteCount": 0,
-        "popularity": 0,
-        "releaseDate": "2027-01-01",
-        "lastUpdateDate": "2027-01-01",
-        "posterPath": "https://img1.doubanio.com/view/photo/m_ratio_poster/public/p2920760540.jpg",
-        "backdropPath": "https://img1.doubanio.com/view/photo/m_ratio_poster/public/p2920760540.jpg",
-        "mediaType": "tv",
-        "genreTitle": "",
-        "doubanUrl": "https://movie.douban.com/subject/36877264/"
-      },
-      {
-        "id": "36868929",
-        "type": "douban",
-        "title": "登春台",
-        "description": "2026 / 中国大陆",
-        "rating": 0,
-        "voteCount": 0,
-        "popularity": 0,
-        "releaseDate": "2026-01-01",
-        "lastUpdateDate": "2026-01-01",
-        "posterPath": "https://img1.doubanio.com/view/photo/m_ratio_poster/public/p2907371319.jpg",
-        "backdropPath": "https://img1.doubanio.com/view/photo/m_ratio_poster/public/p2907371319.jpg",
-        "mediaType": "tv",
-        "genreTitle": "",
-        "doubanUrl": "https://movie.douban.com/subject/36868929/"
-      }
-    ],
+    "upcoming": [],
     "totalItems": 11,
     "totalPages": 1
   },
@@ -3414,42 +2968,9 @@
         "backdropPath": "/mJatjg5e70zP3Wl6xpQ2tX4RHs4.jpg",
         "mediaType": "tv",
         "genreTitle": "剧情,喜剧"
-      },
-      {
-        "id": "35633760",
-        "type": "douban",
-        "title": "医是医，二是二",
-        "description": "2022 / 中国大陆 / 喜剧 古装 / 王紫萱 徐忆鸥 赵凯 / 贾冰 刘桦",
-        "rating": 5.3,
-        "voteCount": 2573,
-        "popularity": 0,
-        "releaseDate": "2022-01-01",
-        "lastUpdateDate": "2022-01-01",
-        "posterPath": "https://img1.doubanio.com/view/photo/m_ratio_poster/public/p2869042442.jpg",
-        "backdropPath": "https://img1.doubanio.com/view/photo/m_ratio_poster/public/p2869042442.jpg",
-        "mediaType": "tv",
-        "genreTitle": "",
-        "doubanUrl": "https://movie.douban.com/subject/35633760/"
       }
     ],
-    "upcoming": [
-      {
-        "id": "36868927",
-        "type": "douban",
-        "title": "喜剧之王",
-        "description": "2026 / 中国大陆 / 剧情 / 蒋龙 李炳强 王建华 张亢 松天硕 / 杨超越 蒋龙",
-        "rating": 0,
-        "voteCount": 0,
-        "popularity": 0,
-        "releaseDate": "2026-01-01",
-        "lastUpdateDate": "2026-01-01",
-        "posterPath": "https://img1.doubanio.com/view/photo/m_ratio_poster/public/p2920736773.jpg",
-        "backdropPath": "https://img1.doubanio.com/view/photo/m_ratio_poster/public/p2920736773.jpg",
-        "mediaType": "tv",
-        "genreTitle": "",
-        "doubanUrl": "https://movie.douban.com/subject/36868927/"
-      }
-    ],
+    "upcoming": [],
     "totalItems": 9,
     "totalPages": 1
   },
@@ -3621,22 +3142,6 @@
         "genreTitle": "剧情,科幻奇幻"
       },
       {
-        "id": "36781062",
-        "type": "douban",
-        "title": "师傅",
-        "description": "2024 / 中国大陆 / 动作 悬疑 短片 犯罪 / 王传淋 / 余皑磊 施展",
-        "rating": 0,
-        "voteCount": 0,
-        "popularity": 0,
-        "releaseDate": "2024-01-01",
-        "lastUpdateDate": "2024-01-01",
-        "posterPath": "https://img1.doubanio.com/view/photo/m_ratio_poster/public/p2905091698.jpg",
-        "backdropPath": "https://img1.doubanio.com/view/photo/m_ratio_poster/public/p2905091698.jpg",
-        "mediaType": "tv",
-        "genreTitle": "",
-        "doubanUrl": "https://movie.douban.com/subject/36781062/"
-      },
-      {
         "id": "246831",
         "type": "tmdb",
         "title": "与你的九次相遇",
@@ -3757,54 +3262,6 @@
         "genreTitle": "剧情,悬疑,喜剧"
       },
       {
-        "id": "36209115",
-        "type": "douban",
-        "title": "夏日不宜入爱河",
-        "description": "2023 / 中国大陆 / 剧情 爱情 / 吕海党 / 王钧浩 白昕怡",
-        "rating": 0,
-        "voteCount": 0,
-        "popularity": 0,
-        "releaseDate": "2023-01-01",
-        "lastUpdateDate": "2023-01-01",
-        "posterPath": "https://img1.doubanio.com/view/photo/m_ratio_poster/public/p2886225547.jpg",
-        "backdropPath": "https://img1.doubanio.com/view/photo/m_ratio_poster/public/p2886225547.jpg",
-        "mediaType": "tv",
-        "genreTitle": "",
-        "doubanUrl": "https://movie.douban.com/subject/36209115/"
-      },
-      {
-        "id": "35699676",
-        "type": "douban",
-        "title": "大唐小吃货2",
-        "description": "2023 / 中国大陆 / 爱情 悬疑 古装 / 舒奥泽 / 李子璇 罗正",
-        "rating": 0,
-        "voteCount": 0,
-        "popularity": 0,
-        "releaseDate": "2023-01-01",
-        "lastUpdateDate": "2023-01-01",
-        "posterPath": "https://img1.doubanio.com/view/photo/m_ratio_poster/public/p2898623272.jpg",
-        "backdropPath": "https://img1.doubanio.com/view/photo/m_ratio_poster/public/p2898623272.jpg",
-        "mediaType": "tv",
-        "genreTitle": "",
-        "doubanUrl": "https://movie.douban.com/subject/35699676/"
-      },
-      {
-        "id": "36503121",
-        "type": "douban",
-        "title": "摩玉玄奇",
-        "description": "2023 / 中国大陆 / 剧情 爱情 古装 / 王传淋 / 刘泳希 葛秋谷",
-        "rating": 0,
-        "voteCount": 0,
-        "popularity": 0,
-        "releaseDate": "2023-01-01",
-        "lastUpdateDate": "2023-01-01",
-        "posterPath": "https://img1.doubanio.com/view/photo/m_ratio_poster/public/p2896401392.jpg",
-        "backdropPath": "https://img1.doubanio.com/view/photo/m_ratio_poster/public/p2896401392.jpg",
-        "mediaType": "tv",
-        "genreTitle": "",
-        "doubanUrl": "https://movie.douban.com/subject/36503121/"
-      },
-      {
         "id": "218560",
         "type": "tmdb",
         "title": "三生缘起是清欢",
@@ -3895,38 +3352,6 @@
         "genreTitle": "剧情"
       },
       {
-        "id": "35633645",
-        "type": "douban",
-        "title": "乡村爱情之象牙山行善记",
-        "description": "2022 / 中国大陆 / 喜剧 / 毕畅 唐鉴军",
-        "rating": 0,
-        "voteCount": 0,
-        "popularity": 0,
-        "releaseDate": "2022-01-01",
-        "lastUpdateDate": "2022-01-01",
-        "posterPath": "https://img1.doubanio.com/view/photo/m_ratio_poster/public/p2869084166.jpg",
-        "backdropPath": "https://img1.doubanio.com/view/photo/m_ratio_poster/public/p2869084166.jpg",
-        "mediaType": "tv",
-        "genreTitle": "",
-        "doubanUrl": "https://movie.douban.com/subject/35633645/"
-      },
-      {
-        "id": "36106806",
-        "type": "douban",
-        "title": "夫君请自重",
-        "description": "2022 / 中国大陆 / 爱情 奇幻 / 张珂 / 杨泽 屠芷莹",
-        "rating": 5.5,
-        "voteCount": 2499,
-        "popularity": 0,
-        "releaseDate": "2022-01-01",
-        "lastUpdateDate": "2022-01-01",
-        "posterPath": "https://img1.doubanio.com/view/photo/m_ratio_poster/public/p2883374221.jpg",
-        "backdropPath": "https://img1.doubanio.com/view/photo/m_ratio_poster/public/p2883374221.jpg",
-        "mediaType": "tv",
-        "genreTitle": "",
-        "doubanUrl": "https://movie.douban.com/subject/36106806/"
-      },
-      {
         "id": "156113",
         "type": "tmdb",
         "title": "大妈的世界",
@@ -3940,22 +3365,6 @@
         "backdropPath": "/h0pRz5rMq5gouiE2lasOImeqvKJ.jpg",
         "mediaType": "tv",
         "genreTitle": "喜剧"
-      },
-      {
-        "id": "35590554",
-        "type": "douban",
-        "title": "师兄请按剧本来",
-        "description": "2021 / 中国大陆 / 喜剧 古装 / 林合隆 / 王皓轩 屠芷莹",
-        "rating": 5.6,
-        "voteCount": 2759,
-        "popularity": 0,
-        "releaseDate": "2021-01-01",
-        "lastUpdateDate": "2021-01-01",
-        "posterPath": "https://img1.doubanio.com/view/photo/m_ratio_poster/public/p2795416295.jpg",
-        "backdropPath": "https://img1.doubanio.com/view/photo/m_ratio_poster/public/p2795416295.jpg",
-        "mediaType": "tv",
-        "genreTitle": "",
-        "doubanUrl": "https://movie.douban.com/subject/35590554/"
       }
     ],
     "upcoming": [],
@@ -4130,24 +3539,7 @@
         "genreTitle": "喜剧,剧情"
       }
     ],
-    "upcoming": [
-      {
-        "id": "36942992",
-        "type": "douban",
-        "title": "走马上任",
-        "description": "2026 / 中国大陆 / 剧情 喜剧 / 成红 赵大牛 / 王小利 蒋依杉",
-        "rating": 0,
-        "voteCount": 0,
-        "popularity": 0,
-        "releaseDate": "2026-01-01",
-        "lastUpdateDate": "2026-01-01",
-        "posterPath": "https://img1.doubanio.com/view/photo/m_ratio_poster/public/p2922760095.jpg",
-        "backdropPath": "https://img1.doubanio.com/view/photo/m_ratio_poster/public/p2922760095.jpg",
-        "mediaType": "tv",
-        "genreTitle": "",
-        "doubanUrl": "https://movie.douban.com/subject/36942992/"
-      }
-    ],
+    "upcoming": [],
     "totalItems": 13,
     "totalPages": 1
   },
@@ -4566,54 +3958,6 @@
         "genreTitle": "剧情,喜剧"
       },
       {
-        "id": "35236762",
-        "type": "douban",
-        "title": "欢乐颂5",
-        "description": "2024 / 中国大陆 / 剧情 爱情 / 简川訸 / 江疏影 杨采钰",
-        "rating": 5.6,
-        "voteCount": 14561,
-        "popularity": 0,
-        "releaseDate": "2024-01-01",
-        "lastUpdateDate": "2024-01-01",
-        "posterPath": "https://img1.doubanio.com/view/photo/m_ratio_poster/public/p2905569442.jpg",
-        "backdropPath": "https://img1.doubanio.com/view/photo/m_ratio_poster/public/p2905569442.jpg",
-        "mediaType": "tv",
-        "genreTitle": "",
-        "doubanUrl": "https://movie.douban.com/subject/35236762/"
-      },
-      {
-        "id": "35321446",
-        "type": "douban",
-        "title": "大江大河之岁月如歌",
-        "description": "2024 / 中国大陆 / 剧情 / 孔笙 孙墨龙 刘洪源 / 王凯 杨烁",
-        "rating": 8.0,
-        "voteCount": 75929,
-        "popularity": 0,
-        "releaseDate": "2024-01-01",
-        "lastUpdateDate": "2024-01-01",
-        "posterPath": "https://img1.doubanio.com/view/photo/m_ratio_poster/public/p2902867531.jpg",
-        "backdropPath": "https://img1.doubanio.com/view/photo/m_ratio_poster/public/p2902867531.jpg",
-        "mediaType": "tv",
-        "genreTitle": "",
-        "doubanUrl": "https://movie.douban.com/subject/35321446/"
-      },
-      {
-        "id": "35236761",
-        "type": "douban",
-        "title": "欢乐颂4",
-        "description": "2023 / 中国大陆 / 剧情 爱情 / 简川訸 / 江疏影 杨采钰",
-        "rating": 5.6,
-        "voteCount": 16714,
-        "popularity": 0,
-        "releaseDate": "2023-01-01",
-        "lastUpdateDate": "2023-01-01",
-        "posterPath": "https://img1.doubanio.com/view/photo/m_ratio_poster/public/p2890133171.jpg",
-        "backdropPath": "https://img1.doubanio.com/view/photo/m_ratio_poster/public/p2890133171.jpg",
-        "mediaType": "tv",
-        "genreTitle": "",
-        "doubanUrl": "https://movie.douban.com/subject/35236761/"
-      },
-      {
         "id": "210747",
         "type": "tmdb",
         "title": "县委大院",
@@ -4674,22 +4018,6 @@
         "genreTitle": "剧情,悬疑,科幻奇幻"
       },
       {
-        "id": "26779426",
-        "type": "douban",
-        "title": "欢乐颂3",
-        "description": "2022 / 中国大陆 / 剧情 爱情 / 简川訸 / 江疏影 杨采钰",
-        "rating": 4.9,
-        "voteCount": 42263,
-        "popularity": 0,
-        "releaseDate": "2022-01-01",
-        "lastUpdateDate": "2022-01-01",
-        "posterPath": "https://img1.doubanio.com/view/photo/m_ratio_poster/public/p2877695818.jpg",
-        "backdropPath": "https://img1.doubanio.com/view/photo/m_ratio_poster/public/p2877695818.jpg",
-        "mediaType": "tv",
-        "genreTitle": "",
-        "doubanUrl": "https://movie.douban.com/subject/26779426/"
-      },
-      {
         "id": "129203",
         "type": "tmdb",
         "title": "乔家的儿女",
@@ -4748,22 +4076,6 @@
         "backdropPath": "/qaMjyqA6oihdJdOHKa5C0UdgH8Z.jpg",
         "mediaType": "tv",
         "genreTitle": "剧情,家庭"
-      },
-      {
-        "id": "30423905",
-        "type": "douban",
-        "title": "大江大河2",
-        "description": "2020 / 中国大陆 / 剧情 历史 / 李雪 黄伟 / 王凯 杨烁",
-        "rating": 8.7,
-        "voteCount": 211760,
-        "popularity": 0,
-        "releaseDate": "2020-01-01",
-        "lastUpdateDate": "2020-01-01",
-        "posterPath": "https://img1.doubanio.com/view/photo/m_ratio_poster/public/p2628760333.jpg",
-        "backdropPath": "https://img1.doubanio.com/view/photo/m_ratio_poster/public/p2628760333.jpg",
-        "mediaType": "tv",
-        "genreTitle": "",
-        "doubanUrl": "https://movie.douban.com/subject/30423905/"
       },
       {
         "id": "87544",
@@ -4839,22 +4151,6 @@
         "backdropPath": "/ic0PTrkrWnGtLeyJ6DXZrGAquIT.jpg",
         "mediaType": "tv",
         "genreTitle": "剧情"
-      },
-      {
-        "id": "26743573",
-        "type": "douban",
-        "title": "欢乐颂2",
-        "description": "2017 / 中国大陆 / 剧情 爱情 / 简川訸 张开宙 / 刘涛 蒋欣",
-        "rating": 5.4,
-        "voteCount": 159057,
-        "popularity": 0,
-        "releaseDate": "2017-01-01",
-        "lastUpdateDate": "2017-01-01",
-        "posterPath": "https://img1.doubanio.com/view/photo/m_ratio_poster/public/p2443590214.jpg",
-        "backdropPath": "https://img1.doubanio.com/view/photo/m_ratio_poster/public/p2443590214.jpg",
-        "mediaType": "tv",
-        "genreTitle": "",
-        "doubanUrl": "https://movie.douban.com/subject/26743573/"
       },
       {
         "id": "69168",
@@ -4992,72 +4288,7 @@
         "genreTitle": "家庭,剧情"
       }
     ],
-    "upcoming": [
-      {
-        "id": "37402828",
-        "type": "douban",
-        "title": "原地逃离",
-        "description": "2027 / 中国大陆 / 剧情 悬疑 犯罪 / 简川訸 / 孙俪 秦海璐",
-        "rating": 0,
-        "voteCount": 0,
-        "popularity": 0,
-        "releaseDate": "2027-01-01",
-        "lastUpdateDate": "2027-01-01",
-        "posterPath": "https://img1.doubanio.com/view/photo/m_ratio_poster/public/p2933519469.jpg",
-        "backdropPath": "https://img1.doubanio.com/view/photo/m_ratio_poster/public/p2933519469.jpg",
-        "mediaType": "tv",
-        "genreTitle": "",
-        "doubanUrl": "https://movie.douban.com/subject/37402828/"
-      },
-      {
-        "id": "36806869",
-        "type": "douban",
-        "title": "琅琊榜",
-        "description": "2026 / 中国大陆 / 剧情 动画",
-        "rating": 0,
-        "voteCount": 0,
-        "popularity": 0,
-        "releaseDate": "2026-01-01",
-        "lastUpdateDate": "2026-01-01",
-        "posterPath": "https://img1.doubanio.com/view/photo/m_ratio_poster/public/p2905559158.jpg",
-        "backdropPath": "https://img1.doubanio.com/view/photo/m_ratio_poster/public/p2905559158.jpg",
-        "mediaType": "movie",
-        "genreTitle": "",
-        "doubanUrl": "https://movie.douban.com/subject/36806869/"
-      },
-      {
-        "id": "36808401",
-        "type": "douban",
-        "title": "开端之送不到的快递",
-        "description": "2026 / 中国大陆 / 剧情 悬疑 / 张晗贝 / 张若昀 钟楚曦",
-        "rating": 0,
-        "voteCount": 0,
-        "popularity": 0,
-        "releaseDate": "2026-01-01",
-        "lastUpdateDate": "2026-01-01",
-        "posterPath": "https://img1.doubanio.com/view/photo/m_ratio_poster/public/p2931740391.jpg",
-        "backdropPath": "https://img1.doubanio.com/view/photo/m_ratio_poster/public/p2931740391.jpg",
-        "mediaType": "movie",
-        "genreTitle": "",
-        "doubanUrl": "https://movie.douban.com/subject/36808401/"
-      },
-      {
-        "id": "36671863",
-        "type": "douban",
-        "title": "谍报上不封顶",
-        "description": "2026 / 中国大陆 / 剧情 悬疑 / 张开宙 / 肖战 周雨彤",
-        "rating": 0,
-        "voteCount": 0,
-        "popularity": 0,
-        "releaseDate": "2026-01-01",
-        "lastUpdateDate": "2026-01-01",
-        "posterPath": "https://img1.doubanio.com/view/photo/m_ratio_poster/public/p2925016151.jpg",
-        "backdropPath": "https://img1.doubanio.com/view/photo/m_ratio_poster/public/p2925016151.jpg",
-        "mediaType": "tv",
-        "genreTitle": "",
-        "doubanUrl": "https://movie.douban.com/subject/36671863/"
-      }
-    ],
+    "upcoming": [],
     "totalItems": 40,
     "totalPages": 2
   },
@@ -5911,24 +5142,7 @@
         "genreTitle": "悬疑,动作冒险"
       }
     ],
-    "upcoming": [
-      {
-        "id": "34982847",
-        "type": "douban",
-        "title": "旷野之境",
-        "description": "2027 / 中国大陆 / 剧情 悬疑 犯罪 / 林柯 / 罗晋 肖央",
-        "rating": 0,
-        "voteCount": 0,
-        "popularity": 0,
-        "releaseDate": "2027-01-01",
-        "lastUpdateDate": "2027-01-01",
-        "posterPath": "https://img1.doubanio.com/view/photo/m_ratio_poster/public/p2891595860.jpg",
-        "backdropPath": "https://img1.doubanio.com/view/photo/m_ratio_poster/public/p2891595860.jpg",
-        "mediaType": "tv",
-        "genreTitle": "",
-        "doubanUrl": "https://movie.douban.com/subject/34982847/"
-      }
-    ],
+    "upcoming": [],
     "totalItems": 29,
     "totalPages": 2
   },
@@ -6017,24 +5231,7 @@
         "genreTitle": "悬疑"
       }
     ],
-    "upcoming": [
-      {
-        "id": "38433445",
-        "type": "douban",
-        "title": "杀人真相",
-        "description": "2028 / 中国大陆 / 犯罪 / 王辽 / 许魏洲 郭俊辰",
-        "rating": 0,
-        "voteCount": 0,
-        "popularity": 0,
-        "releaseDate": "2028-01-01",
-        "lastUpdateDate": "2028-01-01",
-        "posterPath": "https://img1.doubanio.com/view/photo/m_ratio_poster/public/p2931777384.jpg",
-        "backdropPath": "https://img1.doubanio.com/view/photo/m_ratio_poster/public/p2931777384.jpg",
-        "mediaType": "tv",
-        "genreTitle": "",
-        "doubanUrl": "https://movie.douban.com/subject/38433445/"
-      }
-    ],
+    "upcoming": [],
     "totalItems": 3,
     "totalPages": 1
   }
