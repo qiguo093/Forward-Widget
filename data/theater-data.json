@@ -1,5 +1,5 @@
 {
-  "last_updated": "2026-09-11 10:57:57",
+  "last_updated": "2026-09-11 11:07:48",
   "迷雾剧场": {
     "aired": [
       {
@@ -475,21 +475,6 @@
   "白夜剧场": {
     "aired": [
       {
-        "id": "290863",
-        "type": "tmdb",
-        "title": "冬城猎凶",
-        "description": "银行大劫案，搅动大城风云；儿童拐卖案，重起罪恶迷雾。双时空、案中案，极致追凶。",
-        "rating": 7.0,
-        "voteCount": 1,
-        "popularity": 4.2612,
-        "releaseDate": "2026-09-10",
-        "lastUpdateDate": "2026-09-10",
-        "posterPath": "/kTpJhjszBMaIUZQdYoIOmfBuQP7.jpg",
-        "backdropPath": "/yfJn4TktTqvFr5DCTqd1dC8I16M.jpg",
-        "mediaType": "tv",
-        "genreTitle": "犯罪"
-      },
-      {
         "id": "273114",
         "type": "tmdb",
         "title": "悬案",
@@ -701,7 +686,7 @@
       }
     ],
     "upcoming": [],
-    "totalItems": 18,
+    "totalItems": 17,
     "totalPages": 1
   },
   "X剧场": {
