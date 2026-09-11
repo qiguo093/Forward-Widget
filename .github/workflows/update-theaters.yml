@@ -36,9 +36,22 @@ jobs:
         run: |
           python scripts/update_theaters.py
 
+      - name: 📦 生成分剧场小数据文件
+        run: |
+          python - <<'PY'
+          import json
+          from pathlib import Path
+          d = json.loads(Path('data/theater-data.json').read_text())
+          names = {'迷雾剧场':'mist','白夜剧场':'white','X剧场':'x','横屏短剧':'short','生花剧场':'shenghua','大家剧场':'dajia','小逗剧场':'xiaodou','十分剧场':'shifen','板凳单元':'bandeng','萤火单元':'yinghuo','正午阳光':'zhengwu','恋恋剧场':'lianlian','悬疑剧场':'xuan疑','微尘剧场':'weichen','暗流剧场':'anliu'}
+          out = Path('data/theaters'); out.mkdir(exist_ok=True)
+          for name, fn in names.items():
+              item = {'last_updated': d.get('last_updated'), 'name': name, **d.get(name, {})}
+              (out / (fn + '.json')).write_text(json.dumps(item, ensure_ascii=False, separators=(',', ':')) + '\n')
+          PY
+
       - name: 📤 提交并推送
         run: |
           git config --local user.email "action@github.com"
           git config --local user.name "GitHub Action Bot"
-          git add data/theater-data.json
+          git add data/theater-data.json data/theaters/
           git diff --quiet && git diff --staged --quiet || (git commit -m "chore: 自动更新全网剧场片单 🎭" && git push)
