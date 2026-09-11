@@ -19,7 +19,9 @@ jobs:
       - uses: actions/setup-python@v5
         with:
           python-version: '3.11'
-      - name: 更新豆瓣榜单
+      - name: 更新豆瓣榜单 + 实时热门
+        env:
+          TMDB_API_KEY: ${{ secrets.TMDB_API_KEY }}
         run: python scripts/update_douban.py
       - name: 提交数据
         run: |
