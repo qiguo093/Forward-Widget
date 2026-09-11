@@ -98,11 +98,20 @@ async def fetch_doulist_pages_api(session, theater):
             title = clean_douban_title((it.get("title") or "").strip())
             if not title:
                 continue
-            ym = re.search(r"(\d{4})", it.get("subtitle") or "")
+            subtitle = it.get("subtitle") or ""
+            ym = re.search(r"(\d{4})", subtitle)
+            rating = it.get("rating") or {}
             all_items.append({
                 "title": title,
                 "year": ym.group(1) if ym else None,
                 "type": it.get("type") or "tv",
+                # 以下字段用于 TMDB 匹配失败时的豆瓣兜底
+                "douban_id": it.get("target_id") or it.get("id"),
+                "douban_url": it.get("url") or "",
+                "douban_cover": it.get("cover_url") or "",
+                "douban_rating": rating.get("value") or 0,
+                "douban_votes": rating.get("count") or 0,
+                "douban_subtitle": subtitle,
             })
         page_count += 1
         start += len(batch)
@@ -278,51 +287,145 @@ async def search_tmdb(session, item, cache):
     except: pass
     return None
 
+
+def build_douban_fallback(item):
+    """TMDB 无匹配时保留豆瓣条目，供剧场列表显示。"""
+    cover = item.get("douban_cover") or ""
+    return {
+        "id": str(item.get("douban_id") or "douban_" + item["title"]),
+        "type": "douban",
+        "title": item["title"],
+        "description": item.get("douban_subtitle") or "豆瓣片单条目",
+        "rating": item.get("douban_rating") or 0,
+        "voteCount": item.get("douban_votes") or 0,
+        "popularity": 0,
+        "releaseDate": (item.get("year") or "") + ("-01-01" if item.get("year") else ""),
+        "lastUpdateDate": (item.get("year") or "") + ("-01-01" if item.get("year") else ""),
+        "posterPath": cover,
+        "backdropPath": cover,
+        "mediaType": item.get("type") or "tv",
+        "genreTitle": "",
+        "doubanUrl": item.get("douban_url") or "",
+    }
+
 async def process_theater(session, theater, cache):
     douban_data = await fetch_doulist_pages(session, theater)
     items = list(douban_data["items"])
-    
+
     # 支持自定义追加片单（去重）
-    existing_titles = {it["title"].strip().lower() for it in items}
+    existing_titles = {
+        (it.get("title") or "").strip().lower()
+        for it in items
+        if it.get("title")
+    }
     for custom in theater.get("custom_items", []):
-        c_title = custom.get("title", "").strip()
+        c_title = (custom.get("title") or "").strip()
         if c_title and c_title.lower() not in existing_titles:
-            items.append({"title": c_title, "year": custom.get("year")})
+            items.append({
+                "title": c_title,
+                "year": custom.get("year"),
+                "type": custom.get("type") or "tv",
+            })
             existing_titles.add(c_title.lower())
-    
-    shows = []
+
+    tmdb_shows = []
+    fallback_items = []
+
     # 控制并发，防止 TMDB 报错
     for i in range(0, len(items), 5):
         chunk = items[i:i + 5]
         tasks = [search_tmdb(session, item, cache) for item in chunk]
         results = await asyncio.gather(*tasks)
-        for tmdb_info in results:
-            if tmdb_info:
-                shows.append(tmdb_info)
-        await asyncio.sleep(0.3) # ⚠️ 稍微放慢一点点，因为多了二次详情请求
 
-    # 经过 search_tmdb 过滤，能留下的 100% 都是已开播的数据，所以 upcoming 恒定为空数组即可
-    # 去重：同一部作品（同媒体类型 + 同 TMDB ID）只保留一次
-    seen, aired = set(), []
-    for s in shows:
-        key = (s.get("mediaType"), s.get("id"))
-        if key in seen:
+        for item, tmdb_info in zip(chunk, results):
+            if tmdb_info:
+                tmdb_shows.append(tmdb_info)
+            else:
+                fallback_items.append(build_douban_fallback(item))
+
+        await asyncio.sleep(0.3)
+
+    tz_bj = datetime.timezone(datetime.timedelta(hours=8))
+    current_year = datetime.datetime.now(tz_bj).year
+
+    # 只跳过「同标题 + 同类型」的兜底条目，避免电影版与剧集版同名时被误删
+    tmdb_keys = {
+        ((show.get("title") or "").strip().lower(), show.get("mediaType"))
+        for show in tmdb_shows
+        if show.get("title")
+    }
+
+    seen_tmdb = set()
+    aired = []
+    for show in tmdb_shows:
+        key = (show.get("mediaType"), show.get("id"))
+        if key in seen_tmdb:
             continue
-        seen.add(key)
-        aired.append(s)
-    upcoming = []
-            
-    # 已开播按时间倒序排列 (最新的在前面)
-    aired.sort(key=lambda x: x.get("releaseDate") or "0000-00-00", reverse=True)
-    
-    print(f"✅ [{theater['name']}] 处理完成: 共发现 {len(items)} 部，完美匹配 {len(aired)} 部 (含电影 {sum(1 for x in aired if x['mediaType'] == 'movie')} 部)")
-    
+        seen_tmdb.add(key)
+        aired.append(show)
+
+    seen_douban = set()
+    fallback_aired = []
+    fallback_upcoming = []
+
+    for fallback in fallback_items:
+        title_key = (fallback.get("title") or "").strip().lower()
+        media_key = fallback.get("mediaType") or "tv"
+        if (title_key, media_key) in tmdb_keys:
+            continue
+
+        douban_id = fallback.get("id")
+        if douban_id in seen_douban:
+            continue
+        seen_douban.add(douban_id)
+
+        year = str(fallback.get("releaseDate") or "")[:4]
+        try:
+            item_year = int(year) if year else 0
+        except (TypeError, ValueError):
+            item_year = 0
+
+        if not (fallback.get("posterPath") or ""):
+            continue
+
+        # 豆瓣兜底条目只有年份信息：当年或未来年份一律视为「即将推出」
+        if item_year >= current_year:
+            fallback_upcoming.append(fallback)
+        else:
+            fallback_aired.append(fallback)
+
+    aired.extend(fallback_aired)
+
+    aired.sort(
+        key=lambda x: x.get("releaseDate") or "0000-00-00",
+        reverse=True,
+    )
+    fallback_upcoming.sort(
+        key=lambda x: x.get("releaseDate") or "0000-00-00",
+        reverse=True,
+    )
+
+    tmdb_count = len(seen_tmdb)
+    fallback_count = len(fallback_aired) + len(fallback_upcoming)
+    movie_count = sum(
+        1
+        for show in aired
+        if show.get("mediaType") == "movie"
+    )
+
+    print(
+        f"✅ [{theater['name']}] 处理完成: 共发现 {len(items)} 部，"
+        f"TMDB 匹配 {tmdb_count} 部，豆瓣兜底 {fallback_count} 部"
+        f"（其中即将推出 {len(fallback_upcoming)} 部），"
+        f"电影 {movie_count} 部"
+    )
+
     return {
         theater["name"]: {
             "aired": aired,
-            "upcoming": upcoming, # 保持结构兼容前端，即使为空
+            "upcoming": fallback_upcoming,
             "totalItems": len(items),
-            "totalPages": douban_data["page_count"]
+            "totalPages": douban_data["page_count"],
         }
     }
 
