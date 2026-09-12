@@ -6,12 +6,6 @@ WidgetMetadata = {
   version: "1.0.0",
   requiredVersion: "0.0.2",
   globalParams: [
-    { name: "serverName", title: "源1名称", type: "input", value: "🅖 🅖ᴳ" },
-    { name: "server", title: "源1链接", type: "input", value: "https://danmu-qiguo.vercel.app/guoguo/api/v2" },
-    { name: "serverName2", title: "轮询源2名称", type: "input", value: "AlphaTV-Pro" },
-    { name: "server2", title: "轮询源2链接", type: "input", value: "http://nl.jc.cd/87654321" },
-    { name: "serverName3", title: "源3名称", type: "input", value: "公益" },
-    { name: "server3", title: "源3链接", type: "input", value: "https://Dm.LiaoVm.com/luosen" },
     { name: "pollServerName", title: "轮询源1名称", type: "input", value: "SaoDu" },
     { name: "pollServer", title: "轮询源1链接", type: "input", value: "https://ybdm.saodu.wang:9999/api/v1/saoduyb" },
     { name: "pollServerName2", title: "轮询源2名称", type: "input", value: "" },
