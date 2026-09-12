@@ -211,8 +211,8 @@ var WidgetMetadata = {
                         { title: "Apple TV+", value: "2552" }, { title: "Disney+", value: "2739" }, { title: "Netflix", value: "213" }, { title: "Hulu", value: "453" },
                         { title: "HBO", value: "49" }, { title: "HBO Max", value: "3186" }, { title: "Amazon Prime Video", value: "1024" },
                         { title: "Paramount+", value: "4330" }, { title: "TV Tokyo", value: "94" }, { title: "BBC One", value: "332" },
-                        { title: "BBC Two", value: "295" }, { title: "AMC+", value: "174" }, { title: "NBC", value: "6" },
-                        { title: "FOX", value: "19" }, { title: "We TV", value: "3732" }, { title: "Viu TV", value: "2146" },
+                        { title: "BBC Two", value: "295" }, { title: "AMC+", value: "174" },
+                        { title: "FOX", value: "19" }, { title: "NBC", value: "6" }, { title: "We TV", value: "3732" }, { title: "Viu TV", value: "2146" },
                         { title: "TVB", value: "48" }, { title: "tvN", value: "866" }, { title: "SBS", value: "156" }
                     ]
                 },
