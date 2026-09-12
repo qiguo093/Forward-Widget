@@ -1111,8 +1111,8 @@ async function fetchDoubanWuxiaRank(mediaType, region, sortRule, page) {
         if (!sourceItems.length) return [];
         const mapped = await Promise.all(sourceItems.map(async item => {
             const rawTitle = item.title || "";
-            const year = String(item.year || "");
-            const tmdb = await searchTmdbForDouban(rawTitle, mediaType);
+            const year = String(item.year || (item.card_subtitle || "").match(/\b\d{4}\b/)?.[0] || "");
+            const tmdb = await searchTmdbForDouban(rawTitle, mediaType, year);
             const target = {
                 id: `db_${item.id || rawTitle}`, type: "tmdb", mediaType, title: rawTitle,
                 subTitle: `豆瓣 ${item.rating?.value || item.rate || ""}`,
@@ -1335,11 +1335,35 @@ function mergeDoubanTmdb(target, source) {
     target.popularity = parseFloat(source.popularity) || 0; target.voteCount = parseFloat(source.vote_count) || 0;
 }
 
-async function searchTmdbForDouban(query, type) {
-    const q = query.replace(/第[一二三四五六七八九十\d]+[季章]/g, "").trim();
+function normalizeDoubanTmdbTitle(title) {
+    return String(title || "")
+        .toLowerCase()
+        .replace(/Ⅱ/g, "ii")
+        .replace(/Ⅲ/g, "iii")
+        .replace(/[^\p{L}\p{N}]+/gu, "")
+        .replace(/ii/g, "2")
+        .replace(/iii/g, "3");
+}
+
+async function searchTmdbForDouban(query, type, year) {
+    const cleaned = String(query || "").replace(/第[一二三四五六七八九十\d]+[季章]/g, "").trim();
     try {
-        const res = await Widget.tmdb.get(`/search/${type}`, { params: { query: encodeURIComponent(q), language: "zh-CN" } });
-        return (res.results || [])[0];
+        const res = await Widget.tmdb.get(`/search/${type}`, { params: { query: cleaned, language: "zh-CN" } });
+        const results = Array.isArray(res.results) ? res.results : [];
+        if (!results.length) return null;
+        const wantedTitle = normalizeDoubanTmdbTitle(query);
+        const wantedYear = String(year || "");
+        const titleMatches = results.filter(item => {
+            const candidate = item.title || item.name || "";
+            return normalizeDoubanTmdbTitle(candidate) === wantedTitle;
+        });
+        const yearOf = item => String(item.first_air_date || item.release_date || "").slice(0, 4);
+        const exactYearMatches = titleMatches.filter(item => !wantedYear || yearOf(item) === wantedYear);
+        const exactYear = exactYearMatches.find(item => item.poster_path) || exactYearMatches[0];
+        if (exactYear) return exactYear;
+        if (titleMatches.length) return titleMatches.find(item => item.poster_path) || titleMatches[0];
+        const yearMatch = results.find(item => !wantedYear || yearOf(item) === wantedYear);
+        return yearMatch || results[0];
     } catch (e) { return null; }
 }
 
@@ -1370,7 +1394,7 @@ async function fetchDoubanAndMap(tag, type, page) {
                 posterPath: item.cover,
                 rating: parseFloat(item.rate) || 0, popularity: 0, voteCount: 0
             };
-            const tmdb = await searchTmdbForDouban(item.title, type);
+            const tmdb = await searchTmdbForDouban(item.title, type, item.year);
             if (tmdb) mergeDoubanTmdb(finalItem, tmdb); 
             return finalItem;
         });
