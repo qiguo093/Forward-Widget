@@ -30,6 +30,24 @@
       "version": "1.0.0",
       "requiredVersion": "0.0.2",
       "url": "https://github.com/qiguo093/Forward-Widget/raw/refs/heads/main/widgets/Binfa-danmu.js"
+    },
+    {
+      "id": "huangxd.danmu.auto",
+      "title": "自动链接弹幕v2",
+      "description": "自动链接弹幕模块",
+      "author": "𝓚𝓾𝓰𝓾𝓸𝔃𝓪𝓲 ⁷",
+      "version": "1.0.0",
+      "requiredVersion": "0.0.2",
+      "url": "https://raw.githubusercontent.com/qiguo093/Forward-Widget/main/widgets/%E8%87%AA%E5%8A%A8%E9%93%BE%E6%8E%A5%E5%BC%B9%E5%B9%95v2.js"
+    },
+    {
+      "id": "baranwang.danmu.universe",
+      "title": "通用弹幕",
+      "description": "通用弹幕模块",
+      "author": "𝓚𝓾𝓰𝓾𝓸𝔃𝓪𝓲 ⁷",
+      "version": "0.15.8",
+      "requiredVersion": "0.0.2",
+      "url": "https://raw.githubusercontent.com/qiguo093/Forward-Widget/main/widgets/%E9%80%9A%E7%94%A8%E5%BC%B9%E5%B9%95.js"
     }
   ]
 }
