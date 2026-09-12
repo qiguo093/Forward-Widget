@@ -1,10 +1,10 @@
 {
-  "title": "🅖 🅖ᴳ终极模块",
-  "description": "影视、动漫、综艺、弹幕、全球聚合",
+  "title": "🅖 🅖⁷终极模块",
+  "description": "影视、动漫、综艺全球聚合榜单",
   "icon": "https://github.com/qiguo093/Forward-Widget/raw/refs/heads/main/icon2.png",
   "widgets": [
     {
-      "id": "🅖 🅖ᴳMedia.library",
+      "id": "🅖 🅖Media.library",
       "title": "终极影视榜单Pro",
       "description": "聚合影视、动漫、综艺等众多平台榜单",
       "icon": "https://github.com/qiguo093/Forward-Widget/raw/refs/heads/main/icon2.png",
