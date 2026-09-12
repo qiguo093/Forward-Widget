@@ -98,22 +98,6 @@ var WidgetMetadata = {
             ]
         },
 
-        // ---------------- 大栏目 1：豆瓣热榜（独立模块） ----------------
-        {
-            title: "豆瓣热榜",
-            description: "豆瓣影视与综艺热门榜单",
-            functionName: "loadTheaterDouban",
-            type: "video",
-            cacheDuration: 43200,
-            params: [
-                { name: "channel", title: "榜单分类", type: "enumeration", value: "tv", enumOptions: [
-                    { title: "全部剧集", value: "tv" }, { title: "大陆剧集", value: "tv_domestic" }, { title: "欧美剧集", value: "tv_american" }, { title: "日本剧集", value: "tv_japanese" }, { title: "韩国剧集", value: "tv_korean" }, { title: "动漫番剧", value: "tv_animation" }, { title: "大陆综艺", value: "show_domestic" }, { title: "国外综艺", value: "show_foreign" }, { title: "电影实时热门", value: "movie_real_time_hotest" }, { title: "剧集实时热门", value: "tv_real_time_hotest" }, { title: "书影音实时热门", value: "subject_real_time_hotest" }, { title: "影院热映", value: "movie_showing" }
-                ] },
-                { name: "sort_type", title: "排序方式", type: "enumeration", value: "default", enumOptions: [ { title: "默认原序", value: "default" }, { title: "最近更新", value: "updated" }, { title: "最近发布", value: "recent" }, { title: "热度最高", value: "heat" }, { title: "流行趋势", value: "trending" }, { title: "高分优先", value: "rating" } ] },
-                { name: "page", title: "页码", type: "page", startPage: 1 }
-            ]
-        },
-
         // ---------------- 大栏目 6：平台剧场 ----------------
         {
             title: "平台剧场",
@@ -869,7 +853,7 @@ async function loadTmdbTrendEntry(params = {}) {
 async function loadImdbTrendEntry(params = {}) { return await loadImdbList(params.sort_by || "trending_week", params.mediaType || "all", params.page || 1); }
 async function loadRtTrendEntry(params = {}) { return await loadRottenTomatoesTrends(params.sort_by || "rt_movies_home", params.page || 1); }
 async function loadTraktTrendEntry(params = {}) { return await handleTraktList(params.sort_by || "trending", params.traktType || "all", params.traktClientId || DEFAULT_TRAKT_ID, params.page || 1); }
-// 🟢 豆瓣国内风向：排序支持（排序方式与「豆瓣热榜」保持一致）
+// 🟢 豆瓣国内风向：排序支持（沿用平台剧场一致的排序方式）
 function sortDoubanTrendItems(list, sortType) {
     if (!Array.isArray(list) || !list.length) return list || [];
     if (!sortType || sortType === "default") return list;
@@ -2235,10 +2219,6 @@ const THEATER_UTILS = {
     return this.fetchUrl(url);
   },
 
-  async fetchDoubanRankings() {
-    return this.fetchAny(DOUBAN_RANKINGS_URLS, "douban-hot");
-  },
-
   async fetchTheaterData() {
     return this.fetchAny(THEATER_DATA_URLS, "theater-data");
   },
@@ -2326,23 +2306,6 @@ const THEATER_UTILS = {
 };
 
 /**
- * 模块 1：加载豆瓣榜单
- */
-async function loadTheaterDouban(params = {}) {
-  const data = await THEATER_UTILS.fetchDoubanRankings();
-  if (!data) return [{ id: "err", type: "text", title: "⚠️ 豆瓣榜单加载失败", description: "所有数据源均不可用，请稍后重试" }];
-
-  const channel = params.channel || "tv";
-  let list = Array.isArray(data[channel]) ? data[channel] : [];
-  if (!list.length) {
-    const keys = Object.keys(data).filter((k) => Array.isArray(data[k])).join(" / ");
-    return [{ id: "empty", type: "text", title: "⚠️ 暂无数据", description: `分类 ${channel} 无数据，可用分类：${keys}` }];
-  }
-  list = THEATER_UTILS.sortList(list, params.sort_type); // 直接同步调用，不再 await
-  return THEATER_UTILS.paginate(list, params.page);
-}
-
-/**
  * 模块 2：加载精选剧场
  */
 const THEATER_DATA_URL = "https://raw.githubusercontent.com/qiguo093/Forward-Widget/main/data/theater-data.json";
@@ -2355,17 +2318,6 @@ const THEATER_DATA_URLS = [
   "https://gh-proxy.com/https://raw.githubusercontent.com/qiguo093/Forward-Widget/main/data/theater-data.json",
   "https://raw.githubusercontent.com/qiguo093/Forward-Widget/main/data/theater-data.json"
 ];
-const DOUBAN_RANKINGS_URL = "https://cdn.jsdelivr.net/gh/qiguo093/Forward-Widget@main/data/douban-hot.json";
-const DOUBAN_RANKINGS_URLS = [
-  DOUBAN_RANKINGS_URL,
-  "https://gcore.jsdelivr.net/gh/qiguo093/Forward-Widget@main/data/douban-hot.json",
-  "https://fastly.jsdelivr.net/gh/qiguo093/Forward-Widget@main/data/douban-hot.json",
-  "https://raw.githack.com/qiguo093/Forward-Widget/main/data/douban-hot.json",
-  "https://ghfast.top/https://raw.githubusercontent.com/qiguo093/Forward-Widget/main/data/douban-hot.json",
-  "https://gh-proxy.com/https://raw.githubusercontent.com/qiguo093/Forward-Widget/main/data/douban-hot.json",
-  "https://raw.githubusercontent.com/qiguo093/Forward-Widget/main/data/douban-hot.json"
-];
-
 const THEATER_SHARD_FILES = {
   "迷雾剧场": "mist", "暗流剧场": "anliu", "白夜剧场": "white", "X剧场": "x",
   "横屏短剧": "short", "生花剧场": "shenghua", "大家剧场": "dajia", "小逗剧场": "xiaodou",
@@ -2456,10 +2408,9 @@ async function loadTheaterMangoTV(params = {}) {
 }
 
 async function loadTheaterHub(params = {}) {
-    const source = params.theater_source || "douban";
-    if (source === "theater") return await loadTheaterList(params);
+    const source = params.theater_source || "theater";
     if (source === "mango") return await loadTheaterMangoTV(params);
-    return await loadTheaterDouban(params);
+    return await loadTheaterList(params);
 }
 
 // ================= 全球追剧时刻表（英文已删除） =================
