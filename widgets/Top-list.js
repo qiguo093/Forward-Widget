@@ -187,6 +187,87 @@ var WidgetMetadata = {
             ]
         },
 
+        // ---------------- 大栏目：平台公司片库 ----------------
+        {
+            title: "平台公司片库",
+            description: "按播出平台或出品公司筛选影视内容",
+            functionName: "loadPlatformCompanyLibrary",
+            type: "video",
+            cacheDuration: 21600,
+            params: [
+                {
+                    name: "library_source", title: "选择类型", type: "enumeration", value: "network",
+                    enumOptions: [ { title: "播出平台", value: "network" }, { title: "出品公司", value: "company" } ]
+                },
+                {
+                    name: "with_networks", title: "播出平台", type: "enumeration", value: "",
+                    belongTo: { paramName: "library_source", value: ["network"] },
+                    enumOptions: [
+                        { title: "全部", value: "" }, { title: "Tencent", value: "2007" }, { title: "iQiyi", value: "1330" },
+                        { title: "Youku", value: "1419" }, { title: "Bilibili", value: "1605" }, { title: "MGTV", value: "1631" },
+                        { title: "Netflix", value: "213" }, { title: "Disney+", value: "2739" }, { title: "HBO", value: "49" },
+                        { title: "HBO Max", value: "3186" }, { title: "Apple TV+", value: "2552" }, { title: "Hulu", value: "453" },
+                        { title: "Amazon Prime Video", value: "1024" }, { title: "FOX", value: "19" }, { title: "Paramount+", value: "4330" },
+                        { title: "TV Tokyo", value: "94" }, { title: "BBC One", value: "332" }, { title: "BBC Two", value: "295" },
+                        { title: "NBC", value: "6" }, { title: "AMC+", value: "174" }, { title: "We TV", value: "3732" },
+                        { title: "Viu TV", value: "2146" }, { title: "TVB", value: "48" }
+                    ]
+                },
+                {
+                    name: "with_companies", title: "出品公司", type: "enumeration", value: "",
+                    belongTo: { paramName: "library_source", value: ["company"] },
+                    enumOptions: [
+                        { title: "全部", value: "" }, { title: "皮克斯 Pixar", value: "3" }, { title: "DC Universe", value: "128064" },
+                        { title: "Disney", value: "2" }, { title: "Warner Bros", value: "174" }, { title: "Columbia", value: "5" },
+                        { title: "Sony", value: "34" }, { title: "Universal", value: "33" }, { title: "Paramount", value: "4" },
+                        { title: "20th Century", value: "25" }, { title: "Marvel", value: "420" }, { title: "Toho", value: "882" },
+                        { title: "中国电影集团公司", value: "14714" }, { title: "BBC", value: "3324" }, { title: "A24", value: "41077" },
+                        { title: "Blumhouse", value: "3172" }, { title: "Working Title Films", value: "10163" }
+                    ]
+                },
+                {
+                    name: "company_genre", title: "内容类型", type: "enumeration", value: "",
+                    belongTo: { paramName: "library_source", value: ["company"] },
+                    enumOptions: [
+                        { title: "全部类型", value: "" }, { title: "冒险", value: "12" }, { title: "剧情", value: "18" },
+                        { title: "动作", value: "28" }, { title: "动画", value: "16" }, { title: "历史", value: "36" },
+                        { title: "喜剧", value: "35" }, { title: "奇幻", value: "14" }, { title: "家庭", value: "10751" },
+                        { title: "恐怖", value: "27" }, { title: "悬疑", value: "9648" }, { title: "惊悚", value: "53" },
+                        { title: "战争", value: "10752" }, { title: "爱情", value: "10749" }, { title: "犯罪", value: "80" },
+                        { title: "科幻", value: "878" }, { title: "西部", value: "37" }, { title: "音乐", value: "10402" },
+                        { title: "电视电影", value: "10770" }
+                    ]
+                },
+                {
+                    name: "network_genre", title: "内容类型", type: "enumeration", value: "",
+                    belongTo: { paramName: "library_source", value: ["network"] },
+                    enumOptions: [
+                        { title: "全部类型", value: "" }, { title: "犯罪", value: "80" }, { title: "动画", value: "16" },
+                        { title: "喜剧", value: "35" }, { title: "剧情", value: "18" }, { title: "家庭", value: "10751" },
+                        { title: "悬疑", value: "9648" }, { title: "真人秀", value: "10764" }, { title: "脱口秀", value: "10767" },
+                        { title: "纪录片", value: "99" }, { title: "动作与冒险", value: "10759" }, { title: "科幻与奇幻", value: "10765" },
+                        { title: "战争与政治", value: "10768" }
+                    ]
+                },
+                {
+                    name: "air_status", title: "上映状态", type: "enumeration", value: "released",
+                    enumOptions: [ { title: "已上映", value: "released" }, { title: "未上映", value: "upcoming" }, { title: "全部", value: "" } ]
+                },
+                {
+                    name: "network_sort_by", title: "排序方式", type: "enumeration", value: "first_air_date.desc",
+                    belongTo: { paramName: "library_source", value: ["network"] },
+                    enumOptions: [ { title: "上映时间↓", value: "first_air_date.desc" }, { title: "上映时间↑", value: "first_air_date.asc" }, { title: "人气最高", value: "popularity.desc" }, { title: "评分最高", value: "vote_average.desc" }, { title: "最多投票", value: "vote_count.desc" } ]
+                },
+                {
+                    name: "company_sort_by", title: "排序方式", type: "enumeration", value: "primary_release_date.desc",
+                    belongTo: { paramName: "library_source", value: ["company"] },
+                    enumOptions: [ { title: "上映时间↓", value: "primary_release_date.desc" }, { title: "上映时间↑", value: "primary_release_date.asc" }, { title: "人气最高", value: "popularity.desc" }, { title: "评分最高", value: "vote_average.desc" }, { title: "最多投票", value: "vote_count.desc" } ]
+                },
+                { name: "page", title: "页码", type: "page", startPage: 1 },
+                { name: "language", title: "语言", type: "language", value: "zh-CN" }
+            ]
+        },
+
         // ---------------- 大栏目 6：全球追剧时刻表 ----------------
         {
             title: "全球追剧时刻表",
@@ -2317,6 +2398,71 @@ async function loadTheaterHub(params = {}) {
     const source = params.theater_source || "theater";
     if (source === "mango") return await loadTheaterMangoTV(params);
     return await loadTheaterList(params);
+}
+
+function platformCompanyBuildItem(item, mediaType) {
+    const date = item.first_air_date || item.release_date || "";
+    return {
+        id: String(item.id),
+        tmdbId: item.id,
+        type: "tmdb",
+        mediaType,
+        title: (mediaType === "movie" ? (item.title || item.name) : (item.name || item.title)) || "未命名",
+        genreTitle: getGlobalGenreText(item.genre_ids || []),
+        releaseDate: date,
+        year: date.slice(0, 4),
+        subTitle: date ? `⭐ ${Number(item.vote_average || 0).toFixed(1)} | ${date}` : `⭐ ${Number(item.vote_average || 0).toFixed(1)}`,
+        description: `${date || "暂无日期"} · ⭐ ${Number(item.vote_average || 0).toFixed(1)}\n${item.overview || "暂无简介"}`,
+        posterPath: item.poster_path ? `https://image.tmdb.org/t/p/w500${item.poster_path}` : "",
+        backdropPath: item.backdrop_path ? `https://image.tmdb.org/t/p/w780${item.backdrop_path}` : "",
+        rating: item.vote_average || 0,
+        popularity: item.popularity || 0,
+        voteCount: item.vote_count || 0
+    };
+}
+
+async function loadPlatformCompanyLibrary(params = {}) {
+    const source = params.library_source || "network";
+    const page = Number(params.page || 1);
+    const language = params.language || "zh-CN";
+    const status = params.air_status || "released";
+    const sortBy = source === "company"
+        ? (params.company_sort_by || "primary_release_date.desc")
+        : (params.network_sort_by || "first_air_date.desc");
+    const isCompany = source === "company";
+    const mediaType = isCompany ? "movie" : "tv";
+    const query = { language, page, sort_by: sortBy, include_adult: false, include_video: false };
+
+    if (isCompany) {
+        if (params.with_companies) query.with_companies = params.with_companies;
+        if (params.company_genre) query.with_genres = params.company_genre;
+        if (params.with_companies !== "128064") query.without_genres = "99,10770";
+        if (status !== "upcoming" && params.with_companies !== "128064") query["with_runtime.gte"] = 60;
+        if (sortBy === "vote_average.desc") query["vote_count.gte"] = 50;
+        if (sortBy === "popularity.desc") { query["vote_count.gte"] = 50; query["vote_average.gte"] = 5.0; }
+        if (sortBy === "vote_count.desc") query["vote_average.gte"] = 6.0;
+        if (status === "released") query["primary_release_date.lte"] = new Date().toISOString().slice(0, 10);
+        else if (status === "upcoming") query["primary_release_date.gte"] = new Date().toISOString().slice(0, 10);
+    } else {
+        if (params.with_networks) query.with_networks = params.with_networks;
+        if (params.network_genre) query.with_genres = params.network_genre;
+        const foreign = ["213","2739","49","3186","2552","453","1024","19","4330","94","332","295","6","174","3732","2146","48"];
+        if (params.with_networks && !foreign.includes(String(params.with_networks)) && !params.network_genre) query.without_genres = "99,10764,10767";
+        if (sortBy === "vote_average.desc") query["vote_count.gte"] = 30;
+        const today = new Date().toISOString().slice(0, 10);
+        if (status === "released") query["first_air_date.lte"] = today;
+        else if (status === "upcoming") query["first_air_date.gte"] = today;
+    }
+
+    try {
+        const response = await Widget.tmdb.get(`discover/${mediaType}`, { params: query });
+        const results = Array.isArray(response?.results) ? response.results : [];
+        return results.filter(item => item && item.id && (item.poster_path || item.backdrop_path))
+            .map(item => platformCompanyBuildItem(item, mediaType));
+    } catch (error) {
+        console.error("[loadPlatformCompanyLibrary] 请求失败:", error.message || error);
+        return [{ id: "platform_company_error", type: "text", title: "加载失败", description: "平台/公司片库请求失败，请稍后重试" }];
+    }
 }
 
 // ================= 全球追剧时刻表（英文已删除） =================
