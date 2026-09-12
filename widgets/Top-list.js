@@ -365,7 +365,7 @@ var WidgetMetadata = {
             type: "video",
             cacheDuration: 43200,
             params: [
-                { name: "sort_by", title: "排序风格", type: "enumeration", value: "combined", enumOptions: [ { title: "综合排序", value: "combined" }, { title: "近期热度", value: "popularity" }, { title: "首映时间", value: "time" }, { title: "高分优选", value: "rating" } ] },
+                { name: "sort_by", title: "排序规则", type: "enumeration", value: "popularity", enumOptions: [ { title: "热门趋势", value: "popularity" }, { title: "评分最高", value: "rating" }, { title: "最新上线", value: "time" } ] },
                 { name: "media_type", title: "影视类型", type: "enumeration", value: "all", enumOptions: [ { title: "🌟 全部 (影+剧混合)", value: "all" }, { title: "🎬 电影 (Movie)", value: "movie" }, { title: "📺 电视剧 (TV)", value: "tv" } ] },
                 { name: "genre", title: "题材流派", type: "enumeration", value: "all", enumOptions: [ { title: "🌟 全部题材 (All)", value: "all" }, { title: "🛸 科幻 (Sci-Fi)", value: "scifi" }, { title: "🔍 悬疑 (Mystery)", value: "mystery" }, { title: "👻 恐怖 (Horror)", value: "horror" }, { title: "🔪 犯罪 (Crime)", value: "crime" }, { title: "💥 动作 (Action)", value: "action" }, { title: "😂 喜剧 (Comedy)", value: "comedy" }, { title: "❤️ 爱情 (Romance)", value: "romance" }, { title: "🎭 剧情 (Drama)", value: "drama" }, { title: "🐉 奇幻 (Fantasy)", value: "fantasy" }, { title: "🎨 动画 (Animation)", value: "animation" }, { title: "🎥 纪录片 (Documentary)", value: "documentary" } ] },
                 { name: "region", title: "国家/地区", type: "enumeration", value: "all", enumOptions: [ { title: "🌍 全球 (所有国家)", value: "all" }, { title: "🇨🇳 中国大陆", value: "cn" }, { title: "🇭🇰 中国香港", value: "hk" }, { title: "🇹🇼 中国台湾", value: "tw" }, { title: "🏮 港台 (香港+台湾)", value: "hktw" }, { title: "🇯🇵 日本", value: "jp" }, { title: "🇰🇷 韩国", value: "kr" }, { title: "🌸 日韩合集", value: "jpkr" }, { title: "🇹🇭 泰国", value: "th" }, { title: "🇸🇬 新加坡", value: "sg" }, { title: "🇲🇾 马来西亚", value: "my" }, { title: "🇮🇳 印度", value: "in" }, { title: "🌏 亚太大区", value: "apac" }, { title: "🇺🇸 美国", value: "us" }, { title: "🇬🇧 英国", value: "gb" }, { title: "🇩🇪 德国", value: "de" }, { title: "🇸🇪 瑞典", value: "se" }, { title: "🇪🇺 欧洲全境", value: "europe" }, { title: "🇪🇸 西班牙", value: "es" }, { title: "🇲🇽 墨西哥", value: "mx" }, { title: "💃 西语/拉丁美洲", value: "latin" } ] },
@@ -1066,14 +1066,12 @@ const REGION_MAP = { "all": "", "cn": "CN", "hk": "HK", "tw": "TW", "hktw": "HK|
 async function fetchGenreRankData(mediaType, genre, region, sort_rule, page) {
     const genreId = ADVANCED_GENRE_MAP[genre] ? ADVANCED_GENRE_MAP[genre][mediaType] : "";
     const originCountry = REGION_MAP[region] || "";
-    // 综合排序沿用当前模块的综合热度排序；其他选项对应 TMDB 标准排序。
-    const effectiveSort = sort_rule === "combined" ? "popularity" : sort_rule;
-    let tmdbSortBy = effectiveSort === "rating" ? "vote_average.desc" : (effectiveSort === "time" ? (mediaType === "movie" ? "primary_release_date.desc" : "first_air_date.desc") : "popularity.desc");
+    let tmdbSortBy = sort_rule === "rating" ? "vote_average.desc" : (sort_rule === "time" ? (mediaType === "movie" ? "primary_release_date.desc" : "first_air_date.desc") : "popularity.desc");
     const queryParams = { language: "zh-CN", page: page, sort_by: tmdbSortBy, include_adult: false, include_video: false };
     if (genreId) queryParams.with_genres = genreId;
     if (originCountry) queryParams.with_origin_country = originCountry;
-    queryParams["vote_count.gte"] = effectiveSort === "rating" ? 200 : 10;
-    if (effectiveSort === "time") {
+    queryParams["vote_count.gte"] = sort_rule === "rating" ? 200 : 10;
+    if (sort_rule === "time") {
         const today = new Date(); today.setMonth(today.getMonth() + 1); const maxDate = today.toISOString().split('T')[0];
         if (mediaType === "movie") queryParams["primary_release_date.lte"] = maxDate; else queryParams["first_air_date.lte"] = maxDate;
     }
@@ -1101,7 +1099,7 @@ async function loadGenreRank(params = {}) {
     const mediaType = params.media_type || "all"; 
     const genre = params.genre || "all"; 
     const region = params.region || "all"; 
-    const sort_rule = params.sort_by || "combined";
+    const sort_rule = params.sort_by || "popularity";
 
     if (mediaType === "all") {
         const [movies, tvs] = await Promise.all([
@@ -1110,9 +1108,9 @@ async function loadGenreRank(params = {}) {
         ]);
         let items = [...movies, ...tvs];
         items.sort((a, b) => { 
-            if (sort_rule === "combined" || sort_rule === "popularity") return b._popularity - a._popularity; 
+            if (sort_rule === "popularity") return b._popularity - a._popularity; 
             else if (sort_rule === "time") return new Date(b._date) - new Date(a._date); 
-            else return (b.rating || 0) - (a.rating || 0); 
+            else return b.rating - a.rating; 
         });
         items = items.slice(0, 20); 
         if (items.length === 0) return page === 1 ? [{ id: "empty", type: "text", title: "未找到符合条件" }] : [];
