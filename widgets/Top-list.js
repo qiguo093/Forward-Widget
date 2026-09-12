@@ -849,7 +849,7 @@ async function loadTmdbTrendEntry(params = {}) {
 async function loadImdbTrendEntry(params = {}) { return await loadImdbList(params.sort_by || "trending_week", params.mediaType || "all", params.page || 1); }
 async function loadRtTrendEntry(params = {}) { return await loadRottenTomatoesTrends(params.sort_by || "rt_movies_home", params.page || 1); }
 async function loadTraktTrendEntry(params = {}) { return await handleTraktList(params.sort_by || "trending", params.traktType || "all", params.traktClientId || DEFAULT_TRAKT_ID, params.page || 1); }
-// 🟢 豆瓣国内风向：排序支持（沿用平台剧场一致的排序方式）
+// 🟢 豆瓣榜单：排序支持（沿用平台剧场一致的排序方式）
 function sortDoubanTrendItems(list, sortType) {
     if (!Array.isArray(list) || !list.length) return list || [];
     if (!sortType || sortType === "default") return list;
