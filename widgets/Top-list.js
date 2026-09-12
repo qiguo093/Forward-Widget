@@ -388,6 +388,7 @@ var WidgetMetadata = {
                     type: "enumeration",
                     value: "CN",
                     enumOptions: [
+                        { title: "🌟 全球综合热播", value: "GLOBAL" },
                         { title: "🇨🇳 大陆 (Mainland China)", value: "CN" },
                         { title: "🇭🇰 香港 (Hong Kong)", value: "HK" },
                         { title: "🇹🇼 台湾 (Taiwan)", value: "TW" },
@@ -7092,7 +7093,9 @@ async function zoneFetchFromTmdb(endpoint, sort_by, page, regionKey) { // 👉 �
         page: page
     };
 
-    if (regionKey === "ES_LANG") {
+    if (regionKey === "GLOBAL") {
+        // 全球综合热播：不按国家/地区过滤，与全球影视平台「全球综合热播」一致
+    } else if (regionKey === "ES_LANG") {
         queryParams.with_original_language = "es";
     } else if (regionKey === "EU") {
         queryParams.with_origin_country = "FR|DE|IT|NL|DK|NO|FI"; 
