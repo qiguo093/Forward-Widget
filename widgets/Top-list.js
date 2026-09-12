@@ -210,7 +210,9 @@ var WidgetMetadata = {
                         { title: "Amazon Prime Video", value: "1024" }, { title: "FOX", value: "19" }, { title: "Paramount+", value: "4330" },
                         { title: "TV Tokyo", value: "94" }, { title: "BBC One", value: "332" }, { title: "BBC Two", value: "295" },
                         { title: "NBC", value: "6" }, { title: "AMC+", value: "174" }, { title: "We TV", value: "3732" },
-                        { title: "Viu TV", value: "2146" }, { title: "TVB", value: "48" }
+                        { title: "Viu TV", value: "2146" }, { title: "TVB", value: "48" },
+                        { title: "湖南卫视", value: "952" }, { title: "浙江卫视", value: "989" }, { title: "东方卫视", value: "1056" },
+                        { title: "CCTV-8", value: "521" }, { title: "tvN", value: "866" }, { title: "SBS", value: "156" }
                     ]
                 },
                 {
@@ -2446,7 +2448,7 @@ async function loadPlatformCompanyLibrary(params = {}) {
     } else {
         if (params.with_networks) query.with_networks = params.with_networks;
         if (params.network_genre) query.with_genres = params.network_genre;
-        const foreign = ["213","2739","49","3186","2552","453","1024","19","4330","94","332","295","6","174","3732","2146","48"];
+        const foreign = ["213","2739","49","3186","2552","453","1024","19","4330","94","332","295","6","174","3732","2146","48","952","989","1056","521","866","156"];
         if (params.with_networks && !foreign.includes(String(params.with_networks)) && !params.network_genre) query.without_genres = "99,10764,10767";
         if (sortBy === "vote_average.desc") query["vote_count.gte"] = 30;
         const today = new Date().toISOString().slice(0, 10);
