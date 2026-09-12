@@ -259,7 +259,7 @@ var WidgetMetadata = {
                 {
                     name: "sort_by", title: "排序方式", type: "enumeration", value: "first_air_date.desc",
                     enumOptions: [
-                        { title: "上映时间", value: "first_air_date.desc" }, { title: "上映时间", value: "first_air_date.asc" },
+                        { title: "上映时间降序", value: "first_air_date.desc" }, { title: "上映时间升序", value: "first_air_date.asc" },
                         { title: "人气最高", value: "popularity.desc" }, { title: "评分最高", value: "vote_average.desc" }, { title: "最多投票", value: "vote_count.desc" }
                     ]
                 },
