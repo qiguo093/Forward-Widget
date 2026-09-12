@@ -61,7 +61,6 @@ var WidgetMetadata = {
     author: "𝓚𝓾𝓰𝓾𝓸𝔃𝓪𝓲 ⁷",
     version: "2.0.0",
     requiredVersion: "0.0.1",
-    site: 
     
     globalParams: [
         {
