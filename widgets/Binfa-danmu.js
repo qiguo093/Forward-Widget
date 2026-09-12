@@ -1,7 +1,7 @@
 WidgetMetadata = {
   id: "qiguo.danmu.轮询弹幕",
   title: "轮询弹幕",
-  description: "独立轮询弹幕模块",
+  description: "轮询弹幕，轮询稳定版适合单Api",
   author: "𝓚𝓾𝓰𝓾𝓸𝔃𝓪𝓲 ⁷",
   version: "1.0.0",
   requiredVersion: "0.0.2",
