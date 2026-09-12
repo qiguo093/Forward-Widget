@@ -1,7 +1,7 @@
 WidgetMetadata = {
   id: "qiguo.danmu.极速弹幕",
   title: "极速弹幕",
-  description: "独立极速弹幕模块",
+  description: "极速弹幕，并发极速版适合多Api",
   author: "𝓚𝓾𝓰𝓾𝓸𝔃𝓪𝓲 ⁷",
   version: "1.0.0",
   requiredVersion: "0.0.2",
