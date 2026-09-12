@@ -203,16 +203,17 @@ var WidgetMetadata = {
                     name: "with_networks", title: "播出平台", type: "enumeration", value: "",
                     belongTo: { paramName: "library_source", value: ["network"] },
                     enumOptions: [
-                        { title: "全部", value: "" }, { title: "Tencent", value: "2007" }, { title: "iQiyi", value: "1330" },
-                        { title: "Youku", value: "1419" }, { title: "Bilibili", value: "1605" }, { title: "MGTV", value: "1631" },
-                        { title: "Netflix", value: "213" }, { title: "Disney+", value: "2739" }, { title: "HBO", value: "49" },
-                        { title: "HBO Max", value: "3186" }, { title: "Apple TV+", value: "2552" }, { title: "Hulu", value: "453" },
-                        { title: "Amazon Prime Video", value: "1024" }, { title: "FOX", value: "19" }, { title: "Paramount+", value: "4330" },
-                        { title: "TV Tokyo", value: "94" }, { title: "BBC One", value: "332" }, { title: "BBC Two", value: "295" },
-                        { title: "NBC", value: "6" }, { title: "AMC+", value: "174" }, { title: "We TV", value: "3732" },
-                        { title: "Viu TV", value: "2146" }, { title: "TVB", value: "48" },
-                        { title: "湖南卫视", value: "952" }, { title: "浙江卫视", value: "989" }, { title: "东方卫视", value: "1056" },
-                        { title: "CCTV-8", value: "521" }, { title: "CCTV-1", value: "1363" }, { title: "tvN", value: "866" }, { title: "SBS", value: "156" }
+                        { title: "全部", value: "" },
+                        { title: "CCTV-1", value: "1363" }, { title: "CCTV-8", value: "521" },
+                        { title: "爱奇艺", value: "1330" }, { title: "优酷视频", value: "1419" }, { title: "腾讯视频", value: "2007" },
+                        { title: "芒果视频", value: "1631" }, { title: "哔哩哔哩", value: "1605" },
+                        { title: "东方卫视", value: "1056" }, { title: "湖南卫视", value: "952" }, { title: "浙江卫视", value: "989" },
+                        { title: "Apple TV+", value: "2552" }, { title: "Disney+", value: "2739" }, { title: "Netflix", value: "213" }, { title: "Hulu", value: "453" },
+                        { title: "HBO", value: "49" }, { title: "HBO Max", value: "3186" }, { title: "Amazon Prime Video", value: "1024" },
+                        { title: "FOX", value: "19" }, { title: "Paramount+", value: "4330" }, { title: "TV Tokyo", value: "94" },
+                        { title: "BBC One", value: "332" }, { title: "BBC Two", value: "295" }, { title: "NBC", value: "6" },
+                        { title: "AMC+", value: "174" }, { title: "We TV", value: "3732" }, { title: "Viu TV", value: "2146" },
+                        { title: "TVB", value: "48" }, { title: "tvN", value: "866" }, { title: "SBS", value: "156" }
                     ]
                 },
                 {
