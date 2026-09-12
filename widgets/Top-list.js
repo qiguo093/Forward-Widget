@@ -474,6 +474,23 @@ var WidgetMetadata = {
         },
 
         // ---------------- 大栏目 5：影剧流行风向（独立入口，右上角独立榜单菜单） ----------------
+        { title: "豆瓣榜单", functionName: "loadDoubanTrendEntry", type: "video", cacheDuration: 43200, params: [
+            {
+                name: "sort_by", title: "豆瓣 榜单", type: "enumeration", value: "db_tv_cn",
+                enumOptions: [
+                    { value: "db_tv_cn", title: "热门国产剧" }, { value: "db_variety", title: "热门综艺" }, { value: "db_movie", title: "热门电影" }, { value: "db_tv_us", title: "热门美剧" }, { value: "tv_domestic", title: "大陆剧集" }, { value: "tv_american", title: "欧美剧集" }, { value: "tv_japanese", title: "日本剧集" }, { value: "tv_korean", title: "韩国剧集" }, { value: "tv_animation", title: "动漫番剧" }, { value: "show_domestic", title: "大陆综艺" }, { value: "show_foreign", title: "国外综艺" }, { value: "movie_weekly", title: "一周口碑电影" }, { value: "movie_top250", title: "豆瓣 Top250" }, { value: "custom_movie_hot", title: "豆瓣电影实时热榜" }, { value: "custom_tv_hot", title: "豆瓣剧集实时热榜" }, { value: "custom_subject_hot", title: "豆瓣书影音实时热榜" }, { value: "custom_tv_chinese", title: "华语口碑剧集榜" }, { value: "custom_tv_global", title: "全球口碑剧集榜" }, { value: "custom_movie_showing", title: "当地影院热映" }, { value: "custom_url", title: "自定义URL" }
+                ]
+            },
+            {
+                name: "sort_type", title: "排序方式", type: "enumeration", value: "default",
+                enumOptions: [ { title: "默认原序", value: "default" }, { title: "最近更新", value: "updated" }, { title: "最近发布", value: "recent" }, { title: "热度最高", value: "heat" }, { title: "流行趋势", value: "trending" }, { title: "高分优先", value: "rating" } ]
+            },
+            {
+                name: "custom_douban_url", title: "片单地址", type: "input", value: "",
+                description: "输入豆瓣片单网址，支持 doulist、subject_collection 或豆瓣 App dispatch 地址",
+                belongTo: { paramName: "sort_by", value: ["custom_url"] }
+            },
+            { name: "page", title: "页码", type: "page", startPage: 1 } ] },
         { title: "TMDB热门趋势", functionName: "loadTmdbTrendEntry", type: "video", cacheDuration: 43200, params: [
             { name: "tmdb_mode", title: "模式", type: "enumeration", value: "trend", enumOptions: [ { title: "热门趋势", value: "trend" }, { title: "电影热榜", value: "movie_hot" }, { title: "剧集热榜", value: "tv_hot" }, { title: "电影筛选", value: "movie" }, { title: "剧集筛选", value: "tv" }, { title: "全部 (电影+剧集)", value: "all_hot" } ] },
             { name: "sort_by", title: "地区", type: "enumeration", value: "", enumOptions: [{ title: "全部地区", value: "" }, { title: "中国", value: "CN" }, { title: "美国", value: "US" }, { title: "韩国", value: "KR" }, { title: "日本", value: "JP" }, { title: "英国", value: "GB" }, { title: "中国香港", value: "HK" }, { title: "中国台湾", value: "TW" }, { title: "泰国", value: "TH" }, { title: "意大利", value: "IT" }, { title: "德国", value: "DE" }, { title: "西班牙", value: "ES" }, { title: "俄罗斯", value: "RU" }, { title: "瑞典", value: "SE" }, { title: "巴西", value: "BR" }, { title: "丹麦", value: "DK" }, { title: "印度", value: "IN" }, { title: "加拿大", value: "CA" }, { title: "爱尔兰", value: "IE" }, { title: "澳大利亚", value: "AU" }] },
@@ -491,23 +508,6 @@ var WidgetMetadata = {
         { title: "Trakt趋势榜", functionName: "loadTraktTrendEntry", type: "video", cacheDuration: 43200, params: [
             { name: "sort_by", title: "Trakt榜单", type: "enumeration", value: "trending", enumOptions: [{ title: "实时热播", value: "trending" }, { title: "最受欢迎", value: "popular" }, { title: "最受期待", value: "anticipated" }] },
             { name: "traktType", title: "Trakt类型", type: "enumeration", value: "all", enumOptions: [ { title: "全部", value: "all" }, { title: "剧集", value: "shows" }, { title: "电影", value: "movies" } ] },
-            { name: "page", title: "页码", type: "page", startPage: 1 } ] },
-        { title: "豆瓣国内风向", functionName: "loadDoubanTrendEntry", type: "video", cacheDuration: 43200, params: [
-            {
-                name: "sort_by", title: "豆瓣 榜单", type: "enumeration", value: "db_tv_cn",
-                enumOptions: [
-                    { value: "db_tv_cn", title: "热门国产剧" }, { value: "db_variety", title: "热门综艺" }, { value: "db_movie", title: "热门电影" }, { value: "db_tv_us", title: "热门美剧" }, { value: "tv_domestic", title: "大陆剧集" }, { value: "tv_american", title: "欧美剧集" }, { value: "tv_japanese", title: "日本剧集" }, { value: "tv_korean", title: "韩国剧集" }, { value: "tv_animation", title: "动漫番剧" }, { value: "show_domestic", title: "大陆综艺" }, { value: "show_foreign", title: "国外综艺" }, { value: "movie_weekly", title: "一周口碑电影" }, { value: "movie_top250", title: "豆瓣 Top250" }, { value: "custom_movie_hot", title: "豆瓣电影实时热榜" }, { value: "custom_tv_hot", title: "豆瓣剧集实时热榜" }, { value: "custom_subject_hot", title: "豆瓣书影音实时热榜" }, { value: "custom_tv_chinese", title: "华语口碑剧集榜" }, { value: "custom_tv_global", title: "全球口碑剧集榜" }, { value: "custom_movie_showing", title: "当地影院热映" }, { value: "custom_url", title: "自定义URL" }
-                ]
-            },
-            {
-                name: "sort_type", title: "排序方式", type: "enumeration", value: "default",
-                enumOptions: [ { title: "默认原序", value: "default" }, { title: "最近更新", value: "updated" }, { title: "最近发布", value: "recent" }, { title: "热度最高", value: "heat" }, { title: "流行趋势", value: "trending" }, { title: "高分优先", value: "rating" } ]
-            },
-            {
-                name: "custom_douban_url", title: "片单地址", type: "input", value: "",
-                description: "输入豆瓣片单网址，支持 doulist、subject_collection 或豆瓣 App dispatch 地址",
-                belongTo: { paramName: "sort_by", value: ["custom_url"] }
-            },
             { name: "page", title: "页码", type: "page", startPage: 1 } ] },
 
     ]
