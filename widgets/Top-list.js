@@ -257,14 +257,11 @@ var WidgetMetadata = {
                     enumOptions: [ { title: "已上映", value: "released" }, { title: "未上映", value: "upcoming" }, { title: "全部", value: "" } ]
                 },
                 {
-                    name: "network_sort_by", title: "排序方式", type: "enumeration", value: "first_air_date.desc",
-                    belongTo: { paramName: "library_source", value: ["network"] },
-                    enumOptions: [ { title: "上映时间↓", value: "first_air_date.desc" }, { title: "上映时间↑", value: "first_air_date.asc" }, { title: "人气最高", value: "popularity.desc" }, { title: "评分最高", value: "vote_average.desc" }, { title: "最多投票", value: "vote_count.desc" } ]
-                },
-                {
-                    name: "company_sort_by", title: "排序方式", type: "enumeration", value: "primary_release_date.desc",
-                    belongTo: { paramName: "library_source", value: ["company"] },
-                    enumOptions: [ { title: "上映时间↓", value: "primary_release_date.desc" }, { title: "上映时间↑", value: "primary_release_date.asc" }, { title: "人气最高", value: "popularity.desc" }, { title: "评分最高", value: "vote_average.desc" }, { title: "最多投票", value: "vote_count.desc" } ]
+                    name: "sort_by", title: "排序方式", type: "enumeration", value: "first_air_date.desc",
+                    enumOptions: [
+                        { title: "上映时间↓", value: "first_air_date.desc" }, { title: "上映时间↑", value: "first_air_date.asc" },
+                        { title: "人气最高", value: "popularity.desc" }, { title: "评分最高", value: "vote_average.desc" }, { title: "最多投票", value: "vote_count.desc" }
+                    ]
                 },
                 { name: "page", title: "页码", type: "page", startPage: 1 },
                 { name: "language", title: "语言", type: "language", value: "zh-CN" }
@@ -2429,9 +2426,10 @@ async function loadPlatformCompanyLibrary(params = {}) {
     const page = Number(params.page || 1);
     const language = params.language || "zh-CN";
     const status = params.air_status || "released";
+    const sortKey = params.sort_by || "first_air_date.desc";
     const sortBy = source === "company"
-        ? (params.company_sort_by || "primary_release_date.desc")
-        : (params.network_sort_by || "first_air_date.desc");
+        ? (sortKey === "first_air_date.desc" ? "primary_release_date.desc" : sortKey === "first_air_date.asc" ? "primary_release_date.asc" : sortKey)
+        : sortKey;
     const isCompany = source === "company";
     const mediaType = isCompany ? "movie" : "tv";
     const query = { language, page, sort_by: sortBy, include_adult: false, include_video: false };
