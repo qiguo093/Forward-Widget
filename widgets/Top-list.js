@@ -1094,12 +1094,73 @@ async function fetchGenreRankData(mediaType, genre, region, sort_rule, page) {
     } catch (e) { return []; }
 }
 
+async function fetchDoubanWuxiaRank(mediaType, region, sortRule, page) {
+    const start = (Math.max(1, Number(page) || 1) - 1) * 20;
+    const doubanSort = sortRule === "rating" ? "S" : (sortRule === "time" ? "R" : "U");
+    const regionNames = { cn: "中国大陆", hk: "中国香港", tw: "中国台湾", jp: "日本", kr: "韩国", th: "泰国", us: "美国", gb: "英国", de: "德国", es: "西班牙", in: "印度" };
+    const regionName = regionNames[region] || "";
+    const selectedCategories = mediaType === "tv"
+        ? { "类型": "武侠", "形式": "电视剧", "地区": regionName }
+        : { "类型": "武侠", "地区": regionName };
+    const tags = ["武侠", regionName].filter(Boolean).join(",");
+    const url = `https://m.douban.com/rexxar/api/v2/${mediaType}/recommend?refresh=0&start=${start}&count=20&selected_categories=${encodeURIComponent(JSON.stringify(selectedCategories))}&uncollect=false&score_range=0,10&tags=${encodeURIComponent(tags)}&sort=${doubanSort}`;
+    try {
+        const response = await Widget.http.get(url, { headers: { "Referer": "https://movie.douban.com/explore", "User-Agent": LITE_UA_PC } });
+        const data = typeof response.data === "string" ? safeJsonParse(response.data) : response.data;
+        const sourceItems = (data && Array.isArray(data.items) ? data.items : []).filter(item => item && item.card === "subject");
+        if (!sourceItems.length) return [];
+        const mapped = await Promise.all(sourceItems.map(async item => {
+            const rawTitle = item.title || "";
+            const year = String(item.year || "");
+            const tmdb = await searchTmdbForDouban(rawTitle, mediaType);
+            const target = {
+                id: `db_${item.id || rawTitle}`, type: "tmdb", mediaType, title: rawTitle,
+                subTitle: `豆瓣 ${item.rating?.value || item.rate || ""}`,
+                description: `豆瓣 ${item.rating?.value || item.rate || ""}\n${item.card_subtitle || "暂无简介"}`,
+                genreTitle: "武侠", posterPath: item.cover_url || item.cover || "",
+                rating: parseFloat(item.rating?.value || item.rate) || 0, popularity: 0, voteCount: 0
+            };
+            if (tmdb) {
+                const tmdbDate = tmdb.first_air_date || tmdb.release_date || "";
+                if (!year || !tmdbDate || tmdbDate.slice(0, 4) === year) mergeDoubanTmdb(target, tmdb);
+                else mergeDoubanTmdb(target, tmdb);
+            }
+            return target;
+        }));
+        return mapped.filter(Boolean);
+    } catch (e) {
+        console.error(`[DoubanWuxia] ${mediaType} 请求失败: ${e.message}`);
+        return [];
+    }
+}
+
+async function loadDoubanWuxiaGenre(params = {}) {
+    const mediaType = params.media_type || "all";
+    const region = params.region || "all";
+    const sortRule = params.sort_by || "popularity";
+    const page = params.page || 1;
+    if (mediaType !== "all") return await fetchDoubanWuxiaRank(mediaType, region, sortRule, page);
+    const [movies, tvs] = await Promise.all([
+        fetchDoubanWuxiaRank("movie", region, sortRule, page),
+        fetchDoubanWuxiaRank("tv", region, sortRule, page)
+    ]);
+    const merged = [];
+    const max = Math.max(movies.length, tvs.length);
+    for (let i = 0; i < max && merged.length < 20; i++) {
+        if (movies[i]) merged.push(movies[i]);
+        if (tvs[i] && merged.length < 20) merged.push(tvs[i]);
+    }
+    return merged;
+}
+
 async function loadGenreRank(params = {}) {
     const page = parseInt(params.page) || 1;
     const mediaType = params.media_type || "all"; 
     const genre = params.genre || "all"; 
     const region = params.region || "all"; 
     const sort_rule = params.sort_by || "popularity";
+
+    if (genre === "wuxia") return await loadDoubanWuxiaGenre(params);
 
     if (mediaType === "all") {
         const [movies, tvs] = await Promise.all([
