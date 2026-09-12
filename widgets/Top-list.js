@@ -71,33 +71,10 @@ var WidgetMetadata = {
             description: "选填，不填则使用内置。Trakt 榜单专用。",
             value: ""
         },
-        { name: "serverName", title: "🏷️ 源1 名称", type: "input", value: "🅖 🅖ᴳ" },
-        { name: "server", title: "🔗 源1 链接", type: "input", value: "https://danmu-qiguo.vercel.app/guoguo/api/v2" },
-        { name: "serverName2", title: "🏷️ 源2 名称", type: "input", value: "AlphaTV-Pro" },
-        { name: "server2", title: "🔗 源2 链接", type: "input", value: "http://nl.jc.cd/87654321" },
-        { name: "serverName3", title: "🏷️ 源3 名称", type: "input", value: "公益" },
-        { name: "server3", title: "🔗 源3 链接", type: "input", value: "https://Dm.LiaoVm.com/luosen" },
-        { name: "pollServerName", title: "🔄 轮询源1名称", type: "input", value: "SaoDu" },
-        { name: "pollServer", title: "🔄 轮询源1链接", type: "input", value: "https://ybdm.saodu.wang:9999/api/v1/saoduyb" },
-        { name: "pollServerName2", title: "🔄 轮询源2名称", type: "input", value: "" },
-        { name: "pollServer2", title: "🔄 轮询源2链接", type: "input", value: "" },
-        { name: "pollServerName3", title: "🔄 轮询源3名称", type: "input", value: "" },
-        { name: "pollServer3", title: "🔄 轮询源3链接", type: "input", value: "" },
-        { name: "maxCount", title: "📊 弹幕数量上限", type: "input", value: "50000" },
-        { name: "searchBlockKeywords", title: "👁️ 搜索结果屏蔽词", type: "input", value: "" },
-        { name: "convertMode", title: "🔠 弹幕转换", type: "enumeration", value: "none", enumOptions: [{ title: "保持原样", value: "none" }, { title: "转简体 (繁->简)", value: "t2s" }, { title: "转繁体 (简->繁)", value: "s2t" }] },
-        { name: "colorMode", title: "🎨 弹幕颜色", type: "enumeration", value: "none", enumOptions: [{ title: "保持原样", value: "none" }, { title: "全部纯白", value: "white" }, { title: "部分彩色", value: "partial" }, { title: "完全彩色", value: "all" }] },
-        { name: "blockKeywords", title: "🚫 弹幕内容屏蔽词", type: "input", value: "" },
-        { name: "danmuMode", title: "弹幕模式", type: "enumeration", value: "fast", enumOptions: [
-            { title: "⚡ 极速弹幕（并发）", value: "fast" }, { title: "🔄 轮询弹幕（稳定）", value: "poll" }
-        ] }
     ],
 
     modules: [
-        // 极速弹幕三阶段：保持 ForwardWidget 固定入口
-        { id: "searchDanmu", title: "搜索弹幕", functionName: "searchDanmu", type: "danmu", params: [] },
-        { id: "getDetail", title: "获取详情", functionName: "getDetailById", type: "danmu", params: [] },
-        { id: "getComments", title: "获取弹幕", functionName: "getCommentsById", type: "danmu", params: [] },
+        // 弹幕功能已拆分为独立的“极速弹幕”和“轮询弹幕”组件。
         // ---------------- 大栏目 0：新片追踪 ----------------
         {
             title: "新片追踪",
