@@ -328,39 +328,6 @@ var WidgetMetadata = {
                 { name: "page", title: "页码", type: "page", startPage: 1 }
             ]
         },
-        // ---------------- 大栏目 4：全球综艺频道 ----------------
-        {
-            title: "全球综艺频道",
-            functionName: "loadVarietyShows",
-            type: "video",
-            cacheDuration: 43200,
-            params: [
-                {
-                    name: "sort_by", title: "国家/地区", type: "enumeration", value: "cn",
-                    enumOptions: [
-                        { title: "🇨🇳 中国大陆", value: "cn" },
-                        { title: "🇰🇷 韩国", value: "kr" },
-                        { title: "🇯🇵 日本", value: "jp" },
-                        { title: "🇹🇼 中国台湾", value: "tw" },
-                        { title: "🇭🇰 中国香港", value: "hk" },
-                        { title: "🇺🇸 欧美综合", value: "eu_us" },
-                        { title: "🌍 全球综合", value: "all" }
-                    ]
-                },
-                {
-                    name: "list_type", title: "排播与榜单", type: "enumeration", value: "hot",
-                    enumOptions: [
-                        { title: "🔥 近期热播 (Hot)", value: "hot" },
-                        { title: "📅 今日更新 (Today)", value: "today" },
-                        { title: "🔜 明日预告 (Tomorrow)", value: "tomorrow" },
-                        { title: "📈 流行趋势 (5年内热榜)", value: "trend" },
-                        { title: "⭐ 高分神级 (Top Rated)", value: "top" }
-                    ]
-                },
-                { name: "page", title: "页码", type: "page", startPage: 1 }
-            ]
-        },
-
         // ---------------- 大栏目 6：平台分流片库 ----------------
         {
             title: "🔀 平台分流片库",
@@ -1069,61 +1036,6 @@ async function loadGenreRank(params = {}) {
         if (items.length === 0) return page === 1 ? [{ id: "empty", type: "text", title: "未找到符合条件" }] : [];
         return items;
     }
-}
-
-async function loadVarietyShows(params = {}) {
-    const page = parseInt(params.page) || 1;
-    const region = params.sort_by || "cn";
-    const list_type = params.list_type || "hot";
-
-    const varietyGenres = "10764|10767";
-
-    const varietyRegionMap = {
-        "all": "", "cn": "CN", "kr": "KR", "jp": "JP",
-        "tw": "TW", "hk": "HK", "eu_us": "US|GB|DE|FR|IT|ES|CA|AU"
-    };
-    const originCountry = varietyRegionMap[region] || "";
-
-    let queryParams = { language: "zh-CN", page: page, with_genres: varietyGenres, include_adult: false };
-    if (originCountry) queryParams.with_origin_country = originCountry;
-
-    const now = new Date();
-    const todayStr = now.toISOString().split('T')[0];
-    let tmrw = new Date(now); tmrw.setDate(tmrw.getDate() + 1);
-    const tomorrowStr = tmrw.toISOString().split('T')[0];
-    let fiveYearsAgo = new Date(now); fiveYearsAgo.setFullYear(fiveYearsAgo.getFullYear() - 5);
-    const fiveYearsAgoStr = fiveYearsAgo.toISOString().split('T')[0];
-
-    if (list_type === "today") {
-        queryParams.sort_by = "popularity.desc"; queryParams["air_date.gte"] = todayStr; queryParams["air_date.lte"] = todayStr;
-    } else if (list_type === "tomorrow") {
-        queryParams.sort_by = "popularity.desc"; queryParams["air_date.gte"] = tomorrowStr; queryParams["air_date.lte"] = tomorrowStr;
-    } else if (list_type === "hot") {
-        queryParams.sort_by = "popularity.desc";
-    } else if (list_type === "trend") {
-        queryParams.sort_by = "popularity.desc"; queryParams["first_air_date.gte"] = fiveYearsAgoStr; 
-    } else if (list_type === "top") {
-        queryParams.sort_by = "vote_average.desc"; queryParams["vote_count.gte"] = 15; 
-    }
-
-    try {
-        const res = await Widget.tmdb.get("/discover/tv", { params: queryParams });
-        const items = res.results || [];
-        if (items.length === 0) return page === 1 ? [{ id: "empty", type: "text", title: "暂无综艺数据" }] : [];
-        return items.map(item => {
-            const date = item.release_date || item.first_air_date || ""; 
-            let genreLabel = getGlobalGenreText(item.genre_ids);
-            if (genreLabel === "影视") genreLabel = "综艺";
-            return {
-                id: String(item.id), tmdbId: parseInt(item.id), type: "tmdb", mediaType: "tv", title: item.title || item.name,
-                genreTitle: genreLabel, releaseDate: date, 
-                subTitle: `${date ? date.substring(0, 4) : "未知"}`, 
-                description: `${date}\n${item.overview || "暂无简介"}`,
-                posterPath: item.poster_path ? `https://image.tmdb.org/t/p/w500${item.poster_path}` : "", 
-                backdropPath: item.backdrop_path ? `https://image.tmdb.org/t/p/w780${item.backdrop_path}` : ""
-            };
-        });
-    } catch (e) { return [{ id: "err", type: "text", title: "加载失败" }]; }
 }
 
 const RT_URLS = {
