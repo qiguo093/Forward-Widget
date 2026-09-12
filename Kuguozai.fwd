@@ -5,7 +5,7 @@
   "widgets": [
     {
       "id": "🅖 🅖Media.library",
-      "title": "终极影视榜单Pro",
+      "title": "影视榜单Pro",
       "description": "聚合影视、动漫、综艺等众多平台榜单",
       "icon": "https://github.com/qiguo093/Forward-Widget/raw/refs/heads/main/icon2.png",
       "requiredVersion": "0.0.1",
