@@ -56,12 +56,12 @@ function buildItem({ id, tmdbId, type, title, date, poster, backdrop, rating, ge
 var WidgetMetadata = {
     id: "🅖 🅖ᴳMedia.library",
     title: "终极影视榜单Pro",
-    description: "影视、动漫、综艺、弹幕、全球聚合",
+    description: "聚合影视、动漫、综艺等众多平台榜单",
     icon: "https://github.com/qiguo093/Forward-Widget/raw/refs/heads/main/icon2.png",
     author: "𝓚𝓾𝓰𝓾𝓸𝔃𝓪𝓲 ⁷",
     version: "2.0.0",
     requiredVersion: "0.0.1",
-    site: "https://t.me/MakkaPakkaOvO",
+    site: 
     
     globalParams: [
         {
