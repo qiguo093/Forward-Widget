@@ -504,10 +504,6 @@ var WidgetMetadata = {
                 enumOptions: [ { title: "默认原序", value: "default" }, { title: "最近更新", value: "updated" }, { title: "最近发布", value: "recent" }, { title: "热度最高", value: "heat" }, { title: "流行趋势", value: "trending" }, { title: "高分优先", value: "rating" } ]
             },
             {
-                name: "mediaType", title: "范围", type: "enumeration", value: "all",
-                enumOptions: [ { title: "全部 (剧集+电影)", value: "all" }, { title: "电影", value: "movie" }, { title: "剧集", value: "tv" } ]
-            },
-            {
                 name: "custom_douban_url", title: "片单地址", type: "input", value: "",
                 description: "输入豆瓣片单网址，支持 doulist、subject_collection 或豆瓣 App dispatch 地址",
                 belongTo: { paramName: "sort_by", value: ["custom_url"] }
