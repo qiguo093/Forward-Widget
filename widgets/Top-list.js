@@ -63,15 +63,10 @@ var WidgetMetadata = {
     requiredVersion: "0.0.1",
     site: "https://t.me/Kuguozai",
     
-    globalParams: [
-        {
-            name: "traktClientId",
-            title: "Trakt Client ID",
-            type: "input",
-            description: "选填，不填则使用内置。Trakt 榜单专用。",
-            value: ""
-        },
-    ],
+    // 🔒 Trakt Client ID 全局参数已隐藏（2026-09-12）。
+    // 原实现：globalParams: [{ name: "traktClientId", title: "Trakt Client ID", type: "input", ... }]
+    // 代码内 4 处 `params.traktClientId || DEFAULT_TRAKT_ID` 兜底逻辑保留，行为不变（始终使用内置 ID）。
+    // 需要重新显示该输入框时，把上面那段 globalParams 数组加回此处即可，无需改动其他代码。
 
     modules: [
         // 弹幕功能已拆分为独立的“极速弹幕”和“轮询弹幕”组件。
