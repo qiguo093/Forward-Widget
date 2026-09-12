@@ -512,8 +512,12 @@ var WidgetMetadata = {
             {
                 name: "sort_by", title: "豆瓣 榜单", type: "enumeration", value: "db_tv_cn",
                 enumOptions: [
-                    { value: "db_tv_cn", title: "热门国产剧" }, { value: "db_variety", title: "热门综艺" }, { value: "db_movie", title: "热门电影" }, { value: "db_tv_us", title: "热门美剧" }, { value: "tv_american", title: "英美剧" }, { value: "tv_korean", title: "韩剧" }, { value: "tv_japanese", title: "日剧" }, { value: "tv_domestic", title: "国产剧" }, { value: "movie_weekly", title: "一周口碑电影" }, { value: "movie_top250", title: "豆瓣 Top250" }, { value: "custom_movie_hot", title: "豆瓣电影实时热榜" }, { value: "custom_tv_hot", title: "豆瓣剧集实时热榜" }, { value: "custom_subject_hot", title: "豆瓣书影音实时热榜" }, { value: "custom_tv_chinese", title: "华语口碑剧集榜" }, { value: "custom_tv_global", title: "全球口碑剧集榜" }, { value: "custom_show_domestic", title: "国内热播综艺" }, { value: "custom_show_foreign", title: "国外热播综艺" }, { value: "custom_movie_showing", title: "当地影院热映" }, { value: "custom_tv_animation", title: "热门动画" }, { value: "custom_url", title: "自定义URL" }
+                    { value: "db_tv_cn", title: "热门国产剧" }, { value: "db_variety", title: "热门综艺" }, { value: "db_movie", title: "热门电影" }, { value: "db_tv_us", title: "热门美剧" }, { value: "tv_domestic", title: "大陆剧集" }, { value: "tv_american", title: "欧美剧集" }, { value: "tv_japanese", title: "日本剧集" }, { value: "tv_korean", title: "韩国剧集" }, { value: "tv_animation", title: "动漫番剧" }, { value: "show_domestic", title: "大陆综艺" }, { value: "show_foreign", title: "国外综艺" }, { value: "movie_weekly", title: "一周口碑电影" }, { value: "movie_top250", title: "豆瓣 Top250" }, { value: "custom_movie_hot", title: "豆瓣电影实时热榜" }, { value: "custom_tv_hot", title: "豆瓣剧集实时热榜" }, { value: "custom_subject_hot", title: "豆瓣书影音实时热榜" }, { value: "custom_tv_chinese", title: "华语口碑剧集榜" }, { value: "custom_tv_global", title: "全球口碑剧集榜" }, { value: "custom_movie_showing", title: "当地影院热映" }, { value: "custom_url", title: "自定义URL" }
                 ]
+            },
+            {
+                name: "sort_type", title: "排序方式", type: "enumeration", value: "default",
+                enumOptions: [ { title: "默认原序", value: "default" }, { title: "最近更新", value: "updated" }, { title: "最近发布", value: "recent" }, { title: "热度最高", value: "heat" }, { title: "流行趋势", value: "trending" }, { title: "高分优先", value: "rating" } ]
             },
             {
                 name: "mediaType", title: "范围", type: "enumeration", value: "all",
@@ -865,15 +869,38 @@ async function loadTmdbTrendEntry(params = {}) {
 async function loadImdbTrendEntry(params = {}) { return await loadImdbList(params.sort_by || "trending_week", params.mediaType || "all", params.page || 1); }
 async function loadRtTrendEntry(params = {}) { return await loadRottenTomatoesTrends(params.sort_by || "rt_movies_home", params.page || 1); }
 async function loadTraktTrendEntry(params = {}) { return await handleTraktList(params.sort_by || "trending", params.traktType || "all", params.traktClientId || DEFAULT_TRAKT_ID, params.page || 1); }
+// 🟢 豆瓣国内风向：排序支持（排序方式与「豆瓣热榜」保持一致）
+function sortDoubanTrendItems(list, sortType) {
+    if (!Array.isArray(list) || !list.length) return list || [];
+    if (!sortType || sortType === "default") return list;
+    if (list[0] && list[0].type === "text") return list; // 错误/空提示项不参与排序
+    const toNum = (v) => parseFloat(v) || 0;
+    const toTs = (v) => { const t = v ? new Date(v).getTime() : 0; return isNaN(t) ? 0 : t; };
+    const updatedTs = (x) => toTs(x.lastUpdateDate) || toTs(x.releaseDate);
+    return [...list].sort((a, b) => {
+        switch (sortType) {
+            case "updated": return updatedTs(b) - updatedTs(a);
+            case "recent": return toTs(b.releaseDate) - toTs(a.releaseDate);
+            case "heat": return toNum(b.voteCount || b.vote_count) - toNum(a.voteCount || a.vote_count);
+            case "trending": return toNum(b.popularity) - toNum(a.popularity);
+            case "rating": return toNum(b.rating) - toNum(a.rating);
+            default: return 0;
+        }
+    });
+}
+
 async function loadDoubanTrendEntry(params = {}) {
     const sortBy = params.sort_by || "db_tv_cn";
     const page = params.page || 1;
-    if (sortBy === "db_tv_cn") return await fetchDoubanAndMap("国产剧", "tv", page);
-    if (sortBy === "db_variety") return await fetchDoubanAndMap("综艺", "tv", page);
-    if (sortBy === "db_movie") return await fetchDoubanAndMap("热门", "movie", page);
-    if (sortBy === "db_tv_us") return await fetchDoubanAndMap("美剧", "tv", page);
-    if (sortBy === "custom_url") return await loadLiteCustomDouban(params);
-    return await loadDoubanModule({ sort_by: sortBy, page });
+    const sortType = params.sort_type || "default";
+    let list;
+    if (sortBy === "db_tv_cn") list = await fetchDoubanAndMap("国产剧", "tv", page);
+    else if (sortBy === "db_variety") list = await fetchDoubanAndMap("综艺", "tv", page);
+    else if (sortBy === "db_movie") list = await fetchDoubanAndMap("热门", "movie", page);
+    else if (sortBy === "db_tv_us") list = await fetchDoubanAndMap("美剧", "tv", page);
+    else if (sortBy === "custom_url") list = await loadLiteCustomDouban(params);
+    else list = await loadDoubanModule({ sort_by: sortBy, page });
+    return sortDoubanTrendItems(list, sortType);
 }
 
 async function routeTrendsHub(params) {
@@ -1273,6 +1300,7 @@ function mergeDoubanTmdb(target, source) {
     target.backdropPath = source.backdrop_path ? `https://image.tmdb.org/t/p/w780${source.backdrop_path}` : "";
     const date = source.first_air_date || source.release_date || ""; target.genreTitle = getGlobalGenreText(source.genre_ids) || (target.mediaType === "tv" ? "剧集" : "电影"); target.releaseDate = date;
     target.description = (date ? `${date} · ${target.subTitle}` : target.subTitle) + (source.overview ? `\n${source.overview}` : "\n暂无简介"); target.rating = source.vote_average ? parseFloat(source.vote_average) : 0;
+    target.popularity = parseFloat(source.popularity) || 0; target.voteCount = parseFloat(source.vote_count) || 0;
 }
 
 async function searchTmdbForDouban(query, type) {
@@ -1307,7 +1335,8 @@ async function fetchDoubanAndMap(tag, type, page) {
                 title: item.title, subTitle: `豆瓣 ${item.rate}`, 
                 description: `豆瓣 ${item.rate}\n暂无简介`, 
                 genreTitle: type === "tv" ? "剧集" : "电影",
-                posterPath: item.cover 
+                posterPath: item.cover,
+                rating: parseFloat(item.rate) || 0, popularity: 0, voteCount: 0
             };
             const tmdb = await searchTmdbForDouban(item.title, type);
             if (tmdb) mergeDoubanTmdb(finalItem, tmdb); 
@@ -1945,6 +1974,8 @@ async function loadDoubanModule(params) {
                     posterPath: getTmdbImage(tmdbItem.poster_path),
                     backdropPath: getTmdbImage(tmdbItem.backdrop_path),
                     rating: parseFloat(rate) || tmdbItem.vote_average,
+                    popularity: tmdbItem.popularity || 0,
+                    voteCount: tmdbItem.vote_count || 0,
                     releaseDate: dateStr,
                     year: yearStr
                 };
