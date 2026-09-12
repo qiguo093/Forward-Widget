@@ -200,7 +200,7 @@ var WidgetMetadata = {
 
         // ---------------- 大栏目 8：二次元全境聚合 ----------------
         {
-            title: "动漫全境聚合",
+            title: "动漫聚合",
             functionName: "routeAnimeOmni",
             type: "video",
             cacheDuration: 43200,
@@ -237,7 +237,7 @@ var WidgetMetadata = {
 
         // ---------------- 大栏目 3：全能电影榜 ----------------
         {
-            title: "全能电影榜单",
+            title: "电影榜单",
             functionName: "routeMovieOmni",
             type: "video",
             cacheDuration: 43200,
@@ -330,7 +330,7 @@ var WidgetMetadata = {
         },
         // ---------------- 大栏目 6：平台分流片库 ----------------
         {
-            title: "🔀 平台分流片库",
+            title: "平台分流片库",
             functionName: "loadPlatformFlowHub",
             type: "video", 
             cacheDuration: 43200,
@@ -367,7 +367,7 @@ var WidgetMetadata = {
 
         // ---------------- 大栏目 8：全球影视平台 ----------------
         {
-            title: "🌐 全球影视平台",
+            title: "全球影视平台",
             description: "全网频道与流媒体平台聚合",
             functionName: "loadGlobalNetworkPlatform",
             type: "video",
@@ -410,7 +410,7 @@ var WidgetMetadata = {
 
         // ---------------- 大栏目 9：串流平台TOP10 (FlixPatrol) ----------------
         {
-            title: "🥇 流媒体TOP10",
+            title: "流媒体TOP10",
             functionName: "loadOfficialTop10",
             type: "video", 
             cacheDuration: 43200,
