@@ -33,8 +33,8 @@
     },
     {
       "id": "huangxd.danmu.auto",
-      "title": "自动链接弹幕v2",
-      "description": "自动链接弹幕模块",
+      "title": "自动弹幕",
+      "description": "自动弹幕模块",
       "author": "𝓚𝓾𝓰𝓾𝓸𝔃𝓪𝓲 ⁷",
       "version": "1.0.0",
       "requiredVersion": "0.0.2",
@@ -45,7 +45,7 @@
       "title": "通用弹幕",
       "description": "通用弹幕模块",
       "author": "𝓚𝓾𝓰𝓾𝓸𝔃𝓪𝓲 ⁷",
-      "version": "0.15.8",
+      "version": "1.0.0",
       "requiredVersion": "0.0.2",
       "url": "https://raw.githubusercontent.com/qiguo093/Forward-Widget/main/widgets/%E9%80%9A%E7%94%A8%E5%BC%B9%E5%B9%95.js"
     }
