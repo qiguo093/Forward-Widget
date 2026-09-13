@@ -2467,7 +2467,7 @@ async function platformCompanyLoadNetwork(params, query, results, today, languag
     return items;
 }
 
-async function platformCompanyLoadDcExtras(params, results, today, language) {
+async function platformCompanyLoadDcExtras(params, results, today, language, sortBy) {
     if (String(params.with_companies || "") !== "128064") return results;
     const extraIds = [1061474, 1081003, 49521, 209112, 272, 155, 49026, 44912, 1523140];
     const existing = new Set(results.map(item => String(item.id)));
@@ -2487,7 +2487,21 @@ async function platformCompanyLoadDcExtras(params, results, today, language) {
             return null;
         }
     }));
-    return results.concat(extras.filter(Boolean));
+    // 原始 tmdbCompanies 会过滤动画/纪录片/电视电影，并把 DC 特殊条目并入后重新按上映日期排序。
+    const merged = results.filter(item =>
+        !(item.genre_ids || []).includes(16) &&
+        !(item.genre_ids || []).includes(99) &&
+        !(item.genre_ids || []).includes(10770) &&
+        String(item.title || item.name || "").trim() !== "Etta's Mission"
+    ).concat(extras.filter(Boolean));
+    merged.sort((a, b) => {
+        const aDate = a.release_date || "";
+        const bDate = b.release_date || "";
+        return sortBy === "primary_release_date.asc"
+            ? aDate.localeCompare(bDate)
+            : bDate.localeCompare(aDate);
+    });
+    return merged;
 }
 
 async function loadPlatformCompanyLibrary(params = {}) {
@@ -2530,7 +2544,7 @@ async function loadPlatformCompanyLibrary(params = {}) {
         // 与原始两个模块一致：没有海报的条目不进入列表，避免空卡片。
         results = results.filter(item => item && item.id && item.poster_path && (item.title || item.name) && Array.isArray(item.genre_ids) && item.genre_ids.length > 0);
         if (isCompany) {
-            results = await platformCompanyLoadDcExtras(params, results, today, language);
+            results = await platformCompanyLoadDcExtras(params, results, today, language, sortBy);
         } else {
             results = await platformCompanyLoadNetwork(params, query, results, today, language);
         }
