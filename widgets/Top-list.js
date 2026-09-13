@@ -2804,15 +2804,20 @@ async function calendarLoadDrama(params = {}) {
     const page = params.page || 1;
     const dates = calendarCalculateDates(mode);
     const isPremiere = mode.includes("premiere");
-    // 过滤规则：
+    // 过滤规则（全球聚合严苛净化）：
     // 1. 指定题材：纪录片(99)、家庭(10751)、新闻(10763)、真人秀(10764)、肥皂剧(10766)、脱口秀(10767)
     // 2. 垃圾/冷门低质电视节目：无类型 (genre_ids 为空)
-    // 3. 常见低质国外小语种/特定产地：印度(IN/hi)、泰国(TH/th)、俄罗斯(RU/ru)、土耳其(TR/tr)
-    // 4. 同性恋/耽美/LGBTQ/BL/GL 题材
+    // 3. 常见低质国外小语种/特定产地：印度(IN/hi/ta/te)、泰国(TH/th)、俄罗斯(RU/ru)、土耳其(TR/tr)、芬兰(FI/fi)、波兰(PL/pl)、巴西葡萄牙语冷门剧等
+    // 4. 同性恋/耽美/LGBTQ/BL/GL 题材：双男主、同性爱恋、原著BL小说、boys' love
+    // 5. 职业摔角/体育竞技/格斗：wrestling/aew/wwe/nwa/stardom/ufc/mma/boxing
+    // 6. 海外自制播客录屏/跑团直播/无简介低分垃圾：Dice Actors, Tivolt, Nadie sabe nada, Svengoolie 等
     const excludedGlobalGenreIds = [99, 10751, 10763, 10764, 10766, 10767];
-    const excludedBlockedCountries = ["IN", "TH", "RU", "TR"];
-    const excludedBlockedLanguages = ["hi", "th", "ru", "tr", "ta", "te"];
-    const excludedGlobalGenreText = /(?:\bgay\b|\blgbtq?\b|\blesbian\b|\bhomosexual\b|\bsame[- ]sex\b|\bqueer\b|\bboys['’]?\s*love\b|\bbl\b|\bgl\b|\byaoi\b|\byuri\b|同性恋|耽美|男男|女女|同志|腐剧|双男主)/i;
+    const excludedBlockedCountries = ["IN", "TH", "RU", "TR", "PL", "FI", "HU", "NL"];
+    const excludedBlockedLanguages = ["hi", "th", "ru", "tr", "ta", "te", "pl", "fi", "hu", "nl"];
+    const excludedGlobalGenreText = /(?:\bgay\b|\blgbtq?\b|\blesbian\b|\bhomosexual\b|\bsame[- ]sex\b|\bqueer\b|\bboys['’]?\s*love\b|\bbl\b|\bgl\b|\byaoi\b|\byuri\b|同性恋|耽美|男男|女女|同志|腐剧|双男主|恋上他|爱上他|美少年之恋|绑架我的人)/i;
+    const excludedSportsWrestlingText = /(?:\bwrestling\b|\bpro[- ]wrestling\b|\baew\b|\bwwe\b|\bnwa\b|\bmlw\b|\bstardom\b|\bufc\b|\bmma\b|\braw\b|\bsmackdown\b|\bcollision\b|\bdynamite\b|\bpowerrr\b|\bbaseball\b|\bfootball\b|\bbasketball\b|摔角|摔跤|格斗|角力|スターダム)/i;
+    const excludedTrashHostsText = /(?:\bsvengoolie\b|\bdice actors\b|\btivolt\b|\bnadie sabe nada\b|\bkovan viikon\b|\balucina[çc][ãa]o\b|\bmegaszt[aá]r\b|\bbeste zangers\b)/i;
+
     const isExcludedGlobalItem = item => {
         const genres = Array.isArray(item.genre_ids) ? item.genre_ids.map(Number) : [];
         // 没有类型的条目多为国外棒球转播、选秀加更等零散节目，直接剔除
@@ -2826,6 +2831,15 @@ async function calendarLoadDrama(params = {}) {
 
         const text = `${item.name || ""} ${item.original_name || ""} ${item.overview || ""}`;
         if (excludedGlobalGenreText.test(text)) return true;
+        if (excludedSportsWrestlingText.test(text)) return true;
+        if (excludedTrashHostsText.test(text)) return true;
+
+        // 剔除无评分、无简介且非中英日韩主流大厂的国外自制短片
+        const isMajorCountry = countries.some(c => ["CN", "HK", "TW", "US", "GB", "JP", "KR"].includes(c));
+        if (!isMajorCountry && (!item.overview || item.overview.trim().length === 0) && (item.vote_count || 0) === 0) {
+            return true;
+        }
+
         return false;
     };
     const queryParams = {
