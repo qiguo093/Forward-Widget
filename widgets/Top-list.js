@@ -2373,7 +2373,7 @@ function platformCompanyGetBeijingDate() {
 }
 
 function platformCompanyBuildItem(item, mediaType) {
-    const date = item.first_air_date || item.release_date || "";
+    const date = item._platformReleaseDate || item.first_air_date || item.release_date || "";
     // discover 返回的 poster/backdrop 并不总是同时存在；两者互相兜底，避免横版卡片空图。
     const poster = item.poster_path || item.backdrop_path || "";
     const backdrop = item.backdrop_path || item.poster_path || "";
@@ -2396,9 +2396,103 @@ function platformCompanyBuildItem(item, mediaType) {
     };
 }
 
+async function platformCompanyGetMatchingSeason(item, status, today, language) {
+    try {
+        const detail = await Widget.tmdb.get(`tv/${item.id}`, { params: { language } });
+        const seasons = (detail?.seasons || [])
+            .filter(season => Number(season.season_number) > 0 && season.air_date);
+        if (!seasons.length) return null;
+        const matched = seasons.filter(season => status === "upcoming"
+            ? season.air_date >= today
+            : status === "released"
+                ? season.air_date <= today
+                : true);
+        if (!matched.length) return null;
+        matched.sort((a, b) => String(a.air_date).localeCompare(String(b.air_date)));
+        const season = status === "released" ? matched[matched.length - 1] : matched[0];
+        return { seasonNumber: Number(season.season_number), airDate: season.air_date };
+    } catch (error) {
+        console.error("[platformCompany] 季信息补查失败:", item.id, error.message || error);
+        return null;
+    }
+}
+
+function platformCompanyWithSeason(item, season) {
+    if (!season) return item;
+    return {
+        ...item,
+        _platformReleaseDate: season.airDate,
+        _platformSeasonNumber: season.seasonNumber,
+        name: season.seasonNumber > 1 ? `${item.name || item.title} 第${season.seasonNumber}季` : (item.name || item.title),
+        title: season.seasonNumber > 1 ? `${item.title || item.name} 第${season.seasonNumber}季` : (item.title || item.name),
+        overview: `${season.seasonNumber > 1 ? `第${season.seasonNumber}季` : "本季"} ${item.overview || ""}`.trim()
+    };
+}
+
+async function platformCompanyLoadNetwork(params, query, results, today, language) {
+    const status = params.air_status || "released";
+    let items = results;
+    if (status !== "released" && status !== "upcoming") return items;
+    if (status === "released" || status === "upcoming") {
+        items = (await Promise.all(items.map(async item => {
+            const season = await platformCompanyGetMatchingSeason(item, status, today, language);
+            return season ? platformCompanyWithSeason(item, season) : item;
+        }))).filter(Boolean);
+    }
+
+    // discover/tv 按整部剧首播日期排序，可能漏掉老剧新季；补查前三页。
+    const backfillParams = { ...query };
+    if (status === "upcoming") {
+        // 与原始模块一致：待播补查不能受整部剧 first_air_date.gte 限制，否则老剧新季会漏掉。
+        delete backfillParams["first_air_date.gte"];
+        backfillParams.sort_by = "first_air_date.desc";
+    }
+    const backfillPages = await Promise.all([1, 2, 3].map(page =>
+        Widget.tmdb.get("discover/tv", { params: { ...backfillParams, page } }).catch(() => ({ results: [] }))
+    ));
+    const existing = new Set(items.map(item => String(item.id)));
+    const supplemental = [];
+    const recentStart = new Date(`${today}T00:00:00Z`);
+    recentStart.setUTCDate(recentStart.getUTCDate() - 365);
+    const recentStartDate = recentStart.toISOString().slice(0, 10);
+    for (const raw of backfillPages.flatMap(page => page.results || [])) {
+        if (!raw?.id || existing.has(String(raw.id)) || !raw.poster_path) continue;
+        const season = await platformCompanyGetMatchingSeason(raw, status, today, language);
+        if (!season || (status === "released" && season.airDate < recentStartDate) || (status === "upcoming" && season.seasonNumber < 2)) continue;
+        existing.add(String(raw.id));
+        supplemental.push(platformCompanyWithSeason(raw, season));
+    }
+    items = items.concat(supplemental);
+    items.sort((a, b) => String(b._platformReleaseDate || b.first_air_date || "").localeCompare(String(a._platformReleaseDate || a.first_air_date || "")));
+    return items;
+}
+
+async function platformCompanyLoadDcExtras(params, results, today, language) {
+    if (String(params.with_companies || "") !== "128064") return results;
+    const extraIds = [1061474, 1081003, 49521, 209112, 272, 155, 49026, 44912, 1523140];
+    const existing = new Set(results.map(item => String(item.id)));
+    const extras = await Promise.all(extraIds.map(async id => {
+        if (existing.has(String(id))) return null;
+        try {
+            const detail = await Widget.tmdb.get(`movie/${id}`, { params: { language } });
+            if (!detail?.id) return null;
+            const date = detail.release_date || "";
+            if (params.air_status === "released" && date > today) return null;
+            if (params.air_status === "upcoming" && date && date < today) return null;
+            const genres = (detail.genres || []).map(genre => genre.id);
+            if (genres.includes(16) || genres.includes(99) || genres.includes(10770)) return null;
+            return detail;
+        } catch (error) {
+            console.error("[platformCompany] DC 电影补查失败:", id, error.message || error);
+            return null;
+        }
+    }));
+    return results.concat(extras.filter(Boolean));
+}
+
 async function loadPlatformCompanyLibrary(params = {}) {
     const source = params.library_source || "network";
-    const page = Number(params.page || 1);
+    const page = Math.max(1, Number(params.page || 1));
     const language = params.language || "zh-CN";
     const status = params.air_status || "released";
     const sortKey = params.sort_by || "first_air_date.desc";
@@ -2432,9 +2526,15 @@ async function loadPlatformCompanyLibrary(params = {}) {
 
     try {
         const response = await Widget.tmdb.get(`discover/${mediaType}`, { params: query });
-        const results = Array.isArray(response?.results) ? response.results : [];
-        return results.filter(item => item && item.id && (item.poster_path || item.backdrop_path))
-            .map(item => platformCompanyBuildItem(item, mediaType));
+        let results = Array.isArray(response?.results) ? response.results : [];
+        // 与原始两个模块一致：没有海报的条目不进入列表，避免空卡片。
+        results = results.filter(item => item && item.id && item.poster_path && (item.title || item.name) && Array.isArray(item.genre_ids) && item.genre_ids.length > 0);
+        if (isCompany) {
+            results = await platformCompanyLoadDcExtras(params, results, today, language);
+        } else {
+            results = await platformCompanyLoadNetwork(params, query, results, today, language);
+        }
+        return results.map(item => platformCompanyBuildItem(item, mediaType));
     } catch (error) {
         console.error("[loadPlatformCompanyLibrary] 请求失败:", error.message || error);
         return [{ id: "platform_company_error", type: "text", title: "加载失败", description: "平台/公司片库请求失败，请稍后重试" }];
