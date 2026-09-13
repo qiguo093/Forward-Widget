@@ -2474,53 +2474,6 @@ function calendarBuildItem({ id, tmdbId, type, title, poster, backdrop, rating, 
     };
 }
 
-// 雅图「今日动画连载排行榜」：作为国漫日历的补充源。
-// 该榜单代表今日热度，不等同于平台官方更新公告；按用户要求在日历中按今天显示。
-async function calendarFetchYatuHotAnime() {
-    try {
-        const res = await Widget.http.get("https://gist.githubusercontent.com/huangxd-/28a30eac8051ccb05a43c6f49a117286/raw/dm-lz.htm", {
-            headers: { "User-Agent": "Mozilla/5.0" }
-        });
-        const $ = Widget.html.load(res.data || "");
-        const titles = [];
-        const seen = new Set();
-        $("#db_lz1 a[target='_blank']").each((_, el) => {
-            const title = $(el).text().trim();
-            if (!title || seen.has(title)) return;
-            seen.add(title);
-            titles.push(title);
-        });
-        return titles.slice(0, 30);
-    } catch (e) {
-        console.error("[calendar] 雅图今日国漫榜获取失败:", e.message || e);
-        return [];
-    }
-}
-
-async function calendarBuildYatuHotItems(titles, updateDate, dayName, allowedIds = null) {
-    const items = await Promise.all(titles.map(async title => {
-        try {
-            const tmdbItem = await calendarSearchBestMatch(title);
-            if (!tmdbItem) return null;
-            if (allowedIds && !allowedIds.has(String(tmdbItem.id))) return null;
-            return calendarBuildItem({
-                id: tmdbItem.id,
-                tmdbId: tmdbItem.id,
-                type: "tv",
-                title: tmdbItem.name || title,
-                poster: tmdbItem.poster_path,
-                backdrop: tmdbItem.backdrop_path,
-                rating: tmdbItem.vote_average?.toFixed(1) || "0.0",
-                subTitle: `${updateDate} ${dayName} 国漫 · 今日更新 · 今日热门`,
-                desc: tmdbItem.overview,
-                year: updateDate.substring(0, 4),
-                releaseDate: updateDate
-            });
-        } catch (e) { return null; }
-    }));
-    return items.filter(Boolean);
-}
-
 async function calendarFetchTraktChineseAnime(updateDate, dayName) {
     try {
         const url = `https://api.trakt.tv/calendars/all/shows/${updateDate}/1?genres=donghua&countries=cn`;
@@ -2589,10 +2542,9 @@ async function calendarLoadAnime(params = {}) {
     const updateDate = [updateDateObj.getFullYear(), String(updateDateObj.getMonth() + 1).padStart(2, "0"), String(updateDateObj.getDate()).padStart(2, "0")].join("-");
 
     try {
-        const [bgmRes, biliRes, yatuTitles, traktItems] = await Promise.all([
+        const [bgmRes, biliRes, traktItems] = await Promise.all([
             Widget.http.get("https://api.bgm.tv/calendar").catch(() => ({ data: [] })),
             Widget.http.get("https://api.bilibili.com/pgc/web/timeline?types=4").catch(() => ({ data: {} })),
-            calendarFetchYatuHotAnime(),
             calendarFetchTraktChineseAnime(updateDate, dayName)
         ]);
 
@@ -2689,20 +2641,14 @@ async function calendarLoadAnime(params = {}) {
         const uniqueTraktItems = [];
         traktItems.forEach(item => dedupeAdd(item, uniqueTraktItems));
 
-        // 雅图只作为热度交集：必须同时出现在 Trakt 今日国漫更新中，才允许进入追更列表。
-        const traktIds = new Set(uniqueTraktItems.map(item => String(item.tmdbId || item.id)));
-        const yatuItems = await calendarBuildYatuHotItems(yatuTitles, updateDate, dayName, traktIds);
-        const uniqueYatuItems = [];
-        yatuItems.forEach(item => dedupeAdd(item, uniqueYatuItems));
-
         const uniqueBangumiItems = [];
         bangumiItems.forEach(item => dedupeAdd(item, uniqueBangumiItems));
 
         // 3. 不再使用 TMDB 的单日 air_date 作为国漫确认依据：国内连载剧常存在日期偏差。
-        // 国漫只采用 B站真实时间线和 Trakt donghua/cn 当天更新结果；雅图仅取两者的热度交集。
+        // 国漫只采用 B站真实时间线和 Trakt donghua/cn 当天更新结果，避免 TMDB 单日日期偏差。
 
         // 4. 国漫优先与番剧合理混排：交错合并，确保前页同时看到国漫和番剧
-        const allCnItems = [...uniqueBiliItems, ...uniqueTraktItems, ...uniqueYatuItems];
+        const allCnItems = [...uniqueBiliItems, ...uniqueTraktItems];
         const mergedAll = [];
         const maxLen = Math.max(allCnItems.length, uniqueBangumiItems.length);
         for (let i = 0; i < maxLen; i++) {
