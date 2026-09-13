@@ -276,7 +276,9 @@ var WidgetMetadata = {
             type: "video",
             cacheDuration: 43200,
             params: [
-                { name: "calendar_source", title: "选择子列表", type: "enumeration", value: "variety", enumOptions: [ { title: "综艺时刻", value: "variety" }, { title: "动漫周更", value: "anime" }, { title: "综艺聚合", value: "aggregate" } ] },
+                { name: "calendar_source", title: "选择子列表", type: "enumeration", value: "drama", enumOptions: [ { title: "追剧日历", value: "drama" }, { title: "综艺时刻", value: "variety" }, { title: "动漫周更", value: "anime" }, { title: "综艺聚合", value: "aggregate" } ] },
+                { name: "calendar_mode", title: "时间范围", type: "enumeration", value: "update_today", belongTo: { paramName: "calendar_source", value: ["drama"] }, enumOptions: [ { title: "今日更新", value: "update_today" }, { title: "明日首播", value: "premiere_tomorrow" }, { title: "7天内首播", value: "premiere_week" }, { title: "30天内首播", value: "premiere_month" } ] },
+                { name: "drama_region", title: "地区偏好", type: "enumeration", value: "Global", belongTo: { paramName: "calendar_source", value: ["drama"] }, enumOptions: [ { title: "全球聚合", value: "Global" }, { title: "美国", value: "US" }, { title: "日本", value: "JP" }, { title: "韩国", value: "KR" }, { title: "中国", value: "CN" }, { title: "英国", value: "GB" } ] },
                 { name: "variety_mode", title: "时间范围", type: "enumeration", value: "today", belongTo: { paramName: "calendar_source", value: ["variety"] }, enumOptions: [ { title: "今日更新", value: "today" }, { title: "明日预告", value: "tomorrow" }, { title: "近期热播", value: "trending" } ] },
                 { name: "variety_region", title: "综艺地区", type: "enumeration", value: "cn", belongTo: { paramName: "calendar_source", value: ["variety"] }, enumOptions: [ { title: "国产综艺", value: "cn" }, { title: "韩国综艺", value: "kr" }, { title: "欧美综艺", value: "us" }, { title: "日本综艺", value: "jp" }, { title: "全球热门", value: "global" } ] },
                 { name: "anime_day", title: "选择日期", type: "enumeration", value: "today", belongTo: { paramName: "calendar_source", value: ["anime"] }, enumOptions: [ { title: "今天", value: "today" }, { title: "周一", value: "1" }, { title: "周二", value: "2" }, { title: "周三", value: "3" }, { title: "周四", value: "4" }, { title: "周五", value: "5" }, { title: "周六", value: "6" }, { title: "周日", value: "7" } ] },
@@ -2793,8 +2795,53 @@ async function calendarLoadAnime(params = {}) {
 }
 
 // =========================================================================
-// 2. 业务逻辑：综艺时刻
+// 2. 业务逻辑：追剧日历 & 综艺时刻 (原生逻辑)
 // =========================================================================
+
+async function calendarLoadDrama(params = {}) {
+    const mode = params.mode || "update_today";
+    const region = params.sort_by || "Global";
+    const page = params.page || 1;
+    const dates = calendarCalculateDates(mode);
+    const isPremiere = mode.includes("premiere");
+    const queryParams = {
+        language: "zh-CN",
+        sort_by: "popularity.desc",
+        include_null_first_air_dates: false,
+        page: page,
+        timezone: "Asia/Shanghai"
+    };
+    const dateField = isPremiere ? "first_air_date" : "air_date";
+    queryParams[`${dateField}.gte`] = dates.start;
+    queryParams[`${dateField}.lte`] = dates.end;
+    if (region !== "Global") {
+        queryParams.with_origin_country = region;
+        const langMap = { "JP": "ja", "KR": "ko", "CN": "zh", "GB": "en", "US": "en" };
+        if (langMap[region]) queryParams.with_original_language = langMap[region];
+    }
+    try {
+        const res = await Widget.tmdb.get("/discover/tv", { params: queryParams });
+        const data = res || {};
+        if (!data.results || data.results.length === 0) return page === 1 ? [{ id: "empty", type: "text", title: "暂无更新" }] : [];
+        return data.results.map(item => {
+            const fullDate = (mode === "update_today") ? dates.start : (item.first_air_date || "");
+            const yearStr = fullDate.substring(0, 4);
+            const shortDate = fullDate.slice(5).replace("-", "/");
+            const genreText = calendarGetGenreText(item.genre_ids) || "剧集";
+            let timeLabel = mode === "update_today" ? "" : shortDate;
+            const displaySubtitle = timeLabel ? `${timeLabel} ${genreText}` : genreText;
+            return calendarBuildItem({
+                id: item.id, tmdbId: item.id, type: "tv",
+                title: item.name, poster: item.poster_path, backdrop: item.backdrop_path,
+                rating: item.vote_average?.toFixed(1),
+                subTitle: displaySubtitle,
+                desc: item.overview,
+                year: yearStr,
+                releaseDate: fullDate
+            });
+        });
+    } catch (e) { return [{ id: "err", type: "text", title: "网络错误" }]; }
+}
 
 async function calendarLoadVariety(params = {}) {
     const mode = params.mode || "today";
@@ -2829,6 +2876,23 @@ async function calendarLoadVariety(params = {}) {
 // =========================================================================
 // 3. 辅助函数
 // =========================================================================
+
+function calendarCalculateDates(mode) {
+    const today = new Date();
+    const toStr = (d) => d.toISOString().split('T')[0];
+    if (mode === "update_today") return { start: toStr(today), end: toStr(today) };
+    if (mode === "premiere_tomorrow") {
+        const tmr = new Date(today); tmr.setDate(today.getDate() + 1); return { start: toStr(tmr), end: toStr(tmr) };
+    }
+    if (mode === "premiere_week") {
+        const start = new Date(today); start.setDate(today.getDate() + 1);
+        const end = new Date(today); end.setDate(today.getDate() + 7);
+        return { start: toStr(start), end: toStr(end) };
+    }
+    const start = new Date(today); start.setDate(today.getDate() + 1);
+    const end = new Date(today); end.setDate(today.getDate() + 30);
+    return { start: toStr(start), end: toStr(end) };
+}
 
 function calendarGetSafeDate(mode) {
     const d = new Date();
@@ -2928,10 +2992,11 @@ async function calendarSearchTmdb(query) {
 }
 
 async function loadGlobalCalendarHub(params = {}) {
- const source=params.calendar_source||"variety";
+ const source=params.calendar_source||"drama";
  if(source==="anime") return await calendarLoadAnime({sort_by:params.anime_day||"today",page:params.page});
+ if(source==="variety") return await calendarLoadVariety({mode:params.variety_mode||"today",sort_by:params.variety_region||"cn",page:params.page});
  if(source==="aggregate") return await calendarLoadVarietyUltimate({listType:params.aggregate_listType||"calendar",days:params.aggregate_days||"14",region:params.aggregate_region||"all",page:params.page});
- return await calendarLoadVariety({mode:params.variety_mode||"today",sort_by:params.variety_region||"cn",page:params.page});
+ return await calendarLoadDrama({mode:params.calendar_mode||"update_today",sort_by:params.drama_region||"Global",page:params.page});
 }
 
 // ================= 综艺聚合 =================
