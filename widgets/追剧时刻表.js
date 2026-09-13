@@ -69,382 +69,42 @@ var WidgetMetadata = {
     // 需要重新显示该输入框时，把上面那段 globalParams 数组加回此处即可，无需改动其他代码。
 
     modules: [
-        // 弹幕功能已拆分为独立的“极速弹幕”和“轮询弹幕”组件。
-        // ---------------- 大栏目 0：新片追踪 ----------------
         {
-            title: "新片追踪",
-            functionName: "loadMonthlyUpcomingStrict",
+            title: "追剧日历",
+            description: "全球剧集更新与首播日历",
+            functionName: "loadStandaloneDramaCalendar",
             type: "video",
             cacheDuration: 43200,
             params: [
-                {
-                    name: "upcoming_category",
-                    title: "选择频道",
-                    type: "enumeration",
-                    value: "movie_upcoming",
-                    enumOptions: [
-                        { title: "即将上映", value: "movie_upcoming" },
-                        { title: "正在热映", value: "movie_now_playing" },
-                        { title: "定档待播", value: "tv_monthly_upcoming" },
-                        { title: "今日首播", value: "tv_airing_today" }
-                    ]
-                },
-                { name: "page", title: "页码", type: "page", startPage: 1 }
-            ]
-        },
-
-        // ---------------- 综艺时刻 ----------------
-        {
-            title: "综艺时刻",
-            description: "综艺更新与排播时刻表",
-            functionName: "loadStandaloneVarietyTime",
-            type: "video",
-            cacheDuration: 43200,
-            params: [
-                { name: "sort_by", title: "综艺地区", type: "enumeration", value: "cn", enumOptions: [ { title: "国产综艺", value: "cn" }, { title: "韩国综艺", value: "kr" }, { title: "欧美综艺", value: "us" }, { title: "日本综艺", value: "jp" }, { title: "全球热门", value: "global" } ] },
-                { name: "variety_mode", title: "时间范围", type: "enumeration", value: "today", enumOptions: [ { title: "今日更新", value: "today" }, { title: "明日预告", value: "tomorrow" }, { title: "近期热播", value: "trending" } ] },
+                { name: "sort_by", title: "地区偏好", type: "enumeration", value: "Global", enumOptions: [ { title: "全球聚合", value: "Global" }, { title: "美国", value: "US" }, { title: "日本", value: "JP" }, { title: "韩国", value: "KR" }, { title: "中国", value: "CN" }, { title: "英国", value: "GB" } ] },
+                { name: "calendar_mode", title: "时间范围", type: "enumeration", value: "update_today", enumOptions: [ { title: "今日更新", value: "update_today" }, { title: "明日首播", value: "premiere_tomorrow" }, { title: "7天内首播", value: "premiere_week" }, { title: "30天内首播", value: "premiere_month" } ] },
                 { name: "page", title: "页码", type: "page" }
             ]
         },
-
-        // ---------------- 大栏目 6：平台剧场 ----------------
         {
-            title: "平台剧场",
-            description: "各平台剧场与芒果TV热榜",
-            functionName: "loadTheaterHub",
-            type: "video",
-            cacheDuration: 21600,
-            params: [
-                { name: "theater_source", title: "选择子列表", type: "enumeration", value: "theater", enumOptions: [
-                    { title: "各平台剧场", value: "theater" }, { title: "芒果TV热榜", value: "mango" }
-                ] },
-                { name: "brand", title: "剧场品牌", type: "enumeration", value: "迷雾剧场", belongTo: { paramName: "theater_source", value: ["theater"] }, enumOptions: [ { title: "迷雾剧场", value: "迷雾剧场" }, { title: "暗流剧场", value: "暗流剧场" }, { title: "白夜剧场", value: "白夜剧场" }, { title: "X剧场", value: "X剧场" }, { title: "横屏短剧", value: "横屏短剧" }, { title: "生花剧场", value: "生花剧场" }, { title: "大家剧场", value: "大家剧场" }, { title: "小逗剧场", value: "小逗剧场" }, { title: "十分剧场", value: "十分剧场" }, { title: "板凳单元", value: "板凳单元" }, { title: "萤火单元", value: "萤火单元" }, { title: "正午阳光", value: "正午阳光" }, { title: "恋恋剧场", value: "恋恋剧场" }, { title: "微尘剧场", value: "微尘剧场" } ] },
-                { name: "status", title: "播出状态", type: "enumeration", value: "all", belongTo: { paramName: "theater_source", value: ["theater"] }, enumOptions: [ { title: "全部", value: "all" }, { title: "已开播", value: "aired" }, { title: "即将推出", value: "upcoming" } ] },
-                { name: "mango_sort_by", title: "类型", type: "enumeration", value: "tv", belongTo: { paramName: "theater_source", value: ["mango"] }, enumOptions: [ { title: "全部剧集", value: "tv" }, { title: "王牌综艺", value: "show" } ] },
-                { name: "sort_type", title: "排序方式", type: "enumeration", value: "default", enumOptions: [ { title: "默认原序", value: "default" }, { title: "最近更新", value: "updated" }, { title: "最近发布", value: "recent" }, { title: "热度最高", value: "heat" }, { title: "流行趋势", value: "trending" }, { title: "高分优先", value: "rating" } ] },
-                { name: "page", title: "页码", type: "page", startPage: 1 }
-            ]
-        },
-
-        {
-            title: "电影榜单",
-            functionName: "routeMovieOmni",
+            title: "动漫周更",
+            description: "国创与番剧每周更新表",
+            functionName: "loadStandaloneAnimeWeek",
             type: "video",
             cacheDuration: 43200,
             params: [
-                {
-                    name: "movie_source", title: "榜单模式", type: "enumeration", value: "general",
-                    enumOptions: [
-                        { title: "电影综合榜", value: "general" },
-                        { title: "年度最佳电影", value: "yearly" },
-                        { title: "按类型探索", value: "genre" }
-                    ]
-                },
-                { name: "general_sort", title: "榜单分类", type: "enumeration", value: "popular", belongTo: { paramName: "movie_source", value: ["general"] }, enumOptions: [ { title: "流行趋势", value: "popular" }, { title: "历史高分", value: "top_rated" }, { title: "全球票房榜", value: "box_office" }, { title: "奥斯卡佳片", value: "oscar" } ] },
-                { name: "yearly_sort", title: "选择年份", type: "enumeration", value: "2024", belongTo: { paramName: "movie_source", value: ["yearly"] }, enumOptions: [ { title: "2025年 最佳", value: "2025" }, { title: "2024年 最佳", value: "2024" }, { title: "2023年 最佳", value: "2023" }, { title: "2022年 最佳", value: "2022" }, { title: "2021年 最佳", value: "2021" }, { title: "2020年 最佳", value: "2020" }, { title: "2019年 最佳", value: "2019" }, { title: "2018年 最佳", value: "2018" }, { title: "2017年 最佳", value: "2017" }, { title: "2016年 最佳", value: "2016" }, { title: "2015年 最佳", value: "2015" } ] },
-                { name: "genre_sort", title: "选择类型", type: "enumeration", value: "878", belongTo: { paramName: "movie_source", value: ["genre"] }, enumOptions: [ { title: "科幻", value: "878" }, { title: "剧情", value: "18" }, { title: "悬疑", value: "9648" }, { title: "动作", value: "28" }, { title: "喜剧", value: "35" }, { title: "爱情", value: "10749" }, { title: "恐怖", value: "27" }, { title: "犯罪", value: "80" }, { title: "奇幻", value: "14" }, { title: "动画", value: "16" } ] },
-                { name: "page", title: "页码", type: "page", startPage: 1 }
-            ]
-        },
-
-        { title: "豆瓣榜单", functionName: "loadDoubanTrendEntry", type: "video", cacheDuration: 43200, params: [
-            {
-                name: "sort_by", title: "豆瓣 榜单", type: "enumeration", value: "db_tv_cn",
-                enumOptions: [
-                    { value: "db_tv_cn", title: "热门国产剧" }, { value: "db_variety", title: "热门综艺" }, { value: "db_movie", title: "热门电影" }, { value: "db_tv_us", title: "热门美剧" }, { value: "tv_domestic", title: "大陆剧集" }, { value: "tv_american", title: "欧美剧集" }, { value: "tv_japanese", title: "日本剧集" }, { value: "tv_korean", title: "韩国剧集" }, { value: "tv_animation", title: "动漫番剧" }, { value: "show_domestic", title: "大陆综艺" }, { value: "show_foreign", title: "国外综艺" }, { value: "movie_weekly", title: "一周口碑电影" }, { value: "movie_top250", title: "豆瓣 Top250" }, { value: "custom_movie_hot", title: "豆瓣电影实时热榜" }, { value: "custom_tv_hot", title: "豆瓣剧集实时热榜" }, { value: "custom_subject_hot", title: "豆瓣书影音实时热榜" }, { value: "custom_tv_chinese", title: "华语口碑剧集榜" }, { value: "custom_tv_global", title: "全球口碑剧集榜" }, { value: "custom_movie_showing", title: "当地影院热映" }, { value: "custom_url", title: "自定义URL" }
-                ]
-            },
-            {
-                name: "sort_type", title: "排序方式", type: "enumeration", value: "default",
-                enumOptions: [ { title: "默认原序", value: "default" }, { title: "最近更新", value: "updated" }, { title: "最近发布", value: "recent" }, { title: "热度最高", value: "heat" }, { title: "流行趋势", value: "trending" }, { title: "高分优先", value: "rating" } ]
-            },
-            {
-                name: "custom_douban_url", title: "片单地址", type: "input", value: "",
-                description: "输入豆瓣片单网址，支持 doulist、subject_collection 或豆瓣 App dispatch 地址",
-                belongTo: { paramName: "sort_by", value: ["custom_url"] }
-            },
-            { name: "page", title: "页码", type: "page", startPage: 1 } ] },
-
-        {
-            title: "动漫聚合",
-            functionName: "routeAnimeOmni",
-            type: "video",
-            cacheDuration: 43200,
-            params: [
-                {
-                    name: "anime_source", title: "选择数据源", type: "enumeration", value: "cal",
-                    enumOptions: [
-                        { title: "Bangumi 追番日历", value: "cal" },
-                        { title: "Bilibili 热度榜单", value: "bili" },
-                        { title: "Bangumi 近期热门", value: "hot" },
-                        { title: "Bangumi 年季度榜", value: "rank" },
-                        { title: "Bangumi 每日放送", value: "daily" },
-                        { title: "TMDB 热门/新番", value: "tmdb" },
-                        { title: "AniList 流行榜单", value: "anilist" },
-                        { title: "MAL 权威榜单", value: "mal" }
-                    ]
-                },
-                { name: "cal_day", title: "选择日期", type: "enumeration", value: "today", belongTo: { paramName: "anime_source", value: ["cal"] }, enumOptions: [ { title: "今日更新", value: "today" }, { title: "周一", value: "1" }, { title: "周二", value: "2" }, { title: "周三", value: "3" }, { title: "周四", value: "4" }, { title: "周五", value: "5" }, { title: "周六", value: "6" }, { title: "周日", value: "7" } ] },
-                { name: "bili_sort", title: "榜单分区", type: "enumeration", value: "1", belongTo: { paramName: "anime_source", value: ["bili"] }, enumOptions: [ { title: "B站番剧", value: "1" }, { title: "B站国创", value: "4" } ] },
-                { name: "hot_cat", title: "分类", type: "enumeration", value: "anime", belongTo: { paramName: "anime_source", value: ["hot"] }, enumOptions: [ { title: "动画", value: "anime" } ] },
-                { name: "rank_cat", title: "分类", type: "enumeration", value: "anime", belongTo: { paramName: "anime_source", value: ["rank"] }, enumOptions: [ { title: "动画", value: "anime" }, { title: "三次元", value: "real" } ] },
-                { name: "rank_year", title: "年份", type: "enumeration", value: `${currentYear}`, belongTo: { paramName: "anime_source", value: ["rank"] }, enumOptions: yearOptions },
-                { name: "rank_month", title: "月份/季度", type: "enumeration", value: "all", belongTo: { paramName: "anime_source", value: ["rank"] }, enumOptions: [ { title: "全年", value: "all" }, { title: "冬季", value: "1" }, { title: "春季", value: "4" }, { title: "夏季", value: "7" }, { title: "秋季", value: "10" } ] },
-                { name: "rank_sort", title: "排序方式", type: "enumeration", value: "collects", belongTo: { paramName: "anime_source", value: ["rank"] }, enumOptions: [ { title: "排名", value: "rank" }, { title: "热度", value: "trends" }, { title: "收藏数", value: "collects" }, { title: "发售日期", value: "date" }, { title: "名称", value: "title" } ] },
-                { name: "daily_filter", title: "筛选范围", type: "enumeration", value: "today", belongTo: { paramName: "anime_source", value: ["daily"] }, enumOptions: [ { title: "今日放送", value: "today" }, { title: "指定单日", value: "specific_day" }, { title: "本周一至四", value: "mon_thu" }, { title: "本周五至日", value: "fri_sun" }, { title: "整周放送", value: "all_week" } ] },
-                { name: "daily_weekday", title: "指定单日星期", type: "enumeration", value: "1", belongTo: { paramName: "anime_source", value: ["daily"] }, enumOptions: [ { title: "星期一", value: "1" }, { title: "星期二", value: "2" }, { title: "星期三", value: "3" }, { title: "星期四", value: "4" }, { title: "星期五", value: "5" }, { title: "星期六", value: "6" }, { title: "星期日", value: "7" } ] },
-                { name: "daily_sort", title: "排序方式", type: "enumeration", value: "popularity_rat_bgm", belongTo: { paramName: "anime_source", value: ["daily"] }, enumOptions: [ { title: "热度", value: "popularity_rat_bgm" }, { title: "评分", value: "score_bgm_desc" }, { title: "放送日", value: "airdate_desc" }, { title: "默认", value: "default" } ] },
-                { name: "tmdb_sort", title: "榜单类型", type: "enumeration", value: "trending", belongTo: { paramName: "anime_source", value: ["tmdb"] }, enumOptions: [ { title: "实时流行", value: "trending" }, { title: "最新首播", value: "new" }, { title: "高分神作", value: "top" } ] },
-                { name: "anilist_sort", title: "排序方式", type: "enumeration", value: "TRENDING_DESC", belongTo: { paramName: "anime_source", value: ["anilist"] }, enumOptions: [ { title: "近期趋势", value: "TRENDING_DESC" }, { title: "历史人气", value: "POPULARITY_DESC" }, { title: "评分最高", value: "SCORE_DESC" } ] },
-                { name: "mal_sort", title: "榜单类型", type: "enumeration", value: "airing", belongTo: { paramName: "anime_source", value: ["mal"] }, enumOptions: [ { title: "当前热播 Top", value: "airing" }, { title: "历史总榜 Top", value: "all" }, { title: "最佳剧场版", value: "movie" }, { title: "即将上映", value: "upcoming" } ] },
+                { name: "sort_by", title: "选择日期", type: "enumeration", value: "today", enumOptions: [ { title: "今天", value: "today" }, { title: "周一", value: "1" }, { title: "周二", value: "2" }, { title: "周三", value: "3" }, { title: "周四", value: "4" }, { title: "周五", value: "5" }, { title: "周六", value: "6" }, { title: "周日", value: "7" } ] },
                 { name: "page", title: "页码", type: "page" }
             ]
         },
-
-        // ---------------- 大栏目：平台公司片库 ----------------
         {
-            title: "平台公司片库",
-            description: "按播出平台或出品公司筛选影视内容",
-            functionName: "loadPlatformCompanyLibrary",
-            type: "video",
-            cacheDuration: 21600,
-            params: [
-                {
-                    name: "library_source", title: "选择类型", type: "enumeration", value: "network",
-                    enumOptions: [ { title: "播出平台", value: "network" }, { title: "出品公司", value: "company" } ]
-                },
-                {
-                    name: "with_networks", title: "播出平台", type: "enumeration", value: "",
-                    belongTo: { paramName: "library_source", value: ["network"] },
-                    enumOptions: [
-                        { title: "全部", value: "" },
-                        { title: "CCTV-1", value: "1363" }, { title: "CCTV-8", value: "521" },
-                        { title: "爱奇艺", value: "1330" }, { title: "优酷视频", value: "1419" }, { title: "腾讯视频", value: "2007" },
-                        { title: "芒果视频", value: "1631" }, { title: "哔哩哔哩", value: "1605" },
-                        { title: "东方卫视", value: "1056" }, { title: "湖南卫视", value: "952" }, { title: "浙江卫视", value: "989" },
-                        { title: "Apple TV+", value: "2552" }, { title: "Disney+", value: "2739" }, { title: "Netflix", value: "213" }, { title: "Hulu", value: "453" },
-                        { title: "HBO", value: "49" }, { title: "HBO Max", value: "3186" }, { title: "Amazon Prime Video", value: "1024" },
-                        { title: "Paramount+", value: "4330" }, { title: "TV Tokyo", value: "94" }, { title: "BBC One", value: "332" },
-                        { title: "BBC Two", value: "295" }, { title: "AMC+", value: "174" },
-                        { title: "FOX", value: "19" }, { title: "NBC", value: "6" }, { title: "We TV", value: "3732" }, { title: "Viu TV", value: "2146" },
-                        { title: "TVB", value: "48" }, { title: "tvN", value: "866" }, { title: "SBS", value: "156" }
-                    ]
-                },
-                {
-                    name: "with_companies", title: "出品公司", type: "enumeration", value: "",
-                    belongTo: { paramName: "library_source", value: ["company"] },
-                    enumOptions: [
-                        { title: "全部", value: "" }, { title: "皮克斯 Pixar", value: "3" }, { title: "DC Universe", value: "128064" },
-                        { title: "Disney", value: "2" }, { title: "Warner Bros", value: "174" }, { title: "Columbia", value: "5" },
-                        { title: "Sony", value: "34" }, { title: "Universal", value: "33" }, { title: "Paramount", value: "4" },
-                        { title: "20th Century", value: "25" }, { title: "Marvel", value: "420" }, { title: "Toho", value: "882" },
-                        { title: "中国电影集团公司", value: "14714" }, { title: "BBC", value: "3324" }, { title: "A24", value: "41077" },
-                        { title: "Blumhouse", value: "3172" }, { title: "Working Title Films", value: "10163" }
-                    ]
-                },
-                {
-                    name: "company_genre", title: "内容类型", type: "enumeration", value: "",
-                    belongTo: { paramName: "library_source", value: ["company"] },
-                    enumOptions: [
-                        { title: "全部类型", value: "" }, { title: "冒险", value: "12" }, { title: "剧情", value: "18" },
-                        { title: "动作", value: "28" }, { title: "动画", value: "16" }, { title: "历史", value: "36" },
-                        { title: "喜剧", value: "35" }, { title: "奇幻", value: "14" }, { title: "家庭", value: "10751" },
-                        { title: "恐怖", value: "27" }, { title: "悬疑", value: "9648" }, { title: "惊悚", value: "53" },
-                        { title: "战争", value: "10752" }, { title: "爱情", value: "10749" }, { title: "犯罪", value: "80" },
-                        { title: "科幻", value: "878" }, { title: "西部", value: "37" }, { title: "音乐", value: "10402" },
-                        { title: "电视电影", value: "10770" }
-                    ]
-                },
-                {
-                    name: "network_genre", title: "内容类型", type: "enumeration", value: "",
-                    belongTo: { paramName: "library_source", value: ["network"] },
-                    enumOptions: [
-                        { title: "全部类型", value: "" }, { title: "犯罪", value: "80" }, { title: "动画", value: "16" },
-                        { title: "喜剧", value: "35" }, { title: "剧情", value: "18" }, { title: "家庭", value: "10751" },
-                        { title: "悬疑", value: "9648" }, { title: "真人秀", value: "10764" }, { title: "脱口秀", value: "10767" },
-                        { title: "纪录片", value: "99" }, { title: "动作与冒险", value: "10759" }, { title: "科幻与奇幻", value: "10765" },
-                        { title: "战争与政治", value: "10768" }
-                    ]
-                },
-                {
-                    name: "air_status", title: "上映状态", type: "enumeration", value: "released",
-                    enumOptions: [ { title: "已上映", value: "released" }, { title: "未上映", value: "upcoming" }, { title: "全部", value: "" } ]
-                },
-                {
-                    name: "sort_by", title: "排序方式", type: "enumeration", value: "first_air_date.desc",
-                    enumOptions: [
-                        { title: "上映时间降序", value: "first_air_date.desc" }, { title: "上映时间升序", value: "first_air_date.asc" },
-                        { title: "人气最高", value: "popularity.desc" }, { title: "评分最高", value: "vote_average.desc" }, { title: "最多投票", value: "vote_count.desc" }
-                    ]
-                },
-                { name: "page", title: "页码", type: "page", startPage: 1 },
-                { name: "language", title: "语言", type: "language", value: "zh-CN" }
-            ]
-        },
-
-        // ---------------- VOD合集列表 ----------------
-        {
-            title: "VOD合集列表",
-            description: "聚合实时榜单、豆瓣片单、欧乐影视",
-            functionName: "loadVodHubMerged",
+            title: "综艺聚合",
+            description: "未来综艺排期与热度榜单",
+            functionName: "loadStandaloneVarietyAggregate",
             type: "video",
             cacheDuration: 43200,
             params: [
-                { name: "vod_list", title: "选择子列表", type: "enumeration", value: "榜单", enumOptions: [ { title: "聚合实时榜单", value: "榜单" }, { title: "豆瓣片单", value: "豆瓣" }, { title: "欧乐影视", value: "欧乐" }, { title: "骨朵热度指数榜", value: "骨朵" } ] },
-                {"name": "榜单_section", "title": "功能分类", "type": "enumeration", "value": "0", "enumOptions": [{"title": "Netflix新片榜", "value": "0"}, {"title": "Disney+新片榜", "value": "1"}, {"title": "Apple TV+新片榜", "value": "2"}, {"title": "HBOmax新片榜", "value": "3"}, {"title": "prime video新片榜", "value": "4"}, {"title": "本周国剧排行榜", "value": "5"}, {"title": "本周美剧排行榜", "value": "6"}, {"title": "本周动漫排行榜", "value": "7"}, {"title": "本周电影排行榜", "value": "8"}, {"title": "本周韩剧排行榜", "value": "9"}, {"title": "本周英剧排行榜", "value": "10"}, {"title": "本周日剧排行榜", "value": "11"}, {"title": "本周泰剧排行榜", "value": "12"}, {"title": "本周综艺排行榜", "value": "13"}, {"title": "本周纪录片排行榜", "value": "14"}], "belongTo": {"paramName": "vod_list", "value": ["榜单"]}},
-                {"name": "豆瓣_section", "title": "功能分类", "type": "enumeration", "value": "0", "enumOptions": [{"title": "豆瓣片单", "value": "0"}, {"title": "即将上映", "value": "1"}], "belongTo": {"paramName": "vod_list", "value": ["豆瓣"]}},
-                {"name": "豆瓣_m0_list", "title": "选择片单", "type": "enumeration", "value": "1652843", "enumOptions": [{"title": "Time Out影史百大恐怖片", "value": "1652843"}, {"title": "看电影40部最经典恐怖片", "value": "36980"}, {"title": "恐惧感的丧失(309部)", "value": "36280"}, {"title": "难忘的经典惊悚/恐怖片(547部)", "value": "37140418"}, {"title": "7分以上的恐怖/惊悚电影(174部)", "value": "526461"}, {"title": "高分精品恐怖片(280部)", "value": "5916567"}, {"title": "2000后优秀恐怖电影(204部)", "value": "3356598"}, {"title": "被忽略掉的不沉闷恐怖劲片！(77部)", "value": "724565"}, {"title": "Indiewire: 50位导演心中的最佳恐怖片(48部)", "value": "152540212"}, {"title": "稀有难找 underground horror films(466部)", "value": "109801736"}, {"title": "血浆片已阅整理 Gory Horror Film(47部)", "value": "159889980"}, {"title": "女性导演恐怖片(383部)", "value": "124549602"}, {"title": "Body Horror｜身体恐怖电影(155部)", "value": "162107956"}, {"title": "瘆临其境！恐怖伪纪录片(193部)", "value": "161922461"}, {"title": "码住！盘点欧美高分恐怖电影(585部)", "value": "163019144"}, {"title": "怪力乱神！欧美超自然恐怖电影(206部)", "value": "163048555"}, {"title": "审美与创意兼顾的恐怖片(96部)", "value": "159035683"}, {"title": "我看过的恐怖片们(254部)", "value": "148836450"}, {"title": "我的恐怖片之旅(1534部)", "value": "45782339"}, {"title": "码住！2026年恐怖电影大盘点(304部)", "value": "163145526"}, {"title": "⏎ 自定义URL", "value": "custom"}], "belongTo": {"paramName": "vod_list", "value": ["豆瓣"]}},
-                {"name": "豆瓣_m0_url", "title": "自定义URL", "type": "input", "description": "填入豆瓣豆列/列表链接", "placeholders": [{"title": "https://www.douban.com/doulist/xxx/", "value": ""}], "belongTo": {"paramName": "vod_list", "value": ["豆瓣"]}},
-                {"name": "豆瓣_m0_page", "title": "页码", "type": "page", "belongTo": {"paramName": "vod_list", "value": ["豆瓣"]}},
-                {"name": "豆瓣_m1_page", "title": "页码", "type": "page", "belongTo": {"paramName": "vod_list", "value": ["豆瓣"]}},
-                {"name": "欧乐_section", "title": "功能分类", "type": "enumeration", "value": "0", "enumOptions": [{"title": "电影", "value": "0"}, {"title": "剧集", "value": "1"}, {"title": "综艺", "value": "2"}, {"title": "动漫", "value": "3"}, {"title": "短剧", "value": "4"}, {"title": "搜索", "value": "5"}, {"title": "搜索", "value": "6"}], "belongTo": {"paramName": "vod_list", "value": ["欧乐"]}},
-                {"name": "欧乐_m0_area", "title": "地区", "type": "enumeration", "value": "0", "enumOptions": [{"title": "全部", "value": "0"}, {"title": "大陆", "value": "大陆"}, {"title": "香港", "value": "香港"}, {"title": "台湾", "value": "台湾"}, {"title": "美国", "value": "美国"}, {"title": "日本", "value": "日本"}, {"title": "韩国", "value": "韩国"}, {"title": "英国", "value": "英国"}, {"title": "法国", "value": "法国"}, {"title": "德国", "value": "德国"}, {"title": "西班牙", "value": "西班牙"}, {"title": "泰国", "value": "泰国"}, {"title": "印度", "value": "印度"}], "belongTo": {"paramName": "vod_list", "value": ["欧乐"]}},
-                {"name": "欧乐_m0_sort_by", "title": "榜单类型", "type": "enumeration", "value": "hot", "enumOptions": [{"title": "热门电影", "value": "hot"}, {"title": "高分电影", "value": "score"}, {"title": "最新电影", "value": "update"}, {"title": "最近添加", "value": "desc"}], "belongTo": {"paramName": "vod_list", "value": ["欧乐"]}},
-                {"name": "欧乐_m0_page", "title": "页码", "type": "page", "startPage": 1, "belongTo": {"paramName": "vod_list", "value": ["欧乐"]}},
-                {"name": "欧乐_m1_area", "title": "地区", "type": "enumeration", "value": "0", "enumOptions": [{"title": "全部", "value": "0"}, {"title": "大陆", "value": "大陆"}, {"title": "香港", "value": "香港"}, {"title": "台湾", "value": "台湾"}, {"title": "美国", "value": "美国"}, {"title": "日本", "value": "日本"}, {"title": "韩国", "value": "韩国"}, {"title": "英国", "value": "英国"}, {"title": "法国", "value": "法国"}, {"title": "德国", "value": "德国"}, {"title": "西班牙", "value": "西班牙"}, {"title": "泰国", "value": "泰国"}, {"title": "印度", "value": "印度"}], "belongTo": {"paramName": "vod_list", "value": ["欧乐"]}},
-                {"name": "欧乐_m1_sort_by", "title": "榜单类型", "type": "enumeration", "value": "hot", "enumOptions": [{"title": "热门剧集", "value": "hot"}, {"title": "高分剧集", "value": "score"}, {"title": "最新剧集", "value": "update"}, {"title": "最近添加", "value": "desc"}], "belongTo": {"paramName": "vod_list", "value": ["欧乐"]}},
-                {"name": "欧乐_m1_page", "title": "页码", "type": "page", "startPage": 1, "belongTo": {"paramName": "vod_list", "value": ["欧乐"]}},
-                {"name": "欧乐_m2_area", "title": "地区", "type": "enumeration", "value": "0", "enumOptions": [{"title": "全部", "value": "0"}, {"title": "大陆", "value": "大陆"}, {"title": "香港", "value": "香港"}, {"title": "台湾", "value": "台湾"}, {"title": "美国", "value": "美国"}, {"title": "日本", "value": "日本"}, {"title": "韩国", "value": "韩国"}, {"title": "英国", "value": "英国"}, {"title": "法国", "value": "法国"}, {"title": "德国", "value": "德国"}, {"title": "西班牙", "value": "西班牙"}, {"title": "泰国", "value": "泰国"}, {"title": "印度", "value": "印度"}], "belongTo": {"paramName": "vod_list", "value": ["欧乐"]}},
-                {"name": "欧乐_m2_sort_by", "title": "榜单类型", "type": "enumeration", "value": "hot", "enumOptions": [{"title": "热门综艺", "value": "hot"}, {"title": "高分综艺", "value": "score"}, {"title": "最新综艺", "value": "update"}, {"title": "最近添加", "value": "desc"}], "belongTo": {"paramName": "vod_list", "value": ["欧乐"]}},
-                {"name": "欧乐_m2_page", "title": "页码", "type": "page", "startPage": 1, "belongTo": {"paramName": "vod_list", "value": ["欧乐"]}},
-                {"name": "欧乐_m3_area", "title": "地区", "type": "enumeration", "value": "0", "enumOptions": [{"title": "全部", "value": "0"}, {"title": "大陆", "value": "大陆"}, {"title": "香港", "value": "香港"}, {"title": "台湾", "value": "台湾"}, {"title": "美国", "value": "美国"}, {"title": "日本", "value": "日本"}, {"title": "韩国", "value": "韩国"}, {"title": "英国", "value": "英国"}, {"title": "法国", "value": "法国"}, {"title": "德国", "value": "德国"}, {"title": "西班牙", "value": "西班牙"}, {"title": "泰国", "value": "泰国"}, {"title": "印度", "value": "印度"}], "belongTo": {"paramName": "vod_list", "value": ["欧乐"]}},
-                {"name": "欧乐_m3_sort_by", "title": "榜单类型", "type": "enumeration", "value": "hot", "enumOptions": [{"title": "热门动漫", "value": "hot"}, {"title": "高分动漫", "value": "score"}, {"title": "最新动漫", "value": "update"}, {"title": "最近添加", "value": "desc"}], "belongTo": {"paramName": "vod_list", "value": ["欧乐"]}},
-                {"name": "欧乐_m3_page", "title": "页码", "type": "page", "startPage": 1, "belongTo": {"paramName": "vod_list", "value": ["欧乐"]}},
-                {"name": "欧乐_m4_area", "title": "地区", "type": "enumeration", "value": "0", "enumOptions": [{"title": "全部", "value": "0"}, {"title": "大陆", "value": "大陆"}, {"title": "香港", "value": "香港"}, {"title": "台湾", "value": "台湾"}, {"title": "美国", "value": "美国"}, {"title": "日本", "value": "日本"}, {"title": "韩国", "value": "韩国"}, {"title": "英国", "value": "英国"}, {"title": "法国", "value": "法国"}, {"title": "德国", "value": "德国"}, {"title": "西班牙", "value": "西班牙"}, {"title": "泰国", "value": "泰国"}, {"title": "印度", "value": "印度"}], "belongTo": {"paramName": "vod_list", "value": ["欧乐"]}},
-                {"name": "欧乐_m4_sort_by", "title": "榜单类型", "type": "enumeration", "value": "hot", "enumOptions": [{"title": "热门短剧", "value": "hot"}, {"title": "高分短剧", "value": "score"}, {"title": "最新短剧", "value": "update"}, {"title": "最近添加", "value": "desc"}], "belongTo": {"paramName": "vod_list", "value": ["欧乐"]}},
-                {"name": "欧乐_m4_page", "title": "页码", "type": "page", "startPage": 1, "belongTo": {"paramName": "vod_list", "value": ["欧乐"]}},
-                {"name": "欧乐_m5_wd", "title": "关键词", "type": "input", "value": "", "belongTo": {"paramName": "vod_list", "value": ["欧乐"]}},
-                {"name": "欧乐_m5_pg", "title": "页码", "type": "page", "value": "1", "belongTo": {"paramName": "vod_list", "value": ["欧乐"]}},
-                {"name": "欧乐_m6_wd", "title": "关键词", "type": "input", "value": "", "belongTo": {"paramName": "vod_list", "value": ["欧乐"]}},
-                {"name": "欧乐_m6_pg", "title": "页码", "type": "page", "value": "1", "belongTo": {"paramName": "vod_list", "value": ["欧乐"]}},
-                {"name": "骨朵_category", "title": "榜单分类", "type": "enumeration", "value": "剧集", "enumOptions": [{"title": "陆剧", "value": "剧集"}, {"title": "国漫", "value": "动漫"}, {"title": "综艺", "value": "综艺"}, {"title": "电影", "value": "电影"}], "belongTo": {"paramName": "vod_list", "value": ["骨朵"]}},
+                { name: "sort_by", title: "综艺筛选", type: "enumeration", value: "all", enumOptions: [ { title: "全部地区", value: "all" }, { title: "国内综艺", value: "cn" }, { title: "国外综艺", value: "global" } ] },
+                { name: "list_type", title: "榜单类型", type: "enumeration", value: "calendar", enumOptions: [ { title: "追新榜", value: "calendar" }, { title: "热度榜", value: "hot" } ] },
+                { name: "days", title: "预告范围", type: "enumeration", value: "14", belongTo: { paramName: "list_type", value: ["calendar"] }, enumOptions: [ { title: "未来 7 天", value: "7" }, { title: "未来 14 天", value: "14" }, { title: "未来 30 天", value: "30" } ] },
                 { name: "page", title: "页码", type: "page" }
             ]
-        },
-
-        // ---------------- 大栏目 8：二次元全境聚合 ----------------
-
-        // ---------------- 大栏目 3：全能电影榜 ----------------
-
-        // ---------------- 大栏目 2：全球影剧类别 ----------------
-        {
-            title: "全球影剧类别",
-            functionName: "loadGenreRank",
-            type: "video",
-            cacheDuration: 43200,
-            params: [
-                { name: "sort_by", title: "排序规则", type: "enumeration", value: "popularity", enumOptions: [ { title: "热门趋势", value: "popularity" }, { title: "评分最高", value: "rating" }, { title: "最新上线", value: "time" } ] },
-                { name: "media_type", title: "影视类型", type: "enumeration", value: "all", enumOptions: [ { title: "全部", value: "all" }, { title: "电影", value: "movie" }, { title: "电视剧", value: "tv" } ] },
-                { name: "genre", title: "题材流派", type: "enumeration", value: "all", enumOptions: [ { title: "全部题材", value: "all" }, { title: "科幻", value: "scifi" }, { title: "悬疑", value: "mystery" }, { title: "恐怖", value: "horror" }, { title: "犯罪", value: "crime" }, { title: "动作", value: "action" }, { title: "武侠", value: "wuxia" }, { title: "战争", value: "war" }, { title: "喜剧", value: "comedy" }, { title: "爱情", value: "romance" }, { title: "剧情", value: "drama" }, { title: "奇幻", value: "fantasy" }, { title: "动画", value: "animation" }, { title: "纪录片", value: "documentary" } ] },
-                { name: "region", title: "国家/地区", type: "enumeration", value: "all", enumOptions: [ { title: "全球", value: "all" }, { title: "中国大陆", value: "cn" }, { title: "中国香港", value: "hk" }, { title: "中国台湾", value: "tw" }, { title: "港台", value: "hktw" }, { title: "日本", value: "jp" }, { title: "韩国", value: "kr" }, { title: "日韩合集", value: "jpkr" }, { title: "泰国", value: "th" }, { title: "新加坡", value: "sg" }, { title: "马来西亚", value: "my" }, { title: "印度", value: "in" }, { title: "亚太大区", value: "apac" }, { title: "美国", value: "us" }, { title: "英国", value: "gb" }, { title: "德国", value: "de" }, { title: "瑞典", value: "se" }, { title: "欧洲全境", value: "europe" }, { title: "西班牙", value: "es" }, { title: "墨西哥", value: "mx" }, { title: "西语/拉丁美洲", value: "latin" } ] },
-                { name: "page", title: "页码", type: "page", startPage: 1 }
-            ]
-        },
-
-
-        // ---------------- 全球影视专区 ----------------
-// ================= 模块 1：全球探索发现 =================
-        {
-            title: "全球探索发现",
-            functionName: "loadGlobalZoneList",
-            type: "video", // 保留你需要的自适应排版
-            cacheDuration: 43200,
-            params: [
-                {
-                    name: "region",
-                    title: "选择国家/地区",
-                    type: "enumeration",
-                    value: "CN",
-                    enumOptions: [
-                        { title: "全球综合热播", value: "GLOBAL" },
-                        { title: "大陆", value: "CN" },
-                        { title: "香港", value: "HK" },
-                        { title: "台湾", value: "TW" },
-                        { title: "美国", value: "US" },
-                        { title: "英国", value: "GB" },
-                        { title: "日本", value: "JP" },
-                        { title: "韩国", value: "KR" },
-                        { title: "欧洲综合", value: "EU" },
-                        { title: "西语世界", value: "ES_LANG" },
-                        { title: "墨西哥", value: "MX" },
-                        { title: "瑞典", value: "SE" },
-                        { title: "印度", value: "IN" },
-                        { title: "泰国", value: "TH" }
-                    ]
-                },
-                {
-                    name: "mediaType",
-                    title: "影视类型",
-                    type: "enumeration",
-                    value: "all",
-                    enumOptions: [
-                        { title: "全部", value: "all" },
-                        { title: "仅看电影", value: "movie" },
-                        { title: "仅看剧集", value: "tv" }
-                    ]
-                },
-                {
-                    // 👉 关键修复：改为 sort_by
-                    name: "sort_by",
-                    title: "排序榜单",
-                    type: "enumeration",
-                    value: "hot",
-                    enumOptions: [
-                        { title: "近期热播榜", value: "hot" },
-                        { title: "最新上线榜", value: "new" },
-                        { title: "历史高分榜", value: "top" }
-                    ]
-                },
-                { name: "page", title: "页码", type: "page", startPage: 1 }
-            ]
-        },
-        // ---------------- 大栏目 9：串流平台TOP10 (FlixPatrol) ----------------
-        {
-            title: "流媒体TOP10",
-            functionName: "loadOfficialTop10",
-            type: "video", 
-            cacheDuration: 43200,
-            params: [
-                {
-                    name: "sort_by", title: "榜单地区", type: "enumeration", value: "united-states",
-                    enumOptions: [
-                        { title: "美国", value: "united-states" }, { title: "韩国", value: "south-korea" }, { title: "台湾", value: "taiwan" }, { title: "香港", value: "hong-kong" }, { title: "日本", value: "japan" }, { title: "英国", value: "united-kingdom" }, { title: "全球", value: "world" }
-                    ]
-                },
-                {
-                    name: "platform", title: "流媒体平台", type: "enumeration", value: "netflix",
-                    enumOptions: [
-                        { title: "Netflix", value: "netflix" }, { title: "HBO", value: "hbo" }, { title: "Disney+", value: "disney" }, { title: "Apple TV+", value: "apple-tv" }, { title: "Amazon Prime", value: "amazon-prime" }
-                    ]
-                },
-                {
-                    name: "mediaType", title: "榜单类型", type: "enumeration", value: "tv",
-                    enumOptions: [ { title: "剧集", value: "tv" }, { title: "电影", value: "movie" } ]
-                },
-                { name: "page", title: "页码", type: "page", startPage: 1 }
-            ]
-        },
-
-        // ---------------- 大栏目 5：影剧流行风向（独立入口，右上角独立榜单菜单） ----------------
-        { title: "TMDB热门趋势", functionName: "loadTmdbTrendEntry", type: "video", cacheDuration: 43200, params: [
-            { name: "tmdb_mode", title: "模式", type: "enumeration", value: "trend", enumOptions: [ { title: "热门趋势", value: "trend" }, { title: "电影热榜", value: "movie_hot" }, { title: "剧集热榜", value: "tv_hot" }, { title: "电影筛选", value: "movie" }, { title: "剧集筛选", value: "tv" }, { title: "全部", value: "all_hot" } ] },
-            { name: "sort_by", title: "地区", type: "enumeration", value: "", enumOptions: [{ title: "全部地区", value: "" }, { title: "中国", value: "CN" }, { title: "美国", value: "US" }, { title: "韩国", value: "KR" }, { title: "日本", value: "JP" }, { title: "英国", value: "GB" }, { title: "中国香港", value: "HK" }, { title: "中国台湾", value: "TW" }, { title: "泰国", value: "TH" }, { title: "意大利", value: "IT" }, { title: "德国", value: "DE" }, { title: "西班牙", value: "ES" }, { title: "俄罗斯", value: "RU" }, { title: "瑞典", value: "SE" }, { title: "巴西", value: "BR" }, { title: "丹麦", value: "DK" }, { title: "印度", value: "IN" }, { title: "加拿大", value: "CA" }, { title: "爱尔兰", value: "IE" }, { title: "澳大利亚", value: "AU" }] },
-            { name: "genre", title: "类型", type: "enumeration", value: "", enumOptions: [ { title: "全部", value: "" }, { title: "动作/冒险", value: "28" }, { title: "科幻/奇幻", value: "878" }, { title: "剧情", value: "18" }, { title: "喜剧", value: "35" }, { title: "动画", value: "16" }, { title: "悬疑/犯罪", value: "9648" }, { title: "恐怖/惊悚", value: "27" }, { title: "爱情", value: "10749" } ] },
-            { name: "year", title: "年份", type: "input", value: "", description: "例如: 2024" },
-            { name: "tmdb_sort", title: "排序", type: "enumeration", value: "popularity.desc", enumOptions: [ { title: "热度最高", value: "popularity.desc" }, { title: "评分最高", value: "vote_average.desc" }, { title: "最新上映", value: "primary_release_date.desc" } ] },
-            { name: "page", title: "页码", type: "page", startPage: 1 } ] },
-        { title: "IMDb权威榜单", functionName: "loadImdbTrendEntry", type: "video", cacheDuration: 43200, params: [
-            { name: "sort_by", title: "IMDb榜单", type: "enumeration", value: "trending_week", enumOptions: [{ title: "本周热榜", value: "trending_week" }, { title: "今日热榜", value: "trending_day" }, { title: "流行趋势", value: "popular" }, { title: "高分神作", value: "top_rated" }, { title: "国产剧热度", value: "china_tv" }, { title: "国产电影热度", value: "china_movie" }] },
-            { name: "mediaType", title: "范围", type: "enumeration", value: "all", enumOptions: [ { title: "全部", value: "all" }, { title: "电影", value: "movie" }, { title: "剧集", value: "tv" } ] },
-            { name: "page", title: "页码", type: "page", startPage: 1 } ] },
-        { title: "烂番茄风向标", functionName: "loadRtTrendEntry", type: "video", cacheDuration: 43200, params: [
-            { name: "sort_by", title: "烂番茄 榜单", type: "enumeration", value: "rt_movies_home", enumOptions: [{ title: "流媒体热映", value: "rt_movies_home" }, { title: "院线热映", value: "rt_movies_theater" }, { title: "最佳流媒体", value: "rt_movies_best" }, { title: "热门剧集", value: "rt_tv_popular" }, { title: "最新上线", value: "rt_tv_new" }] },
-            { name: "page", title: "页码", type: "page", startPage: 1 } ] },
-        { title: "Trakt趋势榜", functionName: "loadTraktTrendEntry", type: "video", cacheDuration: 43200, params: [
-            { name: "sort_by", title: "Trakt榜单", type: "enumeration", value: "trending", enumOptions: [{ title: "实时热播", value: "trending" }, { title: "最受欢迎", value: "popular" }, { title: "最受期待", value: "anticipated" }] },
-            { name: "traktType", title: "Trakt类型", type: "enumeration", value: "all", enumOptions: [ { title: "全部", value: "all" }, { title: "剧集", value: "shows" }, { title: "电影", value: "movies" } ] },
-            { name: "page", title: "页码", type: "page", startPage: 1 } ] },
-
+        }
     ]
 };
 
@@ -3043,8 +2703,15 @@ async function loadGlobalCalendarHub(params = {}) {
  return await calendarLoadDrama({mode:params.calendar_mode||"update_today",sort_by:params.sort_by||"Global",page:params.page});
 }
 
-async function loadStandaloneVarietyTime(params = {}) {
-    return await calendarLoadVariety({ mode: params.variety_mode || "today", sort_by: params.sort_by || "cn", page: params.page });
+// 独立追剧时刻表入口：三个子模块分别拥有自己的第一个快捷参数。
+async function loadStandaloneDramaCalendar(params = {}) {
+    return await calendarLoadDrama({ mode: params.calendar_mode || "update_today", sort_by: params.sort_by || "Global", page: params.page });
+}
+async function loadStandaloneAnimeWeek(params = {}) {
+    return await calendarLoadAnime({ sort_by: params.sort_by || "today", page: params.page });
+}
+async function loadStandaloneVarietyAggregate(params = {}) {
+    return await calendarLoadVarietyUltimate({ listType: params.list_type || "calendar", days: params.days || "14", region: params.sort_by || "all", page: params.page });
 }
 
 // ================= 综艺聚合 =================
