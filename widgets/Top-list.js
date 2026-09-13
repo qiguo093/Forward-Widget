@@ -2573,8 +2573,11 @@ function calendarGetGenreText(ids) {
 
 // ✨ 核心渲染拦截函数：恢复 year 和 releaseDate 的赋值
 function calendarBuildItem({ id, tmdbId, type, title, poster, backdrop, rating, subTitle, desc, year, releaseDate }) {
-    const fullPoster = poster && poster.startsWith("http") ? poster : (poster ? `https://image.tmdb.org/t/p/w500${poster}` : "");
-    const fullBackdrop = backdrop && backdrop.startsWith("http") ? backdrop : (backdrop ? `https://image.tmdb.org/t/p/w780${backdrop}` : "");
+    // Bangumi/B站常只有竖版封面，TMDB有时只有背景图；两种图片互相兜底，避免横版卡片空白。
+    const posterSource = poster || backdrop || "";
+    const backdropSource = backdrop || poster || "";
+    const fullPoster = posterSource && posterSource.startsWith("http") ? posterSource : (posterSource ? `https://image.tmdb.org/t/p/w500${posterSource}` : "");
+    const fullBackdrop = backdropSource && backdropSource.startsWith("http") ? backdropSource : (backdropSource ? `https://image.tmdb.org/t/p/w780${backdropSource}` : "");
 
     return {
         id: String(id),
