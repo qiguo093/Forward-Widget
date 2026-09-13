@@ -2549,8 +2549,15 @@ async function calendarLoadDrama(params = {}) {
             region !== "Global" || !isExcludedGlobalItem(item)
         );
         if (results.length === 0) return page === 1 ? [{ id: "empty", type: "text", title: "暂无更新" }] : [];
-        return results.map(item => {
-            const fullDate = (mode === "update_today") ? dates.start : (item.first_air_date || "");
+        const mappedResults = await Promise.all(results.map(async item => {
+            let rawDate = mode === "update_today" ? dates.start : (item.first_air_date || "");
+            if (mode === "update_today") {
+                try {
+                    const detail = await Widget.tmdb.get(`/tv/${item.id}`, { params: { language: "zh-CN" } });
+                    rawDate = detail?.last_episode_to_air?.air_date || detail?.next_episode_to_air?.air_date || rawDate;
+                } catch (_) {}
+            }
+            const fullDate = rawDate;
             const yearStr = fullDate.substring(0, 4);
             const shortDate = fullDate.slice(5).replace("-", "/");
             const genreText = calendarGetGenreText(item.genre_ids) || "剧集";
@@ -2565,7 +2572,8 @@ async function calendarLoadDrama(params = {}) {
                 year: yearStr,
                 releaseDate: fullDate
             });
-        });
+        }));
+        return mappedResults;
     } catch (e) { return [{ id: "err", type: "text", title: "网络错误" }]; }
 }
 
