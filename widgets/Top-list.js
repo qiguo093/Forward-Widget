@@ -542,21 +542,17 @@ async function loadMonthlyUpcomingStrict(params = {}) {
         return countries.some(code => blockedCountries.includes(String(code).toUpperCase())) ||
             [item?.original_language, detail?.original_language].some(lang => blockedLanguages.includes(String(lang || "").toLowerCase()));
     };
-    const isExcludedUpcomingItem = (item, detail = item) => {
+    const isExcludedUpcomingItem = (item, detail = item, keywords = []) => {
         if (isBlockedOrigin(item, detail)) return true;
         const genres = (detail?.genres ? detail.genres.map(g => g.id) : (item?.genre_ids || [])).map(Number);
-        // 没有流派的条目通常为海外转播、自制短片、冷门杂项
         if (genres.length === 0) return true;
-        const text = `${item?.name || ""} ${item?.title || ""} ${item?.original_name || ""} ${detail?.overview || item?.overview || ""}`;
+        const text = `${item?.name || ""} ${item?.title || ""} ${item?.original_name || ""} ${detail?.overview || item?.overview || ""} ${(keywords || []).join(" ")}`;
         if (blockedUpcomingGenreText.test(text)) return true;
         if (blockedUpcomingSportsText.test(text)) return true;
-        // 排除无中文简介、热度极低（< 1.2）且非主流产地的国外杂剧（例如截图中的 FĂRĂ URMĂ 等）
-        const countries = (item?.origin_country || []).map(c => String(c).toUpperCase());
+        const countries = (item?.origin_country || detail?.origin_country || []).map(c => String(c).toUpperCase());
         const isMajor = countries.some(c => ["CN", "HK", "TW", "US", "GB", "JP", "KR"].includes(c));
         const overview = String(detail?.overview || item?.overview || "").trim();
-        if (!isMajor && (!overview || overview.length === 0) && (Number(item?.popularity || 0) < 1.5)) {
-            return true;
-        }
+        if (!isMajor && (!overview || overview.length === 0) && (Number(item?.popularity || 0) < 1.5)) return true;
         return false;
     };
     const baseQuery = {
@@ -600,7 +596,17 @@ async function loadMonthlyUpcomingStrict(params = {}) {
             if (blockedTitleWords.some(w => title.toLowerCase().includes(w.toLowerCase()))) return;
             items.push(item);
         }));
-        // 通过 air_date 搜索本月有新一季/新集开播的既有剧（例如《流人》第六季）
+        const keywordCheckedItems = await Promise.all(items.map(async item => {
+            try {
+                const detail = await Widget.tmdb.get(`/tv/${item.id}`, { params: { language: "zh-CN" } });
+                const keywordRes = await Widget.tmdb.get(`/tv/${item.id}/keywords`, { params: {} });
+                const keywords = (keywordRes.results || keywordRes.keywords || []).map(k => k.name || "");
+                return isExcludedUpcomingItem(item, detail, keywords) ? null : { ...item, _keywordsChecked: true };
+            } catch (e) { return item; }
+        }));
+        items.length = 0;
+        keywordCheckedItems.filter(Boolean).forEach(item => items.push(item));
+
         const seasonRaw = [];
         const seasonSeen = new Set();
         // 新季候选仅取前两页；详情以 8 路并发加载，避免 80 次串行请求卡住页面
