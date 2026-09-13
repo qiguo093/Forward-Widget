@@ -528,9 +528,11 @@ async function loadMonthlyUpcomingStrict(params = {}) {
     };
     const start = toDate(today);
     const end = toDate(monthEnd);
-    // 本模块仅过滤指定国家/语言，避免 TMDB 列表或详情缺少 origin_country 时漏网。
-    const blockedCountries = ["TH", "IN", "RU", "TR"];
-    const blockedLanguages = ["th", "hi", "ta", "ru", "tr"];
+    // 屏蔽指定国家/语言，并排除低质小语种杂剧、自制短片与同性恋/BL/摔角等内容。
+    const blockedCountries = ["TH", "IN", "RU", "TR", "RO", "PL", "FI", "HU", "NL"];
+    const blockedLanguages = ["th", "hi", "ta", "te", "ru", "tr", "ro", "pl", "fi", "hu", "nl"];
+    const blockedUpcomingGenreText = /(?:\bgay\b|\blgbtq?\b|\blesbian\b|\bhomosexual\b|\bsame[- ]sex\b|\bqueer\b|\bboys['’]?\s*love\b|\bbl\b|\bgl\b|\byaoi\b|\byuri\b|同性恋|耽美|男男|女女|同志|腐剧|双男主|恋上他|爱上他|绑架我的人)/i;
+    const blockedUpcomingSportsText = /(?:\bwrestling\b|\bpro[- ]wrestling\b|\baew\b|\bwwe\b|\bnwa\b|\bmlw\b|\bstardom\b|\bseadlin[n]?ng\b|\btjpw\b|\bufc\b|\bmma\b|\braw\b|\bsmackdown\b|\bcollision\b|\bdynamite\b|\bpowerrr\b|\bbaseball\b|\bfootball\b|\bbasketball\b|プロレス|女子プロレス|摔角|摔跤|格斗|角力|スターダム)/i;
     const isBlockedOrigin = (item, detail = item) => {
         const countries = [
             ...(item?.origin_country || []),
@@ -540,12 +542,30 @@ async function loadMonthlyUpcomingStrict(params = {}) {
         return countries.some(code => blockedCountries.includes(String(code).toUpperCase())) ||
             [item?.original_language, detail?.original_language].some(lang => blockedLanguages.includes(String(lang || "").toLowerCase()));
     };
+    const isExcludedUpcomingItem = (item, detail = item) => {
+        if (isBlockedOrigin(item, detail)) return true;
+        const genres = (detail?.genres ? detail.genres.map(g => g.id) : (item?.genre_ids || [])).map(Number);
+        // 没有流派的条目通常为海外转播、自制短片、冷门杂项
+        if (genres.length === 0) return true;
+        const text = `${item?.name || ""} ${item?.title || ""} ${item?.original_name || ""} ${detail?.overview || item?.overview || ""}`;
+        if (blockedUpcomingGenreText.test(text)) return true;
+        if (blockedUpcomingSportsText.test(text)) return true;
+        // 排除无中文简介、热度极低（< 1.2）且非主流产地的国外杂剧（例如截图中的 FĂRĂ URMĂ 等）
+        const countries = (item?.origin_country || []).map(c => String(c).toUpperCase());
+        const isMajor = countries.some(c => ["CN", "HK", "TW", "US", "GB", "JP", "KR"].includes(c));
+        const overview = String(detail?.overview || item?.overview || "").trim();
+        if (!isMajor && (!overview || overview.length === 0) && (Number(item?.popularity || 0) < 1.5)) {
+            return true;
+        }
+        return false;
+    };
     const baseQuery = {
         language: "zh-CN",
         include_adult: false,
         include_null_first_air_dates: false,
         "first_air_date.gte": start,
         "first_air_date.lte": end,
+        without_genres: "99,10751,10763,10766,10770",
         without_origin_country: blockedCountries.join("|"),
         without_original_language: blockedLanguages.join("|"),
         sort_by: "first_air_date.asc"
@@ -556,10 +576,11 @@ async function loadMonthlyUpcomingStrict(params = {}) {
             Widget.tmdb.get("/discover/tv", { params: { ...baseQuery, page: p } }).catch(() => ({ results: [] }))
         ));
         const seen = new Set();
-        const blockedGenreIds = [99, 10763, 10770]; // 纪录片/新闻/电视电影；保留正经动画剧集
+        const blockedGenreIds = [99, 10751, 10763, 10766, 10770]; // 纪录片/家庭/新闻/肥皂剧/电视电影
         const blockedTitleWords = [
             "TikTok", "Talent", "Kevin", "Langue", "Mesa", "Cristina", "Botched", "Kolonihaver",
-            "Quel est", "Got Talent", "Locker Diaries", "Samson", "Karlchen", "Joy of Life"
+            "Quel est", "Got Talent", "Locker Diaries", "Samson", "Karlchen", "Joy of Life",
+            "FĂRĂ URMĂ", "Fara Urma", "SUR LE FIL"
         ];
         const items = [];
         pages.forEach(res => (res.results || []).forEach(item => {
@@ -571,7 +592,7 @@ async function loadMonthlyUpcomingStrict(params = {}) {
             const countries = item.origin_country || [];
             const isVariety = genres.includes(10764) || genres.includes(10767);
             if (date < start || date > end) return;
-            if (isBlockedOrigin(item)) return;
+            if (isExcludedUpcomingItem(item)) return;
             if (genres.some(id => blockedGenreIds.includes(id))) return;
             // 保留日剧、日漫与动画；仅按 TMDB 明确的综艺类型过滤非国内节目。
             if (isVariety && !countries.includes("CN")) return;
@@ -623,6 +644,7 @@ async function loadMonthlyUpcomingStrict(params = {}) {
                 const countries = detail.origin_country || [];
                 const genres = detail.genres || [];
                 if (isBlockedOrigin(item, detail)) return;
+                if (isExcludedUpcomingItem(item, detail)) return;
                 if (genres.some(g => blockedGenreIds.includes(g.id))) return;
                 const isVariety = genres.some(g => g.id === 10764 || g.id === 10767);
                 // 保留日本正剧、日漫和动画的新季；仅过滤非国内的明确综艺类型。
@@ -646,6 +668,7 @@ async function loadMonthlyUpcomingStrict(params = {}) {
                 if (!item) return null;
                 const detail = await Widget.tmdb.get(`/tv/${item.id}`, { params: { language: "zh-CN" } });
                 if (isBlockedOrigin(item, detail)) return null;
+                if (isExcludedUpcomingItem(item, detail)) return null;
                 const season = (detail.seasons || []).find(s => s.season_number > 1 && s.air_date && s.air_date >= start && s.air_date <= end);
                 if (!season) return null;
                 return { ...item, _seasonNumber: season.season_number, _seasonAirDate: season.air_date, _seasonTitle: detail.name || item.name };
