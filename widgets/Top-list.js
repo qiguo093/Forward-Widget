@@ -2474,6 +2474,52 @@ function calendarBuildItem({ id, tmdbId, type, title, poster, backdrop, rating, 
     };
 }
 
+// 雅图「今日动画连载排行榜」：作为国漫日历的补充源。
+// 该榜单代表今日热度，不等同于平台官方更新公告；按用户要求在日历中按今天显示。
+async function calendarFetchYatuHotAnime() {
+    try {
+        const res = await Widget.http.get("https://gist.githubusercontent.com/huangxd-/28a30eac8051ccb05a43c6f49a117286/raw/dm-lz.htm", {
+            headers: { "User-Agent": "Mozilla/5.0" }
+        });
+        const $ = Widget.html.load(res.data || "");
+        const titles = [];
+        const seen = new Set();
+        $("#db_lz1 a[target='_blank']").each((_, el) => {
+            const title = $(el).text().trim();
+            if (!title || seen.has(title)) return;
+            seen.add(title);
+            titles.push(title);
+        });
+        return titles.slice(0, 30);
+    } catch (e) {
+        console.error("[calendar] 雅图今日国漫榜获取失败:", e.message || e);
+        return [];
+    }
+}
+
+async function calendarBuildYatuHotItems(titles, updateDate, dayName) {
+    const items = await Promise.all(titles.map(async title => {
+        try {
+            const tmdbItem = await calendarSearchBestMatch(title);
+            if (!tmdbItem) return null;
+            return calendarBuildItem({
+                id: tmdbItem.id,
+                tmdbId: tmdbItem.id,
+                type: "tv",
+                title: tmdbItem.name || title,
+                poster: tmdbItem.poster_path,
+                backdrop: tmdbItem.backdrop_path,
+                rating: tmdbItem.vote_average?.toFixed(1) || "0.0",
+                subTitle: `${updateDate} ${dayName} 国漫 · 今日热门`,
+                desc: tmdbItem.overview,
+                year: updateDate.substring(0, 4),
+                releaseDate: updateDate
+            });
+        } catch (e) { return null; }
+    }));
+    return items.filter(Boolean);
+}
+
 // =========================================================================
 // 1. 业务逻辑：动漫周更 (Anime) 
 // =========================================================================
@@ -2498,9 +2544,10 @@ async function calendarLoadAnime(params = {}) {
     const updateDate = [updateDateObj.getFullYear(), String(updateDateObj.getMonth() + 1).padStart(2, "0"), String(updateDateObj.getDate()).padStart(2, "0")].join("-");
 
     try {
-        const [bgmRes, biliRes, cnAnimeRes] = await Promise.all([
+        const [bgmRes, biliRes, yatuTitles, cnAnimeRes] = await Promise.all([
             Widget.http.get("https://api.bgm.tv/calendar").catch(() => ({ data: [] })),
             Widget.http.get("https://api.bilibili.com/pgc/web/timeline?types=4").catch(() => ({ data: {} })),
+            calendarFetchYatuHotAnime(),
             Widget.tmdb.get("/discover/tv", { params: {
                 language: "zh-CN", sort_by: "popularity.desc", page: 1,
                 with_origin_country: "CN", with_genres: "16",
@@ -2599,6 +2646,10 @@ async function calendarLoadAnime(params = {}) {
         const uniqueBiliItems = [];
         biliItems.forEach(item => dedupeAdd(item, uniqueBiliItems));
 
+        const yatuItems = await calendarBuildYatuHotItems(yatuTitles, updateDate, dayName);
+        const uniqueYatuItems = [];
+        yatuItems.forEach(item => dedupeAdd(item, uniqueYatuItems));
+
         const uniqueBangumiItems = [];
         bangumiItems.forEach(item => dedupeAdd(item, uniqueBangumiItems));
 
@@ -2616,7 +2667,7 @@ async function calendarLoadAnime(params = {}) {
         });
 
         // 4. 国漫优先与番剧合理混排：交错合并，确保前页同时看到国漫和番剧
-        const allCnItems = [...uniqueBiliItems, ...cnTmdbItems];
+        const allCnItems = [...uniqueBiliItems, ...uniqueYatuItems, ...cnTmdbItems];
         const mergedAll = [];
         const maxLen = Math.max(allCnItems.length, uniqueBangumiItems.length);
         for (let i = 0; i < maxLen; i++) {
