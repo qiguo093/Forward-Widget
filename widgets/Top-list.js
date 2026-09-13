@@ -2589,17 +2589,11 @@ async function calendarLoadAnime(params = {}) {
     const updateDate = [updateDateObj.getFullYear(), String(updateDateObj.getMonth() + 1).padStart(2, "0"), String(updateDateObj.getDate()).padStart(2, "0")].join("-");
 
     try {
-        const [bgmRes, biliRes, yatuTitles, traktItems, cnAnimeRes] = await Promise.all([
+        const [bgmRes, biliRes, yatuTitles, traktItems] = await Promise.all([
             Widget.http.get("https://api.bgm.tv/calendar").catch(() => ({ data: [] })),
             Widget.http.get("https://api.bilibili.com/pgc/web/timeline?types=4").catch(() => ({ data: {} })),
             calendarFetchYatuHotAnime(),
-            calendarFetchTraktChineseAnime(updateDate, dayName),
-            Widget.tmdb.get("/discover/tv", { params: {
-                language: "zh-CN", sort_by: "popularity.desc", page: 1,
-                with_origin_country: "CN", with_genres: "16",
-                "air_date.gte": updateDate, "air_date.lte": updateDate,
-                include_null_first_air_dates: false, timezone: "Asia/Shanghai"
-            }}).catch(() => ({ results: [] }))
+            calendarFetchTraktChineseAnime(updateDate, dayName)
         ]);
 
         const bgmData = bgmRes.data || [];
@@ -2704,21 +2698,11 @@ async function calendarLoadAnime(params = {}) {
         const uniqueBangumiItems = [];
         bangumiItems.forEach(item => dedupeAdd(item, uniqueBangumiItems));
 
-        // 3. 补充 TMDB 当天 air_date 匹配的国产动画（查漏补缺）
-        const cnTmdbItems = [];
-        (cnAnimeRes.results || []).forEach(item => {
-            const card = calendarBuildItem({
-                id: item.id, tmdbId: item.id, type: "tv", title: item.name,
-                poster: item.poster_path, backdrop: item.backdrop_path,
-                rating: item.vote_average?.toFixed(1) || "0.0",
-                subTitle: `${updateDate} ${dayName} 国漫`, desc: item.overview,
-                year: updateDate.substring(0, 4), releaseDate: updateDate
-            });
-            dedupeAdd(card, cnTmdbItems);
-        });
+        // 3. 不再使用 TMDB 的单日 air_date 作为国漫确认依据：国内连载剧常存在日期偏差。
+        // 国漫只采用 B站真实时间线和 Trakt donghua/cn 当天更新结果；雅图仅取两者的热度交集。
 
         // 4. 国漫优先与番剧合理混排：交错合并，确保前页同时看到国漫和番剧
-        const allCnItems = [...uniqueBiliItems, ...uniqueTraktItems, ...uniqueYatuItems, ...cnTmdbItems];
+        const allCnItems = [...uniqueBiliItems, ...uniqueTraktItems, ...uniqueYatuItems];
         const mergedAll = [];
         const maxLen = Math.max(allCnItems.length, uniqueBangumiItems.length);
         for (let i = 0; i < maxLen; i++) {
