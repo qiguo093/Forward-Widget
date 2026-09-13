@@ -2554,7 +2554,7 @@ async function calendarLoadDrama(params = {}) {
             if (mode === "update_today") {
                 try {
                     const detail = await Widget.tmdb.get(`/tv/${item.id}`, { params: { language: "zh-CN" } });
-                    rawDate = detail?.last_episode_to_air?.air_date || detail?.next_episode_to_air?.air_date || rawDate;
+                    rawDate = detail?.next_episode_to_air?.air_date || detail?.last_episode_to_air?.air_date || rawDate;
                 } catch (_) {}
             }
             const fullDate = rawDate;
