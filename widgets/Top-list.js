@@ -2804,16 +2804,29 @@ async function calendarLoadDrama(params = {}) {
     const page = params.page || 1;
     const dates = calendarCalculateDates(mode);
     const isPremiere = mode.includes("premiere");
+    // 过滤规则：
+    // 1. 指定题材：纪录片(99)、家庭(10751)、新闻(10763)、真人秀(10764)、肥皂剧(10766)、脱口秀(10767)
+    // 2. 垃圾/冷门低质电视节目：无类型 (genre_ids 为空)
+    // 3. 常见低质国外小语种/特定产地：印度(IN/hi)、泰国(TH/th)、俄罗斯(RU/ru)、土耳其(TR/tr)
+    // 4. 同性恋/耽美/LGBTQ/BL/GL 题材
     const excludedGlobalGenreIds = [99, 10751, 10763, 10764, 10766, 10767];
-    const excludedGlobalGenreText = /(?:\bgay\b|\blgbtq?\b|\blesbian\b|\bhomosexual\b|\bsame[- ]sex\b|\bqueer\b|同性恋|耽美|男男|女女|同志题材)/i;
+    const excludedBlockedCountries = ["IN", "TH", "RU", "TR"];
+    const excludedBlockedLanguages = ["hi", "th", "ru", "tr", "ta", "te"];
+    const excludedGlobalGenreText = /(?:\bgay\b|\blgbtq?\b|\blesbian\b|\bhomosexual\b|\bsame[- ]sex\b|\bqueer\b|\bboys['’]?\s*love\b|\bbl\b|\bgl\b|\byaoi\b|\byuri\b|同性恋|耽美|男男|女女|同志|腐剧|双男主)/i;
     const isExcludedGlobalItem = item => {
         const genres = Array.isArray(item.genre_ids) ? item.genre_ids.map(Number) : [];
+        // 没有类型的条目多为国外棒球转播、选秀加更等零散节目，直接剔除
+        if (genres.length === 0) return true;
         if (genres.some(id => excludedGlobalGenreIds.includes(id))) return true;
-        // TMDB 没有统一的 LGBTQ 类型，补充按标题/简介过滤；中国条目不按这些词误删。
-        const countries = Array.isArray(item.origin_country) ? item.origin_country : [];
-        const isForeign = countries.length === 0 || !countries.includes("CN");
+
+        const countries = (item.origin_country || []).map(c => String(c).toUpperCase());
+        const origLang = String(item.original_language || "").toLowerCase();
+        if (countries.some(c => excludedBlockedCountries.includes(c))) return true;
+        if (excludedBlockedLanguages.includes(origLang)) return true;
+
         const text = `${item.name || ""} ${item.original_name || ""} ${item.overview || ""}`;
-        return isForeign && excludedGlobalGenreText.test(text);
+        if (excludedGlobalGenreText.test(text)) return true;
+        return false;
     };
     const queryParams = {
         language: "zh-CN",
@@ -2825,6 +2838,8 @@ async function calendarLoadDrama(params = {}) {
     if (region === "Global") {
         // 全球聚合排除真人秀、新闻、脱口秀、纪录片、肥皂剧和家庭题材。
         queryParams.without_genres = excludedGlobalGenreIds.join(",");
+        queryParams.without_origin_country = excludedBlockedCountries.join("|");
+        queryParams.without_original_language = excludedBlockedLanguages.join("|");
     }
     const dateField = isPremiere ? "first_air_date" : "air_date";
     queryParams[`${dateField}.gte`] = dates.start;
