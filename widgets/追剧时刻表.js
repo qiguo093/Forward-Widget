@@ -54,12 +54,12 @@ function buildItem({ id, tmdbId, type, title, date, poster, backdrop, rating, ge
 // 2. 终极聚合版 Widget Metadata (史诗七大阵营)
 // =========================================================================
 var WidgetMetadata = {
-    id: "🅖 🅖Media.library",
-    title: "影视榜单Pro",
-    description: "聚合影视、动漫、综艺等众多平台榜单",
+    id: "qiguo.calendar.schedule",
+    title: "追剧日历",
+    description: "追剧日历、动漫周更与综艺聚合",
     icon: "https://github.com/qiguo093/Forward-Widget/raw/refs/heads/main/icon2.png",
     author: "𝓚𝓾𝓰𝓾𝓸𝔃𝓪𝓲 ⁷",
-    version: "2.0.0",
+    version: "1.0.0",
     requiredVersion: "0.0.1",
     site: "https://t.me/Kuguozai",
     
