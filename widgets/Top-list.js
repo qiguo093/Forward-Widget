@@ -2520,6 +2520,50 @@ async function calendarBuildYatuHotItems(titles, updateDate, dayName) {
     return items.filter(Boolean);
 }
 
+async function calendarFetchTraktChineseAnime(updateDate, dayName) {
+    try {
+        const url = `https://api.trakt.tv/calendars/all/shows/${updateDate}/1?genres=donghua&countries=cn`;
+        const res = await Widget.http.get(url, {
+            headers: {
+                "Content-Type": "application/json",
+                "trakt-api-version": "2",
+                "trakt-api-key": CALENDAR_TRAKT_ID
+            }
+        });
+        const rows = Array.isArray(res.data) ? res.data : [];
+        const items = await Promise.all(rows.map(async row => {
+            const show = row.show || {};
+            const episode = row.episode || {};
+            const tmdbId = show.ids && show.ids.tmdb;
+            if (!tmdbId) return null;
+            try {
+                const detail = await Widget.tmdb.get(`/tv/${tmdbId}`, { params: { language: "zh-CN" } });
+                if (!detail) return null;
+                const season = Number(episode.season || 0);
+                const number = Number(episode.number || 0);
+                const episodeLabel = season || number ? ` · 第${season}季第${number}集` : "";
+                return calendarBuildItem({
+                    id: tmdbId,
+                    tmdbId,
+                    type: "tv",
+                    title: detail.name || show.title,
+                    poster: detail.poster_path,
+                    backdrop: detail.backdrop_path,
+                    rating: detail.vote_average?.toFixed(1) || "0.0",
+                    subTitle: `${updateDate} ${dayName} 国漫 · 今日更新${episodeLabel}`,
+                    desc: detail.overview || `Trakt 今日更新${episodeLabel}`,
+                    year: updateDate.substring(0, 4),
+                    releaseDate: updateDate
+                });
+            } catch (e) { return null; }
+        }));
+        return items.filter(Boolean);
+    } catch (e) {
+        console.error("[calendar] Trakt 国漫更新获取失败:", e.message || e);
+        return [];
+    }
+}
+
 // =========================================================================
 // 1. 业务逻辑：动漫周更 (Anime) 
 // =========================================================================
@@ -2544,10 +2588,11 @@ async function calendarLoadAnime(params = {}) {
     const updateDate = [updateDateObj.getFullYear(), String(updateDateObj.getMonth() + 1).padStart(2, "0"), String(updateDateObj.getDate()).padStart(2, "0")].join("-");
 
     try {
-        const [bgmRes, biliRes, yatuTitles, cnAnimeRes] = await Promise.all([
+        const [bgmRes, biliRes, yatuTitles, traktItems, cnAnimeRes] = await Promise.all([
             Widget.http.get("https://api.bgm.tv/calendar").catch(() => ({ data: [] })),
             Widget.http.get("https://api.bilibili.com/pgc/web/timeline?types=4").catch(() => ({ data: {} })),
             calendarFetchYatuHotAnime(),
+            calendarFetchTraktChineseAnime(updateDate, dayName),
             Widget.tmdb.get("/discover/tv", { params: {
                 language: "zh-CN", sort_by: "popularity.desc", page: 1,
                 with_origin_country: "CN", with_genres: "16",
@@ -2646,6 +2691,9 @@ async function calendarLoadAnime(params = {}) {
         const uniqueBiliItems = [];
         biliItems.forEach(item => dedupeAdd(item, uniqueBiliItems));
 
+        const uniqueTraktItems = [];
+        traktItems.forEach(item => dedupeAdd(item, uniqueTraktItems));
+
         const yatuItems = await calendarBuildYatuHotItems(yatuTitles, updateDate, dayName);
         const uniqueYatuItems = [];
         yatuItems.forEach(item => dedupeAdd(item, uniqueYatuItems));
@@ -2667,7 +2715,7 @@ async function calendarLoadAnime(params = {}) {
         });
 
         // 4. 国漫优先与番剧合理混排：交错合并，确保前页同时看到国漫和番剧
-        const allCnItems = [...uniqueBiliItems, ...uniqueYatuItems, ...cnTmdbItems];
+        const allCnItems = [...uniqueBiliItems, ...uniqueTraktItems, ...uniqueYatuItems, ...cnTmdbItems];
         const mergedAll = [];
         const maxLen = Math.max(allCnItems.length, uniqueBangumiItems.length);
         for (let i = 0; i < maxLen; i++) {
