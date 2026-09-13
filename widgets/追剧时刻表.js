@@ -92,7 +92,7 @@ var WidgetMetadata = {
             ]
         },
         {
-            title: "追剧日历",
+            title: "剧集追更",
             description: "全球剧集更新与首播日历",
             functionName: "loadStandaloneDramaCalendar",
             type: "video",
