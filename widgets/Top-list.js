@@ -2366,8 +2366,17 @@ async function loadTheaterHub(params = {}) {
     return await loadTheaterList(params);
 }
 
+function platformCompanyGetBeijingDate() {
+    const now = new Date();
+    const beijingTime = new Date(now.getTime() + 8 * 60 * 60 * 1000);
+    return `${beijingTime.getUTCFullYear()}-${String(beijingTime.getUTCMonth() + 1).padStart(2, "0")}-${String(beijingTime.getUTCDate()).padStart(2, "0")}`;
+}
+
 function platformCompanyBuildItem(item, mediaType) {
     const date = item.first_air_date || item.release_date || "";
+    // discover 返回的 poster/backdrop 并不总是同时存在；两者互相兜底，避免横版卡片空图。
+    const poster = item.poster_path || item.backdrop_path || "";
+    const backdrop = item.backdrop_path || item.poster_path || "";
     return {
         id: String(item.id),
         tmdbId: item.id,
@@ -2379,8 +2388,8 @@ function platformCompanyBuildItem(item, mediaType) {
         year: date.slice(0, 4),
         subTitle: date ? `⭐ ${Number(item.vote_average || 0).toFixed(1)} | ${date}` : `⭐ ${Number(item.vote_average || 0).toFixed(1)}`,
         description: `${date || "暂无日期"} · ⭐ ${Number(item.vote_average || 0).toFixed(1)}\n${item.overview || "暂无简介"}`,
-        posterPath: item.poster_path ? `https://image.tmdb.org/t/p/w500${item.poster_path}` : "",
-        backdropPath: item.backdrop_path ? `https://image.tmdb.org/t/p/w780${item.backdrop_path}` : "",
+        posterPath: poster ? `https://image.tmdb.org/t/p/w500${poster}` : "",
+        backdropPath: backdrop ? `https://image.tmdb.org/t/p/w780${backdrop}` : "",
         rating: item.vote_average || 0,
         popularity: item.popularity || 0,
         voteCount: item.vote_count || 0
@@ -2398,6 +2407,7 @@ async function loadPlatformCompanyLibrary(params = {}) {
         : sortKey;
     const isCompany = source === "company";
     const mediaType = isCompany ? "movie" : "tv";
+    const today = platformCompanyGetBeijingDate();
     const query = { language, page, sort_by: sortBy, include_adult: false, include_video: false };
 
     if (isCompany) {
@@ -2408,15 +2418,14 @@ async function loadPlatformCompanyLibrary(params = {}) {
         if (sortBy === "vote_average.desc") query["vote_count.gte"] = 50;
         if (sortBy === "popularity.desc") { query["vote_count.gte"] = 50; query["vote_average.gte"] = 5.0; }
         if (sortBy === "vote_count.desc") query["vote_average.gte"] = 6.0;
-        if (status === "released") query["primary_release_date.lte"] = new Date().toISOString().slice(0, 10);
-        else if (status === "upcoming") query["primary_release_date.gte"] = new Date().toISOString().slice(0, 10);
+        if (status === "released") query["primary_release_date.lte"] = today;
+        else if (status === "upcoming") query["primary_release_date.gte"] = today;
     } else {
         if (params.with_networks) query.with_networks = params.with_networks;
         if (params.network_genre) query.with_genres = params.network_genre;
         const foreign = ["213","2739","49","3186","2552","453","1024","19","4330","94","332","295","6","174","3732","2146","48","952","989","1056","521","866","156","1363"];
         if (params.with_networks && !foreign.includes(String(params.with_networks)) && !params.network_genre) query.without_genres = "99,10764,10767";
         if (sortBy === "vote_average.desc") query["vote_count.gte"] = 30;
-        const today = new Date().toISOString().slice(0, 10);
         if (status === "released") query["first_air_date.lte"] = today;
         else if (status === "upcoming") query["first_air_date.gte"] = today;
     }
