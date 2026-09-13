@@ -2899,25 +2899,25 @@ async function calendarLoadVariety(params = {}) {
 // =========================================================================
 
 function calendarCalculateDates(mode) {
-    const today = new Date();
+    const today = new Date(Date.now() + 8 * 60 * 60 * 1000);
     const toStr = (d) => d.toISOString().split('T')[0];
     if (mode === "update_today") return { start: toStr(today), end: toStr(today) };
     if (mode === "premiere_tomorrow") {
-        const tmr = new Date(today); tmr.setDate(today.getDate() + 1); return { start: toStr(tmr), end: toStr(tmr) };
+        const tmr = new Date(today); tmr.setUTCDate(today.getUTCDate() + 1); return { start: toStr(tmr), end: toStr(tmr) };
     }
     if (mode === "premiere_week") {
-        const start = new Date(today); start.setDate(today.getDate() + 1);
-        const end = new Date(today); end.setDate(today.getDate() + 7);
+        const start = new Date(today); start.setUTCDate(today.getUTCDate() + 1);
+        const end = new Date(today); end.setUTCDate(today.getUTCDate() + 7);
         return { start: toStr(start), end: toStr(end) };
     }
-    const start = new Date(today); start.setDate(today.getDate() + 1);
-    const end = new Date(today); end.setDate(today.getDate() + 30);
+    const start = new Date(today); start.setUTCDate(today.getUTCDate() + 1);
+    const end = new Date(today); end.setUTCDate(today.getUTCDate() + 30);
     return { start: toStr(start), end: toStr(end) };
 }
 
 function calendarGetSafeDate(mode) {
-    const d = new Date();
-    if (mode === "tomorrow") d.setDate(d.getDate() + 1);
+    const d = new Date(Date.now() + 8 * 60 * 60 * 1000);
+    if (mode === "tomorrow") d.setUTCDate(d.getUTCDate() + 1);
     return d.toISOString().split('T')[0];
 }
 
