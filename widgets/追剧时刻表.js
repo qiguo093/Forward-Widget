@@ -56,7 +56,7 @@ function buildItem({ id, tmdbId, type, title, date, poster, backdrop, rating, ge
 var WidgetMetadata = {
     id: "qiguo.calendar.schedule",
     title: "追剧日历",
-    description: "追剧日历、动漫周更与综艺聚合",
+    description: "影剧时间表",
     icon: "https://github.com/qiguo093/Forward-Widget/raw/refs/heads/main/icon2.png",
     author: "𝓚𝓾𝓰𝓾𝓸𝔃𝓪𝓲 ⁷",
     version: "1.0.0",
@@ -69,6 +69,28 @@ var WidgetMetadata = {
     // 需要重新显示该输入框时，把上面那段 globalParams 数组加回此处即可，无需改动其他代码。
 
     modules: [
+        {
+            title: "新片追踪",
+            description: "即将上映、正在热映与定档待播",
+            functionName: "loadMonthlyUpcomingStrict",
+            type: "video",
+            cacheDuration: 43200,
+            params: [
+                {
+                    name: "upcoming_category",
+                    title: "选择频道",
+                    type: "enumeration",
+                    value: "movie_upcoming",
+                    enumOptions: [
+                        { title: "即将上映", value: "movie_upcoming" },
+                        { title: "正在热映", value: "movie_now_playing" },
+                        { title: "定档待播", value: "tv_monthly_upcoming" },
+                        { title: "今日首播", value: "tv_airing_today" }
+                    ]
+                },
+                { name: "page", title: "页码", type: "page", startPage: 1 }
+            ]
+        },
         {
             title: "追剧日历",
             description: "全球剧集更新与首播日历",

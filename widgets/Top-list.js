@@ -70,29 +70,6 @@ var WidgetMetadata = {
 
     modules: [
         // 弹幕功能已拆分为独立的“极速弹幕”和“轮询弹幕”组件。
-        // ---------------- 大栏目 0：新片追踪 ----------------
-        {
-            title: "新片追踪",
-            functionName: "loadMonthlyUpcomingStrict",
-            type: "video",
-            cacheDuration: 43200,
-            params: [
-                {
-                    name: "upcoming_category",
-                    title: "选择频道",
-                    type: "enumeration",
-                    value: "movie_upcoming",
-                    enumOptions: [
-                        { title: "即将上映", value: "movie_upcoming" },
-                        { title: "正在热映", value: "movie_now_playing" },
-                        { title: "定档待播", value: "tv_monthly_upcoming" },
-                        { title: "今日首播", value: "tv_airing_today" }
-                    ]
-                },
-                { name: "page", title: "页码", type: "page", startPage: 1 }
-            ]
-        },
-
         // ---------------- 综艺时刻 ----------------
         {
             title: "综艺时刻",
