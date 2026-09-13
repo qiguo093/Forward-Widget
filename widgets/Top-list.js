@@ -2481,11 +2481,11 @@ function calendarBuildItem({ id, tmdbId, type, title, poster, backdrop, rating, 
 async function calendarLoadAnime(params = {}) {
     // 👈 核心修改：接管 sort_by 变回 weekday
     const weekday = params.sort_by || "today"; 
-    const page = params.page || 1;
+    const page = Math.max(1, Number(params.page || 1));
     const pageSize = 20;
 
     let targetDayId = parseInt(weekday);
-    if (weekday === "today") {
+    if (weekday === "today" || isNaN(targetDayId)) {
         const today = new Date();
         const jsDay = today.getDay();
         targetDayId = jsDay === 0 ? 7 : jsDay;
@@ -2498,31 +2498,25 @@ async function calendarLoadAnime(params = {}) {
     const updateDate = [updateDateObj.getFullYear(), String(updateDateObj.getMonth() + 1).padStart(2, "0"), String(updateDateObj.getDate()).padStart(2, "0")].join("-");
 
     try {
-        const res = await Widget.http.get("https://api.bgm.tv/calendar");
-        const data = res.data || [];
-        const dayData = data.find(d => d.weekday && d.weekday.id === targetDayId);
+        const [bgmRes, biliRes, cnAnimeRes] = await Promise.all([
+            Widget.http.get("https://api.bgm.tv/calendar").catch(() => ({ data: [] })),
+            Widget.http.get("https://api.bilibili.com/pgc/web/timeline?types=4").catch(() => ({ data: {} })),
+            Widget.tmdb.get("/discover/tv", { params: {
+                language: "zh-CN", sort_by: "popularity.desc", page: 1,
+                with_origin_country: "CN", with_genres: "16",
+                "air_date.gte": updateDate, "air_date.lte": updateDate,
+                include_null_first_air_dates: false, timezone: "Asia/Shanghai"
+            }}).catch(() => ({ results: [] }))
+        ]);
 
-        if (!dayData || !dayData.items || dayData.items.length === 0) {
-            return page === 1 ? [{ id: "empty", type: "text", title: "暂无更新" }] : [];
-        }
+        const bgmData = bgmRes.data || [];
+        const dayData = bgmData.find(d => d.weekday && d.weekday.id === targetDayId);
+        const bangumiRawItems = dayData && Array.isArray(dayData.items) ? dayData.items : [];
 
-        const allItems = dayData.items;
-        // 补充 TMDB 当天更新的国产动画（Bangumi 日历主要覆盖日漫）。
-        const cnAnimeRes = await Widget.tmdb.get("/discover/tv", { params: {
-            language: "zh-CN", sort_by: "popularity.desc", page,
-            with_origin_country: "CN", with_genres: "16",
-            "air_date.gte": updateDate, "air_date.lte": updateDate,
-            include_null_first_air_dates: false, timezone: "Asia/Shanghai"
-        }}).catch(() => ({ results: [] }));
-        const start = (page - 1) * pageSize;
-        const end = start + pageSize;
-        if (start >= allItems.length) return [];
-        const pageItems = allItems.slice(start, end);
-
-        const promises = pageItems.map(async (item) => {
+        // 1. 解析 Bangumi 番剧
+        const bangumiPromises = bangumiRawItems.map(async (item) => {
             const title = item.name_cn || item.name;
             const cover = item.images ? (item.images.large || item.images.common) : "";
-            
             let itemData = {
                 id: `bgm_${item.id}`,
                 tmdbId: 0,
@@ -2533,13 +2527,11 @@ async function calendarLoadAnime(params = {}) {
                 rating: item.rating?.score?.toFixed(1) || "0.0",
                 genreText: "动画",
                 desc: item.summary,
-                year: "",
-                releaseDate: ""
+                year: updateDate.substring(0, 4),
+                releaseDate: updateDate
             };
-
             const tmdbItem = await calendarSearchBestMatch(title, item.name);
             if (tmdbItem) {
-                const fullDate = tmdbItem.first_air_date || "";
                 itemData.id = String(tmdbItem.id);
                 itemData.tmdbId = tmdbItem.id;
                 itemData.poster = tmdbItem.poster_path || cover; 
@@ -2547,32 +2539,97 @@ async function calendarLoadAnime(params = {}) {
                 itemData.genreText = calendarGetGenreText(tmdbItem.genre_ids) || "动画";
                 itemData.desc = tmdbItem.overview || itemData.desc;
                 itemData.rating = tmdbItem.vote_average?.toFixed(1) || itemData.rating;
-                itemData.year = fullDate.substring(0, 4);
             }
-            // 周更列表统一显示本次更新日，避免显示作品多年前的首次播出日。
-            itemData.year = updateDate.substring(0, 4);
-            itemData.releaseDate = updateDate;
-            
-            const displaySubtitle = `${updateDate} ${dayName} ${itemData.genreText}`;
-
             return calendarBuildItem({
                 ...itemData,
-                subTitle: displaySubtitle
+                subTitle: `${updateDate} ${dayName} ${itemData.genreText}`
             });
         });
 
-        const bangumiItems = await Promise.all(promises);
-        const existingIds = new Set(bangumiItems.map(x => String(x.tmdbId || x.id)));
-        const cnItems = (cnAnimeRes.results || [])
-            .filter(item => !existingIds.has(String(item.id)))
-            .map(item => calendarBuildItem({
+        // 2. 解析 B 站国创周更时间线（真实周更国漫）
+        const biliTimeline = (biliRes.data && biliRes.data.result) || [];
+        const biliDayObj = biliTimeline.find(d => Number(d.day_of_week) === Number(targetDayId));
+        const biliEpisodes = (biliDayObj && biliDayObj.episodes) || [];
+        const biliPromises = biliEpisodes.map(async (ep) => {
+            const title = ep.title || "";
+            const pubIndex = ep.pub_index ? ` · ${ep.pub_index}` : "";
+            const cover = ep.cover || "";
+            let itemData = {
+                id: `bili_${ep.season_id || title}`,
+                tmdbId: 0,
+                type: "tv",
+                title: title,
+                poster: cover,
+                backdrop: "",
+                rating: "0.0",
+                genreText: "国漫",
+                desc: `今日更新${pubIndex}`,
+                year: updateDate.substring(0, 4),
+                releaseDate: updateDate
+            };
+            const tmdbItem = await calendarSearchBestMatch(title);
+            if (tmdbItem) {
+                itemData.id = String(tmdbItem.id);
+                itemData.tmdbId = tmdbItem.id;
+                itemData.poster = tmdbItem.poster_path || cover;
+                itemData.backdrop = tmdbItem.backdrop_path;
+                itemData.desc = tmdbItem.overview || itemData.desc;
+                itemData.rating = tmdbItem.vote_average?.toFixed(1) || itemData.rating;
+            }
+            return calendarBuildItem({
+                ...itemData,
+                subTitle: `${updateDate} ${dayName} 国漫${pubIndex}`
+            });
+        });
+
+        const [bangumiItems, biliItems] = await Promise.all([
+            Promise.all(bangumiPromises),
+            Promise.all(biliPromises)
+        ]);
+
+        const seenIds = new Set();
+        const dedupeAdd = (item, list) => {
+            if (!item) return;
+            const key = String(item.tmdbId || item.id || item.title);
+            if (seenIds.has(key)) return;
+            seenIds.add(key);
+            list.push(item);
+        };
+
+        const uniqueBiliItems = [];
+        biliItems.forEach(item => dedupeAdd(item, uniqueBiliItems));
+
+        const uniqueBangumiItems = [];
+        bangumiItems.forEach(item => dedupeAdd(item, uniqueBangumiItems));
+
+        // 3. 补充 TMDB 当天 air_date 匹配的国产动画（查漏补缺）
+        const cnTmdbItems = [];
+        (cnAnimeRes.results || []).forEach(item => {
+            const card = calendarBuildItem({
                 id: item.id, tmdbId: item.id, type: "tv", title: item.name,
                 poster: item.poster_path, backdrop: item.backdrop_path,
                 rating: item.vote_average?.toFixed(1) || "0.0",
-                subTitle: `${updateDate} ${dayName} 国产动画`, desc: item.overview,
+                subTitle: `${updateDate} ${dayName} 国漫`, desc: item.overview,
                 year: updateDate.substring(0, 4), releaseDate: updateDate
-            }));
-        return [...bangumiItems, ...cnItems];
+            });
+            dedupeAdd(card, cnTmdbItems);
+        });
+
+        // 4. 国漫优先与番剧合理混排：交错合并，确保前页同时看到国漫和番剧
+        const allCnItems = [...uniqueBiliItems, ...cnTmdbItems];
+        const mergedAll = [];
+        const maxLen = Math.max(allCnItems.length, uniqueBangumiItems.length);
+        for (let i = 0; i < maxLen; i++) {
+            if (i < allCnItems.length) mergedAll.push(allCnItems[i]);
+            if (i < uniqueBangumiItems.length) mergedAll.push(uniqueBangumiItems[i]);
+        }
+
+        if (mergedAll.length === 0) {
+            return page === 1 ? [{ id: "empty", type: "text", title: "暂无更新" }] : [];
+        }
+
+        const start = (page - 1) * pageSize;
+        return mergedAll.slice(start, start + pageSize);
 
     } catch (e) {
         return [{ id: "err", type: "text", title: "加载失败", subTitle: e.message }];
