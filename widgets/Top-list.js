@@ -2804,6 +2804,17 @@ async function calendarLoadDrama(params = {}) {
     const page = params.page || 1;
     const dates = calendarCalculateDates(mode);
     const isPremiere = mode.includes("premiere");
+    const excludedGlobalGenreIds = [99, 10751, 10763, 10764, 10766, 10767];
+    const excludedGlobalGenreText = /(?:\bgay\b|\blgbtq?\b|\blesbian\b|\bhomosexual\b|\bsame[- ]sex\b|\bqueer\b|同性恋|耽美|男男|女女|同志题材)/i;
+    const isExcludedGlobalItem = item => {
+        const genres = Array.isArray(item.genre_ids) ? item.genre_ids.map(Number) : [];
+        if (genres.some(id => excludedGlobalGenreIds.includes(id))) return true;
+        // TMDB 没有统一的 LGBTQ 类型，补充按标题/简介过滤；中国条目不按这些词误删。
+        const countries = Array.isArray(item.origin_country) ? item.origin_country : [];
+        const isForeign = countries.length === 0 || !countries.includes("CN");
+        const text = `${item.name || ""} ${item.original_name || ""} ${item.overview || ""}`;
+        return isForeign && excludedGlobalGenreText.test(text);
+    };
     const queryParams = {
         language: "zh-CN",
         sort_by: "popularity.desc",
@@ -2811,6 +2822,10 @@ async function calendarLoadDrama(params = {}) {
         page: page,
         timezone: "Asia/Shanghai"
     };
+    if (region === "Global") {
+        // 全球聚合排除真人秀、新闻、脱口秀、纪录片、肥皂剧和家庭题材。
+        queryParams.without_genres = excludedGlobalGenreIds.join(",");
+    }
     const dateField = isPremiere ? "first_air_date" : "air_date";
     queryParams[`${dateField}.gte`] = dates.start;
     queryParams[`${dateField}.lte`] = dates.end;
@@ -2822,8 +2837,11 @@ async function calendarLoadDrama(params = {}) {
     try {
         const res = await Widget.tmdb.get("/discover/tv", { params: queryParams });
         const data = res || {};
-        if (!data.results || data.results.length === 0) return page === 1 ? [{ id: "empty", type: "text", title: "暂无更新" }] : [];
-        return data.results.map(item => {
+        const results = (data.results || []).filter(item =>
+            region !== "Global" || !isExcludedGlobalItem(item)
+        );
+        if (results.length === 0) return page === 1 ? [{ id: "empty", type: "text", title: "暂无更新" }] : [];
+        return results.map(item => {
             const fullDate = (mode === "update_today") ? dates.start : (item.first_air_date || "");
             const yearStr = fullDate.substring(0, 4);
             const shortDate = fullDate.slice(5).replace("-", "/");
