@@ -278,7 +278,7 @@ var WidgetMetadata = {
             params: [
                 { name: "calendar_source", title: "选择子列表", type: "enumeration", value: "drama", enumOptions: [ { title: "追剧日历", value: "drama" }, { title: "综艺时刻", value: "variety" }, { title: "动漫周更", value: "anime" }, { title: "综艺聚合", value: "aggregate" } ] },
                 { name: "calendar_mode", title: "时间范围", type: "enumeration", value: "update_today", belongTo: { paramName: "calendar_source", value: ["drama"] }, enumOptions: [ { title: "今日更新", value: "update_today" }, { title: "明日首播", value: "premiere_tomorrow" }, { title: "7天内首播", value: "premiere_week" }, { title: "30天内首播", value: "premiere_month" } ] },
-                { name: "drama_region", title: "地区偏好", type: "enumeration", value: "Global", belongTo: { paramName: "calendar_source", value: ["drama"] }, enumOptions: [ { title: "全球聚合", value: "Global" }, { title: "美国", value: "US" }, { title: "日本", value: "JP" }, { title: "韩国", value: "KR" }, { title: "中国", value: "CN" }, { title: "英国", value: "GB" } ] },
+                { name: "sort_by", title: "地区偏好", type: "enumeration", value: "Global", belongTo: { paramName: "calendar_source", value: ["drama"] }, enumOptions: [ { title: "全球聚合", value: "Global" }, { title: "美国", value: "US" }, { title: "日本", value: "JP" }, { title: "韩国", value: "KR" }, { title: "中国", value: "CN" }, { title: "英国", value: "GB" } ] },
                 { name: "variety_mode", title: "时间范围", type: "enumeration", value: "today", belongTo: { paramName: "calendar_source", value: ["variety"] }, enumOptions: [ { title: "今日更新", value: "today" }, { title: "明日预告", value: "tomorrow" }, { title: "近期热播", value: "trending" } ] },
                 { name: "variety_region", title: "综艺地区", type: "enumeration", value: "cn", belongTo: { paramName: "calendar_source", value: ["variety"] }, enumOptions: [ { title: "国产综艺", value: "cn" }, { title: "韩国综艺", value: "kr" }, { title: "欧美综艺", value: "us" }, { title: "日本综艺", value: "jp" }, { title: "全球热门", value: "global" } ] },
                 { name: "anime_day", title: "选择日期", type: "enumeration", value: "today", belongTo: { paramName: "calendar_source", value: ["anime"] }, enumOptions: [ { title: "今天", value: "today" }, { title: "周一", value: "1" }, { title: "周二", value: "2" }, { title: "周三", value: "3" }, { title: "周四", value: "4" }, { title: "周五", value: "5" }, { title: "周六", value: "6" }, { title: "周日", value: "7" } ] },
@@ -2996,7 +2996,7 @@ async function loadGlobalCalendarHub(params = {}) {
  if(source==="anime") return await calendarLoadAnime({sort_by:params.anime_day||"today",page:params.page});
  if(source==="variety") return await calendarLoadVariety({mode:params.variety_mode||"today",sort_by:params.variety_region||"cn",page:params.page});
  if(source==="aggregate") return await calendarLoadVarietyUltimate({listType:params.aggregate_listType||"calendar",days:params.aggregate_days||"14",region:params.aggregate_region||"all",page:params.page});
- return await calendarLoadDrama({mode:params.calendar_mode||"update_today",sort_by:params.drama_region||"Global",page:params.page});
+ return await calendarLoadDrama({mode:params.calendar_mode||"update_today",sort_by:params.sort_by||"Global",page:params.page});
 }
 
 // ================= 综艺聚合 =================
