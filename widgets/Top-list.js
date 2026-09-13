@@ -2497,11 +2497,12 @@ async function calendarFetchYatuHotAnime() {
     }
 }
 
-async function calendarBuildYatuHotItems(titles, updateDate, dayName) {
+async function calendarBuildYatuHotItems(titles, updateDate, dayName, allowedIds = null) {
     const items = await Promise.all(titles.map(async title => {
         try {
             const tmdbItem = await calendarSearchBestMatch(title);
             if (!tmdbItem) return null;
+            if (allowedIds && !allowedIds.has(String(tmdbItem.id))) return null;
             return calendarBuildItem({
                 id: tmdbItem.id,
                 tmdbId: tmdbItem.id,
@@ -2510,7 +2511,7 @@ async function calendarBuildYatuHotItems(titles, updateDate, dayName) {
                 poster: tmdbItem.poster_path,
                 backdrop: tmdbItem.backdrop_path,
                 rating: tmdbItem.vote_average?.toFixed(1) || "0.0",
-                subTitle: `${updateDate} ${dayName} 国漫 · 今日热门`,
+                subTitle: `${updateDate} ${dayName} 国漫 · 今日更新 · 今日热门`,
                 desc: tmdbItem.overview,
                 year: updateDate.substring(0, 4),
                 releaseDate: updateDate
@@ -2694,7 +2695,9 @@ async function calendarLoadAnime(params = {}) {
         const uniqueTraktItems = [];
         traktItems.forEach(item => dedupeAdd(item, uniqueTraktItems));
 
-        const yatuItems = await calendarBuildYatuHotItems(yatuTitles, updateDate, dayName);
+        // 雅图只作为热度交集：必须同时出现在 Trakt 今日国漫更新中，才允许进入追更列表。
+        const traktIds = new Set(uniqueTraktItems.map(item => String(item.tmdbId || item.id)));
+        const yatuItems = await calendarBuildYatuHotItems(yatuTitles, updateDate, dayName, traktIds);
         const uniqueYatuItems = [];
         yatuItems.forEach(item => dedupeAdd(item, uniqueYatuItems));
 
