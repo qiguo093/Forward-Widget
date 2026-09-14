@@ -96,7 +96,8 @@ var WidgetMetadata = {
             description: "全球剧集更新与首播日历",
             functionName: "loadStandaloneDramaCalendar",
             type: "video",
-            cacheDuration: 43200,
+            // 不用宿主结果缓存：宿主缓存可能按"同参数"命中第一页结果，导致下拉翻页拿不到新数据。
+            // 改为脚本内部内存缓存（同日同地区复用，切地区来回零请求）。
             params: [
                 { name: "sort_by", title: "地区偏好", type: "enumeration", value: "Global", enumOptions: [ { title: "全球聚合", value: "Global" }, { title: "美国", value: "US" }, { title: "日本", value: "JP" }, { title: "韩国", value: "KR" }, { title: "中国", value: "CN" }, { title: "英国", value: "GB" } ] },
                 { name: "calendar_mode", title: "时间范围", type: "enumeration", value: "update_today", enumOptions: [ { title: "今日更新", value: "update_today" }, { title: "明日首播", value: "premiere_tomorrow" }, { title: "7天内首播", value: "premiere_week" }, { title: "30天内首播", value: "premiere_month" } ] },
@@ -2477,6 +2478,106 @@ async function calendarLoadAnime(params = {}) {
 // 2. 业务逻辑：追剧日历 & 综艺时刻 (原生逻辑)
 // =========================================================================
 
+// =========================================================================
+// 剧集追更 · 极速扫描引擎
+// 目标：单次加载只做必要请求（提前收敛 + 高命中快速路径），结果留在内存里，
+//       翻页 / 切换地区直接复用，避免重复请求带来的"慢"与"数据抖动"。
+// =========================================================================
+const DRAMA_PAGE_SIZE = 20;
+const DRAMA_SCAN = { MAX_TMDB_PAGES: 15, CHUNK: 8, AHEAD: 8 };
+const DramaTodayCache = {};    // key: `${dateStr}|${region}` → { queue, items, seen, nextPage, done }
+const DramaPremiereCache = {}; // key: `${mode}|${region}|${dateStr}|${page}`
+
+// 单个候选解析：
+// 1) 快路径 —— last/next_episode_to_air 命中当天日期，只花 1 次请求；
+// 2) 回退  —— 查一次季分集精确比对；
+// 3) 网络异常 —— 保留条目（软命中），避免列表无故变少。
+async function dramaResolveOne(item, dateStr) {
+    let detail = null;
+    for (let attempt = 0; attempt < 2 && !detail; attempt++) {
+        try { detail = await Widget.tmdb.get(`/tv/${item.id}`, { params: { language: "zh-CN" } }); }
+        catch (_) { detail = null; }
+    }
+    if (!detail) return { item, episode: null, soft: true };
+    const nextEp = detail.next_episode_to_air;
+    const lastEp = detail.last_episode_to_air;
+    if (nextEp && nextEp.air_date === dateStr) return { item, episode: nextEp, soft: false };
+    if (lastEp && lastEp.air_date === dateStr) return { item, episode: lastEp, soft: false };
+    const seasons = (detail.seasons || []).filter(s => s.season_number > 0);
+    const seasonNum = (nextEp && nextEp.season_number) || (lastEp && lastEp.season_number) ||
+        (seasons.length ? seasons[seasons.length - 1].season_number : 0);
+    if (!seasonNum) return null;
+    try {
+        const season = await Widget.tmdb.get(`/tv/${item.id}/season/${seasonNum}`, { params: { language: "zh-CN" } });
+        const hit = ((season && season.episodes) || []).find(ep => ep && ep.air_date === dateStr);
+        return hit ? { item, episode: hit, soft: false } : null;
+    } catch (_) {
+        return { item, episode: null, soft: true };
+    }
+}
+
+function dramaBuildCard(entry, dateStr) {
+    const item = entry.item;
+    const episode = entry.episode;
+    const genreText = calendarGetGenreText(item.genre_ids) || "剧集";
+    const episodeLabel = episode && episode.episode_number ? `第${episode.episode_number}集` : "今日更新";
+    const fullDate = (episode && episode.air_date) || dateStr;
+    return calendarBuildItem({
+        id: item.id, tmdbId: item.id, type: "tv",
+        title: item.name,
+        poster: item.poster_path, backdrop: item.backdrop_path,
+        rating: (item.vote_average || 0).toFixed(1),
+        subTitle: `${episodeLabel} ${genreText}`.trim(),
+        desc: item.overview,
+        year: String(fullDate).substring(0, 4),
+        releaseDate: fullDate
+    });
+}
+
+// 今日更新扫描：边取候选边解析，攒够当前页所需数量立刻停手。
+async function calendarScanDramaToday(region, dateStr, baseParams, needCount, isExcluded) {
+    const key = `${dateStr}|${region}`;
+    let st = DramaTodayCache[key];
+    if (!st) st = DramaTodayCache[key] = { queue: [], items: [], seen: {}, nextPage: 1, done: false };
+    let guard = 0;
+    while (st.items.length < needCount && !st.done && guard++ < 40) {
+        if (st.queue.length === 0) {
+            if (st.nextPage > DRAMA_SCAN.MAX_TMDB_PAGES) { st.done = true; break; }
+            const startP = st.nextPage;
+            const pages = [startP, startP + 1, startP + 2, startP + 3];
+            const batches = await Promise.all(pages.map(async p => {
+                try {
+                    const res = await Widget.tmdb.get("/discover/tv", { params: Object.assign({}, baseParams, { page: p }) });
+                    return (res && res.results) || [];
+                } catch (_) { return []; }
+            }));
+            st.nextPage = startP + 4;
+            if (st.nextPage > DRAMA_SCAN.MAX_TMDB_PAGES) st.done = true;
+            const flat = [].concat(...batches);
+            if (!flat.length) { st.done = true; break; }
+            for (const it of flat) {
+                if (!it || !it.id || st.seen[it.id]) continue;
+                st.seen[it.id] = true;
+                if (region === "Global" && isExcluded(it)) continue;
+                st.queue.push(it);
+            }
+            continue;
+        }
+        const need = needCount - st.items.length;
+        const take = Math.min(st.queue.length, need + DRAMA_SCAN.AHEAD);
+        const batch = st.queue.splice(0, take);
+        let idx = 0;
+        while (idx < batch.length && st.items.length < needCount) {
+            const part = batch.slice(idx, idx + DRAMA_SCAN.CHUNK);
+            idx += part.length;
+            const resolved = await Promise.all(part.map(it => dramaResolveOne(it, dateStr).catch(() => null)));
+            for (const r of resolved) if (r) st.items.push(r);
+        }
+        if (idx < batch.length) st.queue = batch.slice(idx).concat(st.queue);
+    }
+    return st.items;
+}
+
 async function calendarLoadDrama(params = {}) {
     const mode = params.mode || "update_today";
     const region = params.sort_by || "Global";
@@ -2491,6 +2592,9 @@ async function calendarLoadDrama(params = {}) {
     // 5. 职业摔角/体育竞技/格斗：wrestling/aew/wwe/nwa/stardom/ufc/mma/boxing
     // 6. 海外自制播客录屏/跑团直播/无简介低分垃圾：Dice Actors, Tivolt, Nadie sabe nada, Svengoolie 等
     const excludedGlobalGenreIds = [99, 10751, 10763, 10764, 10766, 10767];
+    // 服务端只排除"任何地区都不要"的题材；家庭(10751)交给客户端判断，
+    // 否则国产家庭剧会被服务端参数提前枪毙、客户端的国产放行逻辑形同虚设。
+    const serverExcludedGenreIds = [99, 10763, 10764, 10766, 10767];
     const excludedBlockedCountries = ["IN", "TH", "RU", "TR", "PL", "FI", "HU", "NL", "RO", "BR", "LB", "SY", "AE", "EG", "SA", "JO", "IQ", "KW", "QA", "OM", "BH", "DZ", "MA", "TN"];
     const excludedBlockedLanguages = ["hi", "th", "ru", "tr", "ta", "te", "pl", "fi", "hu", "nl", "ro", "pt", "ar"];
     const excludedGlobalGenreText = /(?:\bgay\b|\blgbtq?\b|\blesbian\b|\bhomosexual\b|\bsame[- ]sex\b|\bqueer\b|\bboys['’]?\s*love\b|\bbl\b|\bgl\b|\byaoi\b|\byuri\b|同性恋|耽美|男男|女女|同志|腐剧|双男主|恋上他|爱上他|美少年之恋|绑架我的人)/i;
@@ -2533,8 +2637,7 @@ async function calendarLoadDrama(params = {}) {
         timezone: "Asia/Shanghai"
     };
     if (region === "Global") {
-        // 全球聚合排除真人秀、新闻、脱口秀、纪录片、肥皂剧和家庭题材。
-        queryParams.without_genres = excludedGlobalGenreIds.join(",");
+        queryParams.without_genres = serverExcludedGenreIds.join(",");
         queryParams.without_origin_country = excludedBlockedCountries.join("|");
         queryParams.without_original_language = excludedBlockedLanguages.join("|");
     }
@@ -2547,83 +2650,41 @@ async function calendarLoadDrama(params = {}) {
         if (langMap[region]) queryParams.with_original_language = langMap[region];
     }
     try {
-        if (mode !== "update_today") {
-            const res = await Widget.tmdb.get("/discover/tv", { params: queryParams });
-            const results = ((res && res.results) || []).filter(item =>
-                region !== "Global" || !isExcludedGlobalItem(item)
-            );
-            if (results.length === 0) return page === 1 ? [{ id: "empty", type: "text", title: "暂无更新" }] : [];
-            return results.map(item => {
-                const fullDate = item.first_air_date || "";
-                const yearStr = fullDate.substring(0, 4);
-                const shortDate = fullDate.slice(5).replace("-", "/");
-                const genreText = calendarGetGenreText(item.genre_ids) || "剧集";
-                const displaySubtitle = shortDate ? `${shortDate} ${genreText}` : genreText;
-                return calendarBuildItem({
-                    id: item.id, tmdbId: item.id, type: "tv",
-                    title: item.name, poster: item.poster_path, backdrop: item.backdrop_path,
-                    rating: item.vote_average?.toFixed(1),
-                    subTitle: displaySubtitle,
-                    desc: item.overview,
-                    year: yearStr,
-                    releaseDate: fullDate
-                });
-            });
+        // 今日更新：扫描 + 解析（内存复用 + 提前收敛，翻页/切地区几乎瞬时）
+        if (mode === "update_today") {
+            const needCount = page * DRAMA_PAGE_SIZE;
+            const resolved = await calendarScanDramaToday(region, dates.start, queryParams, needCount, isExcludedGlobalItem);
+            const pageItems = resolved.slice((page - 1) * DRAMA_PAGE_SIZE, needCount);
+            if (pageItems.length === 0) return page === 1 ? [{ id: "empty", type: "text", title: "暂无今日排期" }] : [];
+            return pageItems.map(entry => dramaBuildCard(entry, dates.start));
         }
 
-        // 今日更新：高并发批量拉取 TMDB 多页，快速定位当天具体分集
-        const startP = (page - 1) * 4 + 1;
-        const pageIndexes = [startP, startP + 1, startP + 2, startP + 3];
-        const pagePromises = pageIndexes.map(async p => {
-            try {
-                const q = { ...queryParams, page: p };
-                const res = await Widget.tmdb.get("/discover/tv", { params: q });
-                return (res && res.results) || [];
-            } catch (_) { return []; }
-        });
-
-        const batchResults = (await Promise.all(pagePromises)).flat();
-        const candidateItems = batchResults.filter(item =>
+        // 首播类（明日/7天/30天）单次请求即可，按页缓存，切地区不再重复等待
+        const pKey = `${mode}|${region}|${dates.start}|${page}`;
+        if (DramaPremiereCache[pKey]) return DramaPremiereCache[pKey];
+        const res = await Widget.tmdb.get("/discover/tv", { params: queryParams });
+        const results = ((res && res.results) || []).filter(item =>
             region !== "Global" || !isExcludedGlobalItem(item)
         );
-
-        if (candidateItems.length === 0) return page === 1 ? [{ id: "empty", type: "text", title: "暂无今日排期" }] : [];
-
-        const datedResults = await Promise.all(candidateItems.map(async item => {
-            try {
-                const detail = await Widget.tmdb.get(`/tv/${item.id}`, { params: { language: "zh-CN" } });
-                let seasonNum = detail?.next_episode_to_air?.season_number || detail?.last_episode_to_air?.season_number;
-                if (!seasonNum) {
-                    const seasons = (detail?.seasons || []).filter(s => s.season_number > 0);
-                    seasonNum = seasons.pop()?.season_number;
-                }
-                if (seasonNum) {
-                    const season = await Widget.tmdb.get(`/tv/${item.id}/season/${seasonNum}`, { params: { language: "zh-CN" } });
-                    const episode = (season?.episodes || []).find(ep => ep && ep.air_date === dates.start);
-                    if (episode) return { item, episode, seasonNumber: seasonNum };
-                }
-            } catch (_) {}
-            return null;
-        }));
-
-        const exactResults = datedResults.filter(Boolean);
-        if (exactResults.length === 0) return page === 1 ? [{ id: "empty", type: "text", title: "暂无今日排期" }] : [];
-
-        return exactResults.map(({ item, episode, seasonNumber }) => {
-            const fullDate = episode?.air_date || (item.first_air_date || "");
+        if (results.length === 0) return page === 1 ? [{ id: "empty", type: "text", title: "暂无更新" }] : [];
+        const built = results.map(item => {
+            const fullDate = item.first_air_date || "";
             const yearStr = fullDate.substring(0, 4);
+            const shortDate = fullDate.slice(5).replace("-", "/");
             const genreText = calendarGetGenreText(item.genre_ids) || "剧集";
-            const episodeLabel = episode ? `第${episode.episode_number}集` : "";
+            const displaySubtitle = shortDate ? `${shortDate} ${genreText}` : genreText;
             return calendarBuildItem({
                 id: item.id, tmdbId: item.id, type: "tv",
                 title: item.name, poster: item.poster_path, backdrop: item.backdrop_path,
                 rating: item.vote_average?.toFixed(1),
-                subTitle: `${episodeLabel} ${genreText}`.trim(),
+                subTitle: displaySubtitle,
                 desc: item.overview,
                 year: yearStr,
                 releaseDate: fullDate
             });
         });
+        DramaPremiereCache[pKey] = built;
+        return built;
     } catch (e) { return [{ id: "err", type: "text", title: "网络错误" }]; }
 }
 
