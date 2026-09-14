@@ -2547,64 +2547,78 @@ async function calendarLoadDrama(params = {}) {
         if (langMap[region]) queryParams.with_original_language = langMap[region];
     }
     try {
-        let allExact = [];
-        let scanPage = (page - 1) * 5 + 1; // 动态翻页起点
-        let totalPages = 999;
-        for (; scanPage <= totalPages && allExact.length < 20; scanPage++) {
-            queryParams.page = scanPage;
+        if (mode !== "update_today") {
             const res = await Widget.tmdb.get("/discover/tv", { params: queryParams });
-            if (res && res.total_pages) totalPages = res.total_pages;
             const results = ((res && res.results) || []).filter(item =>
                 region !== "Global" || !isExcludedGlobalItem(item)
             );
-            if (results.length === 0 && scanPage >= totalPages) break;
-            const datedResults = await Promise.all(results.map(async item => {
-                if (mode !== "update_today") return { item, episode: null };
-                try {
-                    const detail = await Widget.tmdb.get(`/tv/${item.id}`, { params: { language: "zh-CN" } });
-                    let seasonNum = null;
-                    const nextEp = detail?.next_episode_to_air;
-                    const lastEp = detail?.last_episode_to_air;
-                    if (nextEp && nextEp.air_date === dates.start) seasonNum = nextEp.season_number;
-                    else if (lastEp && lastEp.air_date === dates.start) seasonNum = lastEp.season_number;
-
-                    if (!seasonNum) {
-                        const seasons = Array.isArray(detail?.seasons) ? detail.seasons : [];
-                        const matchedSeason = seasons.find(s => s.air_date === dates.start);
-                        if (matchedSeason) seasonNum = matchedSeason.season_number;
-                    }
-
-                    if (!seasonNum) {
-                        const lastSeason = (detail?.seasons || []).filter(s => s.season_number > 0).pop();
-                        if (lastSeason) seasonNum = lastSeason.season_number;
-                    }
-
-                    if (seasonNum) {
-                        const season = await Widget.tmdb.get(`/tv/${item.id}/season/${seasonNum}`, { params: { language: "zh-CN" } });
-                        const episode = (season?.episodes || []).find(ep => ep && ep.air_date === dates.start);
-                        if (episode) return { item, episode, seasonNumber: seasonNum };
-                    }
-                } catch (_) {}
-                return null;
-            }));
-            const exact = datedResults.filter(Boolean);
-            allExact.push(...exact);
+            if (results.length === 0) return page === 1 ? [{ id: "empty", type: "text", title: "暂无更新" }] : [];
+            return results.map(item => {
+                const fullDate = item.first_air_date || "";
+                const yearStr = fullDate.substring(0, 4);
+                const shortDate = fullDate.slice(5).replace("-", "/");
+                const genreText = calendarGetGenreText(item.genre_ids) || "剧集";
+                const displaySubtitle = shortDate ? `${shortDate} ${genreText}` : genreText;
+                return calendarBuildItem({
+                    id: item.id, tmdbId: item.id, type: "tv",
+                    title: item.name, poster: item.poster_path, backdrop: item.backdrop_path,
+                    rating: item.vote_average?.toFixed(1),
+                    subTitle: displaySubtitle,
+                    desc: item.overview,
+                    year: yearStr,
+                    releaseDate: fullDate
+                });
+            });
         }
-        const pageItems = allExact.slice(0, 20);
-        if (pageItems.length === 0) return page === 1 ? [{ id: "empty", type: "text", title: "暂无今日排期" }] : [];
-        return pageItems.map(({ item, episode, seasonNumber }) => {
+
+        // 今日更新：高并发批量拉取 TMDB 多页，快速定位当天具体分集
+        const startP = (page - 1) * 4 + 1;
+        const pageIndexes = [startP, startP + 1, startP + 2, startP + 3];
+        const pagePromises = pageIndexes.map(async p => {
+            try {
+                const q = { ...queryParams, page: p };
+                const res = await Widget.tmdb.get("/discover/tv", { params: q });
+                return (res && res.results) || [];
+            } catch (_) { return []; }
+        });
+
+        const batchResults = (await Promise.all(pagePromises)).flat();
+        const candidateItems = batchResults.filter(item =>
+            region !== "Global" || !isExcludedGlobalItem(item)
+        );
+
+        if (candidateItems.length === 0) return page === 1 ? [{ id: "empty", type: "text", title: "暂无今日排期" }] : [];
+
+        const datedResults = await Promise.all(candidateItems.map(async item => {
+            try {
+                const detail = await Widget.tmdb.get(`/tv/${item.id}`, { params: { language: "zh-CN" } });
+                let seasonNum = detail?.next_episode_to_air?.season_number || detail?.last_episode_to_air?.season_number;
+                if (!seasonNum) {
+                    const seasons = (detail?.seasons || []).filter(s => s.season_number > 0);
+                    seasonNum = seasons.pop()?.season_number;
+                }
+                if (seasonNum) {
+                    const season = await Widget.tmdb.get(`/tv/${item.id}/season/${seasonNum}`, { params: { language: "zh-CN" } });
+                    const episode = (season?.episodes || []).find(ep => ep && ep.air_date === dates.start);
+                    if (episode) return { item, episode, seasonNumber: seasonNum };
+                }
+            } catch (_) {}
+            return null;
+        }));
+
+        const exactResults = datedResults.filter(Boolean);
+        if (exactResults.length === 0) return page === 1 ? [{ id: "empty", type: "text", title: "暂无今日排期" }] : [];
+
+        return exactResults.map(({ item, episode, seasonNumber }) => {
             const fullDate = episode?.air_date || (item.first_air_date || "");
             const yearStr = fullDate.substring(0, 4);
-            const shortDate = fullDate.slice(5).replace("-", "/");
             const genreText = calendarGetGenreText(item.genre_ids) || "剧集";
             const episodeLabel = episode ? `第${episode.episode_number}集` : "";
-            const timeLabel = mode === "update_today" ? episodeLabel : shortDate;
-            const displaySubtitle = timeLabel ? `${timeLabel} ${genreText}` : genreText;
             return calendarBuildItem({
                 id: item.id, tmdbId: item.id, type: "tv",
                 title: item.name, poster: item.poster_path, backdrop: item.backdrop_path,
                 rating: item.vote_average?.toFixed(1),
-                subTitle: displaySubtitle,
+                subTitle: `${episodeLabel} ${genreText}`.trim(),
                 desc: item.overview,
                 year: yearStr,
                 releaseDate: fullDate
