@@ -2248,11 +2248,16 @@ const CALENDAR_GENRE_MAP = {
 
 function calendarGetGenreText(ids) {
     if (!ids || !Array.isArray(ids)) return "";
-    // 家庭(10751)对"追更"没有信息量，而《兰香如故》这类国产剧常被 TMDB 标上它，
-    // 优先展示更有意义的题材，避免卡片副标题变成"第9集 家庭"。
+    return ids.map(id => CALENDAR_GENRE_MAP[id]).filter(Boolean).slice(0, 1).join("");
+}
+
+// 剧集追更专用：家庭(10751)在"今天更新了哪一集"这个场景里没有信息量，
+// 而《兰香如故》这类国产剧常被 TMDB 标上它，会显示成"第9集 家庭"。
+// 只在剧集追更内部跳过该标签，不影响动漫周更 / 综艺聚合共用的公共函数。
+function dramaGetGenreText(ids) {
+    if (!ids || !Array.isArray(ids)) return "";
     const list = ids.map(Number).filter(id => id !== 10751);
-    const use = list.length ? list : ids;
-    return use.map(id => CALENDAR_GENRE_MAP[id]).filter(Boolean).slice(0, 1).join("");
+    return calendarGetGenreText(list.length ? list : ids);
 }
 
 // ✨ 核心渲染拦截函数：恢复 year 和 releaseDate 的赋值
@@ -2567,7 +2572,7 @@ async function dramaBuildChineseToday(dateStr) {
         const eps = g.numbers.slice().sort((a, b) => a - b);
         const epText = eps.length > 1 ? `第${eps[0]}-${eps[eps.length - 1]}集`
             : (eps.length === 1 ? `第${eps[0]}集` : "今日更新");
-        const genreText = (tmdb && calendarGetGenreText(tmdb.genre_ids)) || "剧集";
+        const genreText = (tmdb && dramaGetGenreText(tmdb.genre_ids)) || "剧集";
         const rating = tmdb && tmdb.vote_average ? tmdb.vote_average.toFixed(1)
             : (show.rating && show.rating.average ? String(show.rating.average) : "0.0");
         const summary = String(show.summary || "").replace(/<[^>]+>/g, "").trim();
@@ -2620,7 +2625,7 @@ async function dramaResolveOne(item, dateStr) {
 function dramaBuildCard(entry, dateStr) {
     const item = entry.item;
     const episode = entry.episode;
-    const genreText = calendarGetGenreText(item.genre_ids) || "剧集";
+    const genreText = dramaGetGenreText(item.genre_ids) || "剧集";
     const episodeLabel = episode && episode.episode_number ? `第${episode.episode_number}集` : "今日更新";
     const fullDate = (episode && episode.air_date) || dateStr;
     return calendarBuildItem({
@@ -2849,7 +2854,7 @@ async function calendarLoadDrama(params = {}) {
             const fullDate = item.first_air_date || "";
             const yearStr = fullDate.substring(0, 4);
             const shortDate = fullDate.slice(5).replace("-", "/");
-            const genreText = calendarGetGenreText(item.genre_ids) || "剧集";
+            const genreText = dramaGetGenreText(item.genre_ids) || "剧集";
             const displaySubtitle = shortDate ? `${shortDate} ${genreText}` : genreText;
             return calendarBuildItem({
                 id: item.id, tmdbId: item.id, type: "tv",
