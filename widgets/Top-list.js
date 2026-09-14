@@ -2786,8 +2786,8 @@ async function calendarLoadDrama(params = {}) {
     // 5. 职业摔角/体育竞技/格斗：wrestling/aew/wwe/nwa/stardom/ufc/mma/boxing
     // 6. 海外自制播客录屏/跑团直播/无简介低分垃圾：Dice Actors, Tivolt, Nadie sabe nada, Svengoolie 等
     const excludedGlobalGenreIds = [99, 10751, 10763, 10764, 10766, 10767];
-    const excludedBlockedCountries = ["IN", "TH", "RU", "TR", "PL", "FI", "HU", "NL", "RO", "BR"];
-    const excludedBlockedLanguages = ["hi", "th", "ru", "tr", "ta", "te", "pl", "fi", "hu", "nl", "ro", "pt"];
+    const excludedBlockedCountries = ["IN", "TH", "RU", "TR", "PL", "FI", "HU", "NL", "RO", "BR", "LB", "SY", "AE", "EG", "SA", "JO", "IQ", "KW", "QA", "OM", "BH", "DZ", "MA", "TN"];
+    const excludedBlockedLanguages = ["hi", "th", "ru", "tr", "ta", "te", "pl", "fi", "hu", "nl", "ro", "pt", "ar"];
     const excludedGlobalGenreText = /(?:\bgay\b|\blgbtq?\b|\blesbian\b|\bhomosexual\b|\bsame[- ]sex\b|\bqueer\b|\bboys['’]?\s*love\b|\bbl\b|\bgl\b|\byaoi\b|\byuri\b|同性恋|耽美|男男|女女|同志|腐剧|双男主|恋上他|爱上他|美少年之恋|绑架我的人)/i;
     const excludedSportsWrestlingText = /(?:\bwrestling\b|\bpro[- ]wrestling\b|\baew\b|\bwwe\b|\bnwa\b|\bmlw\b|\bstardom\b|\bseadlin[n]?ng\b|\btjpw\b|\bufc\b|\bmma\b|\braw\b|\bsmackdown\b|\bcollision\b|\bdynamite\b|\bpowerrr\b|\bbaseball\b|\bfootball\b|\bbasketball\b|プロレス|女子プロレス|摔角|摔跤|格斗|角力|スターダム)/i;
     const excludedTrashHostsText = /(?:\bsvengoolie\b|\bdice actors\b|\btivolt\b|\bnadie sabe nada\b|\bkovan viikon\b|\balucina[çc][ãa]o\b|\bmegaszt[aá]r\b|\bbeste zangers\b|\bthe missing piece\b|请记住我的名字|绑架我的人)/i;
