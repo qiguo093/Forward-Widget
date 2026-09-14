@@ -2839,8 +2839,8 @@ async function calendarLoadDrama(params = {}) {
     }
     try {
         let allExact = [];
-        let scanPage = (page - 1) * 3 + 1;
-        const maxScanPages = scanPage + 2;
+        let scanPage = (page - 1) * 8 + 1;
+        const maxScanPages = scanPage + 7; // 连续扫 8 个 TMDB 页以捞出靠后的大量剧集
         for (; scanPage <= maxScanPages && allExact.length < 20; scanPage++) {
             queryParams.page = scanPage;
             const res = await Widget.tmdb.get("/discover/tv", { params: queryParams });
@@ -2852,19 +2852,27 @@ async function calendarLoadDrama(params = {}) {
                 if (mode !== "update_today") return { item, episode: null };
                 try {
                     const detail = await Widget.tmdb.get(`/tv/${item.id}`, { params: { language: "zh-CN" } });
-                    const seasonNumbers = [];
-                    const addSeason = n => { const value = Number(n); if (Number.isInteger(value) && value > 0 && !seasonNumbers.includes(value)) seasonNumbers.push(value); };
-                    addSeason(detail?.next_episode_to_air?.season_number);
-                    addSeason(detail?.last_episode_to_air?.season_number);
-                    const seasons = Array.isArray(detail?.seasons) ? detail.seasons : [];
-                    seasons.filter(s => Number(s.season_number) > 0 && (!s.air_date || s.air_date <= dates.end))
-                        .sort((a, b) => Number(b.season_number) - Number(a.season_number))
-                        .forEach(s => addSeason(s.season_number));
-                    if (!seasonNumbers.length) addSeason(1);
-                    for (const seasonNumber of seasonNumbers) {
-                        const season = await Widget.tmdb.get(`/tv/${item.id}/season/${seasonNumber}`, { params: { language: "zh-CN" } });
+                    let seasonNum = null;
+                    const nextEp = detail?.next_episode_to_air;
+                    const lastEp = detail?.last_episode_to_air;
+                    if (nextEp && nextEp.air_date === dates.start) seasonNum = nextEp.season_number;
+                    else if (lastEp && lastEp.air_date === dates.start) seasonNum = lastEp.season_number;
+
+                    if (!seasonNum) {
+                        const seasons = Array.isArray(detail?.seasons) ? detail.seasons : [];
+                        const matchedSeason = seasons.find(s => s.air_date === dates.start);
+                        if (matchedSeason) seasonNum = matchedSeason.season_number;
+                    }
+
+                    if (!seasonNum) {
+                        const lastSeason = (detail?.seasons || []).filter(s => s.season_number > 0).pop();
+                        if (lastSeason) seasonNum = lastSeason.season_number;
+                    }
+
+                    if (seasonNum) {
+                        const season = await Widget.tmdb.get(`/tv/${item.id}/season/${seasonNum}`, { params: { language: "zh-CN" } });
                         const episode = (season?.episodes || []).find(ep => ep && ep.air_date === dates.start);
-                        if (episode) return { item, episode, seasonNumber };
+                        if (episode) return { item, episode, seasonNumber: seasonNum };
                     }
                 } catch (_) {}
                 return null;
