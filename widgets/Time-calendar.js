@@ -2543,36 +2543,43 @@ async function calendarLoadDrama(params = {}) {
         if (langMap[region]) queryParams.with_original_language = langMap[region];
     }
     try {
-        const res = await Widget.tmdb.get("/discover/tv", { params: queryParams });
-        const data = res || {};
-        const results = (data.results || []).filter(item =>
-            region !== "Global" || !isExcludedGlobalItem(item)
-        );
-        if (results.length === 0) return page === 1 ? [{ id: "empty", type: "text", title: "暂无更新" }] : [];
-        const datedResults = await Promise.all(results.map(async item => {
-            if (mode !== "update_today") return { item, episode: null };
-            try {
-                const detail = await Widget.tmdb.get(`/tv/${item.id}`, { params: { language: "zh-CN" } });
-                const seasonNumbers = [];
-                const addSeason = n => { const value = Number(n); if (Number.isInteger(value) && value > 0 && !seasonNumbers.includes(value)) seasonNumbers.push(value); };
-                addSeason(detail?.next_episode_to_air?.season_number);
-                addSeason(detail?.last_episode_to_air?.season_number);
-                const seasons = Array.isArray(detail?.seasons) ? detail.seasons : [];
-                seasons.filter(s => Number(s.season_number) > 0 && (!s.air_date || s.air_date <= dates.end))
-                    .sort((a, b) => Number(b.season_number) - Number(a.season_number))
-                    .forEach(s => addSeason(s.season_number));
-                if (!seasonNumbers.length) addSeason(1);
-                for (const seasonNumber of seasonNumbers) {
-                    const season = await Widget.tmdb.get(`/tv/${item.id}/season/${seasonNumber}`, { params: { language: "zh-CN" } });
-                    const episode = (season?.episodes || []).find(ep => ep && ep.air_date === dates.start);
-                    if (episode) return { item, episode, seasonNumber };
-                }
-            } catch (_) {}
-            return null;
-        }));
-        const exactResults = datedResults.filter(Boolean);
-        if (mode === "update_today" && exactResults.length === 0) return page === 1 ? [{ id: "empty", type: "text", title: "暂无今日排期" }] : [];
-        return exactResults.map(({ item, episode, seasonNumber }) => {
+        let allExact = [];
+        let scanPage = (page - 1) * 3 + 1;
+        const maxScanPages = scanPage + 2; // 每次连查3个TMDB页
+        for (; scanPage <= maxScanPages && allExact.length < 20; scanPage++) {
+            queryParams.page = scanPage;
+            const res = await Widget.tmdb.get("/discover/tv", { params: queryParams });
+            const results = ((res && res.results) || []).filter(item =>
+                region !== "Global" || !isExcludedGlobalItem(item)
+            );
+            if (results.length === 0) break;
+            const datedResults = await Promise.all(results.map(async item => {
+                if (mode !== "update_today") return { item, episode: null };
+                try {
+                    const detail = await Widget.tmdb.get(`/tv/${item.id}`, { params: { language: "zh-CN" } });
+                    const seasonNumbers = [];
+                    const addSeason = n => { const value = Number(n); if (Number.isInteger(value) && value > 0 && !seasonNumbers.includes(value)) seasonNumbers.push(value); };
+                    addSeason(detail?.next_episode_to_air?.season_number);
+                    addSeason(detail?.last_episode_to_air?.season_number);
+                    const seasons = Array.isArray(detail?.seasons) ? detail.seasons : [];
+                    seasons.filter(s => Number(s.season_number) > 0 && (!s.air_date || s.air_date <= dates.end))
+                        .sort((a, b) => Number(b.season_number) - Number(a.season_number))
+                        .forEach(s => addSeason(s.season_number));
+                    if (!seasonNumbers.length) addSeason(1);
+                    for (const seasonNumber of seasonNumbers) {
+                        const season = await Widget.tmdb.get(`/tv/${item.id}/season/${seasonNumber}`, { params: { language: "zh-CN" } });
+                        const episode = (season?.episodes || []).find(ep => ep && ep.air_date === dates.start);
+                        if (episode) return { item, episode, seasonNumber };
+                    }
+                } catch (_) {}
+                return null;
+            }));
+            const exact = datedResults.filter(Boolean);
+            allExact.push(...exact);
+        }
+        const pageItems = allExact.slice(0, 20);
+        if (pageItems.length === 0) return page === 1 ? [{ id: "empty", type: "text", title: "暂无今日排期" }] : [];
+        return pageItems.map(({ item, episode, seasonNumber }) => {
             const fullDate = episode?.air_date || (item.first_air_date || "");
             const yearStr = fullDate.substring(0, 4);
             const shortDate = fullDate.slice(5).replace("-", "/");
