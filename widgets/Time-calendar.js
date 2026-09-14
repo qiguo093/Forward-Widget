@@ -2488,30 +2488,124 @@ async function calendarLoadAnime(params = {}) {
 // =========================================================================
 
 // =========================================================================
-// 剧集追更 · 多源扫描引擎
-// 目标：
-//   ① 国产剧不再被"全球热度排序"漏掉（TVmaze 当日播出表专线兜底）；
-//   ② 单次加载只做必要请求（提前收敛），下拉翻页 / 切换地区几乎瞬时；
-//   ③ 结果驻留内存、顺序固定，网络抖动不再让列表忽多忽少。
+// 剧集追更 · 多源引擎
+// 数据源分工（各司其职，避免 TMDB 热度榜"截断"漏剧）：
+//   · Trakt 当日日历   —— 美剧/韩剧/英剧/日剧等国际剧集，一次请求拿到当天全部 + 具体集数
+//   · TVmaze 中国播出表 —— 国产剧（Trakt 不收录国产真人剧）
+//   · TMDB             —— 只给"当页要显示的那 20 条"换中文名/海报/评分
+// 缓存策略：当天全量数据集驻留内存，下拉翻页与切换地区只做增量，不再重复请求。
 // =========================================================================
 const DRAMA_PAGE_SIZE = 20;
-const DRAMA_SCAN = {
-    MAX_TMDB_PAGES: 12,   // 全球路最多扫 12 页（240 条候选）
-    CHUNK: 12,            // 每批并行解析的候选数
-    AHEAD: 8,             // 每轮多解析一点，抵消过滤损耗
-    CN_PER_TWO: 2         // 每 2 条海外剧穿插 1 条国产剧（保证国产剧露面又不挤掉海外剧）
-};
-const DramaTodayCache = {};    // key: `${dateStr}|${region}` → 扫描状态
-const DramaPremiereCache = {}; // key: `${mode}|${region}|${dateStr}|${page}`
-const DramaTvmazeMatch = {};   // TVmaze show.id → TMDB 匹配结果（跨翻页复用，不重复搜索）
-const DramaCnDayCache = {};    // dateStr → 国产剧当日更新条目
+const DramaTodayCache = {};      // dateStr → { dataset, enriched, region }
+const DramaPremiereCache = {};   // `${mode}|${region}|${dateStr}|${page}` → cards
+const DramaTmdbDetailCache = {}; // tmdbId → TMDB 详情
+const DramaTvmazeMatch = {};     // TVmaze show.id → TMDB 匹配结果
+const DramaCnDayCache = {};      // dateStr → 国产剧当日条目
+
+// 全球聚合净化规则（沿用既有约定，不新增口径）
+// 题材：纪录片(99)、家庭(10751)、新闻(10763)、真人秀(10764)、肥皂剧(10766)、脱口秀(10767)
+// 产地：印度/泰国/俄罗斯/土耳其/波兰/芬兰/匈牙利/荷兰/罗马尼亚/巴西 + 阿拉伯语区
+// 题材关键词：同性恋/BL/GL/耽美；职业摔角/体育竞技
+const DRAMA_EXCLUDED_GENRE_IDS = [99, 10751, 10763, 10764, 10766, 10767];
+// 服务端只排除"任何地区都不要"的题材，家庭(10751)交给客户端判断，
+// 否则《兰香如故》这类被 TMDB 标了家庭标签的国产剧会被服务端参数提前枪毙。
+const DRAMA_SERVER_EXCLUDED_GENRE_IDS = [99, 10763, 10764, 10766, 10767];
+const DRAMA_EXCLUDED_COUNTRIES = ["IN", "TH", "RU", "TR", "PL", "FI", "HU", "NL", "RO", "BR", "LB", "SY", "AE", "EG", "SA", "JO", "IQ", "KW", "QA", "OM", "BH", "DZ", "MA", "TN"];
+const DRAMA_EXCLUDED_LANGUAGES = ["hi", "th", "ru", "tr", "ta", "te", "pl", "fi", "hu", "nl", "ro", "pt", "ar"];
+// Trakt 的题材是小写短横线形式，与 TMDB 数字 id 一一对应
+const DRAMA_EXCLUDED_TRAKT_GENRES = ["reality", "news", "talk-show", "documentary", "soap", "family", "game-show", "award-show", "sports"];
+// 动画/国创有独立的「动漫周更」模块，这里不再重复收录，避免番剧刷屏
+const DRAMA_ANIME_GENRES = ["anime", "donghua"];
+const DRAMA_BL_KEYWORDS = /(?:\bgay\b|\blgbtq?\b|\blesbian\b|\bhomosexual\b|\bsame[- ]sex\b|\bqueer\b|\bboys['’]?\s*love\b|\byaoi\b|\byuri\b|同性恋|耽美|男男|女女|同志|腐剧|双男主|恋上他|爱上他|美少年之恋|绑架我的人)/i;
+const DRAMA_SPORTS_KEYWORDS = /(?:\bwrestling\b|\bpro[- ]wrestling\b|\baew\b|\bwwe\b|\bnwa\b|\bmlw\b|\bstardom\b|\bseadlin[n]?ng\b|\btjpw\b|\bufc\b|\bmma\b|\braw\b|\bsmackdown\b|\bcollision\b|\bdynamite\b|\bpowerrr\b|\bbaseball\b|\bfootball\b|\bbasketball\b|プロレス|女子プロレス|摔角|摔跤|格斗|角力|スターダム)/i;
+const DRAMA_TRASH_KEYWORDS = /(?:\bsvengoolie\b|\bdice actors\b|\btivolt\b|\bnadie sabe nada\b|\bkovan viikon\b|\balucina[çc][ãa]o\b|\bmegaszt[aá]r\b|\bbeste zangers\b|\bthe missing piece\b|请记住我的名字|绑架我的人)/i;
+
+// TMDB genre_ids 判定（用于首播类，以及详情补全后的兜底）
+function dramaIsExcludedTmdbItem(item) {
+    const genres = Array.isArray(item.genre_ids) ? item.genre_ids.map(Number) : [];
+    if (genres.length === 0) return true;
+    const countries = (item.origin_country || []).map(c => String(c).toUpperCase());
+    const isChinese = countries.some(c => ["CN", "HK", "TW"].includes(c)) || item.original_language === "zh";
+    if (genres.some(id => DRAMA_EXCLUDED_GENRE_IDS.includes(id))) {
+        if (!isChinese || genres.some(id => [99, 10763, 10764, 10766, 10767].includes(id))) return true;
+    }
+    const origLang = String(item.original_language || "").toLowerCase();
+    if (countries.some(c => DRAMA_EXCLUDED_COUNTRIES.includes(c))) return true;
+    if (DRAMA_EXCLUDED_LANGUAGES.includes(origLang)) return true;
+    const text = `${item.name || ""} ${item.original_name || ""} ${item.overview || ""}`;
+    if (DRAMA_BL_KEYWORDS.test(text) || DRAMA_SPORTS_KEYWORDS.test(text) || DRAMA_TRASH_KEYWORDS.test(text)) return true;
+    const isMajor = countries.some(c => ["CN", "HK", "TW", "US", "GB", "JP", "KR"].includes(c));
+    if (!isMajor && (!item.overview || !item.overview.trim()) && (item.vote_count || 0) === 0) return true;
+    return false;
+}
+
+// 剧集追更专用：家庭(10751)在"今天更新了哪一集"场景里没有信息量，
+// 而《兰香如故》这类国产剧常被 TMDB 标上它，会显示成"第9集 家庭"。
+function dramaGetGenreText(ids) {
+    if (!ids || !Array.isArray(ids)) return "";
+    const list = ids.map(Number).filter(id => id !== 10751);
+    return calendarGetGenreText(list.length ? list : ids);
+}
 
 // -------------------------------------------------------------------------
-// 国产剧当日更新专线：TVmaze 当日播出表
-// TMDB 的 discover 按 popularity 排序，像《兰香如故》《冬城猎凶》这类热度一般的
-// 国产日更剧会被排到十几页之后、被"提前收敛"截断，永远露不出来。
-// TVmaze 的 /schedule 直接给出"当天有播出的全部剧集"（含具体集数），一次请求覆盖全。
-// 匹配不到数据时返回 null，调用方自动降级回 TMDB 中文专线。
+// ① 国际剧集专线：Trakt 当日日历（一次请求 = 当天全部剧集 + 集数 + TMDB id）
+// -------------------------------------------------------------------------
+async function dramaFetchTraktDay(dateStr) {
+    try {
+        const url = `https://api.trakt.tv/calendars/all/shows/${dateStr}/1?extended=full`;
+        const res = await Widget.http.get(url, {
+            headers: {
+                "Content-Type": "application/json",
+                "trakt-api-version": "2",
+                "trakt-api-key": CALENDAR_TRAKT_ID,
+                // Trakt 对没有 User-Agent 的请求直接返回 403，必须显式带上
+                "User-Agent": "Mozilla/5.0 (iPhone; CPU iPhone OS 17_0 like Mac OS X) AppleWebKit/605.1.15 (KHTML, like Gecko) Version/17.0 Mobile/15E148 Safari/604.1"
+            }
+        });
+        const rows = (res && res.data) || [];
+        return Array.isArray(rows) ? rows : [];
+    } catch (_) { return null; }   // null 表示不可用，调用方降级
+}
+
+// 按剧聚合（同一部剧当天可能连播多集），并套用净化规则
+function dramaCollectTraktEntries(rows) {
+    const byId = {};
+    for (const row of rows) {
+        const show = (row && row.show) || {};
+        const ep = (row && row.episode) || {};
+        const tmdbId = show.ids && show.ids.tmdb;
+        if (!tmdbId) continue;
+        const genres = (show.genres || []).map(g => String(g).toLowerCase());
+        if (genres.length === 0) continue;
+        if (genres.some(g => DRAMA_EXCLUDED_TRAKT_GENRES.includes(g))) continue;
+        if (genres.some(g => DRAMA_ANIME_GENRES.includes(g))) continue;
+        const country = String(show.country || "").toLowerCase();
+        const lang = String(show.language || "").toLowerCase();
+        if (DRAMA_EXCLUDED_COUNTRIES.includes(country.toUpperCase())) continue;
+        if (DRAMA_EXCLUDED_LANGUAGES.includes(lang)) continue;
+        const text = `${show.title || ""} ${show.original_title || ""} ${show.overview || ""}`;
+        if (DRAMA_BL_KEYWORDS.test(text) || DRAMA_SPORTS_KEYWORDS.test(text) || DRAMA_TRASH_KEYWORDS.test(text)) continue;
+        const key = String(tmdbId);
+        if (!byId[key]) {
+            byId[key] = {
+                source: "trakt", tmdbId, key,
+                title: show.title || show.original_title || "",
+                country, language: lang,
+                rating: show.rating || 0,
+                overview: show.overview || "",
+                season: Number(ep.season || 0),
+                episodes: []
+            };
+        }
+        if (ep.number) byId[key].episodes.push(Number(ep.number));
+    }
+    return Object.keys(byId).map(k => byId[k]);
+}
+
+// -------------------------------------------------------------------------
+// ② 国产剧专线：TVmaze 当日播出表
+// TMDB discover 按 popularity 排序，《兰香如故》《冬城猎凶》这类热度一般的国产日更剧
+// 会排到十几页之后被截断；TVmaze 直接给出"当天有播出的全部剧集"，一次请求覆盖全。
 // -------------------------------------------------------------------------
 async function dramaFetchTvmazeDay(dateStr, country) {
     try {
@@ -2522,17 +2616,17 @@ async function dramaFetchTvmazeDay(dateStr, country) {
     } catch (_) { return []; }
 }
 
-// TVmaze 只给英文名，需要回到 TMDB 换中文名 / 海报 / 详情页 id。
-// 优先同年份 + 有海报的结果，避免同名剧误配。
+// TVmaze 只给英文名且没有 TMDB id，需回到 TMDB 换中文名/海报/id。
+// 优先同年份 + 有海报的结果，避免同名剧误配；结果按 show.id 缓存。
 async function dramaSearchTmdbForShow(show) {
     const key = String(show.id || "");
     if (key && key in DramaTvmazeMatch) return DramaTvmazeMatch[key];
     let best = null;
     const year = String(show.premiered || "").substring(0, 4);
-    const queries = [show.name, show.original_name].filter(Boolean);
-    for (const q of queries) {
+    const names = [show.name, show.original_name].filter(Boolean);
+    for (const raw of names) {
         try {
-            const clean = String(q).replace(/第[一二三四五六七八九十\d]+[季章]/g, "").trim();
+            const clean = String(raw).replace(/第[一二三四五六七八九十\d]+[季章]/g, "").trim();
             if (!clean) continue;
             const res = await Widget.tmdb.get("/search/tv", { params: { query: clean, language: "zh-CN", page: 1 } });
             const results = (res && res.results) || [];
@@ -2540,8 +2634,7 @@ async function dramaSearchTmdbForShow(show) {
             const sameYear = r => year && String(r.first_air_date || "").startsWith(year);
             best = results.find(r => sameYear(r) && r.poster_path) ||
                    results.find(sameYear) ||
-                   results.find(r => r.poster_path) ||
-                   results[0];
+                   results.find(r => r.poster_path) || results[0];
             if (best) break;
         } catch (_) { /* 换下一个关键词 */ }
     }
@@ -2549,216 +2642,201 @@ async function dramaSearchTmdbForShow(show) {
     return best;
 }
 
-async function dramaBuildChineseToday(dateStr) {
+// 只保留"剧集"类，排除真人秀/新闻/脱口秀/纪录片/体育等（TVmaze 自带 type，比题材更准）
+const DRAMA_TVMAZE_KEEP_TYPES = ["Scripted", "Animation"];
+
+async function dramaCollectChineseEntries(dateStr) {
     if (dateStr in DramaCnDayCache) return DramaCnDayCache[dateStr];
     const rows = await dramaFetchTvmazeDay(dateStr, "CN");
-    if (!rows.length) { DramaCnDayCache[dateStr] = null; return null; }
+    if (!rows.length) { DramaCnDayCache[dateStr] = []; return []; }
 
     const grouped = {};
     for (const r of rows) {
         const show = r.show || {};
+        if (!DRAMA_TVMAZE_KEEP_TYPES.includes(show.type)) continue;
         const sid = String(show.id || "");
         if (!sid) continue;
-        if (!grouped[sid]) grouped[sid] = { show, numbers: [] };
-        if (r.number) grouped[sid].numbers.push(Number(r.number));
+        if (!grouped[sid]) grouped[sid] = { show, episodes: [] };
+        if (r.number) grouped[sid].episodes.push(Number(r.number));
     }
     const groups = Object.keys(grouped).map(k => grouped[k]);
     const matched = await Promise.all(groups.map(async g => ({ g, tmdb: await dramaSearchTmdbForShow(g.show) })));
 
-    const items = [];
+    const entries = [];
     for (const { g, tmdb } of matched) {
         const show = g.show;
-        const img = (show.image && (show.image.original || show.image.medium)) || "";
-        const eps = g.numbers.slice().sort((a, b) => a - b);
-        const epText = eps.length > 1 ? `第${eps[0]}-${eps[eps.length - 1]}集`
-            : (eps.length === 1 ? `第${eps[0]}集` : "今日更新");
-        const genreText = (tmdb && dramaGetGenreText(tmdb.genre_ids)) || "剧集";
-        const rating = tmdb && tmdb.vote_average ? tmdb.vote_average.toFixed(1)
-            : (show.rating && show.rating.average ? String(show.rating.average) : "0.0");
-        const summary = String(show.summary || "").replace(/<[^>]+>/g, "").trim();
-        items.push(calendarBuildItem({
-            id: tmdb ? tmdb.id : `tvm_${show.id}`,
-            tmdbId: tmdb ? tmdb.id : 0,
-            type: "tv",
-            title: (tmdb && tmdb.name) || show.name || "",
-            poster: (tmdb && tmdb.poster_path) || img,
-            backdrop: (tmdb && tmdb.backdrop_path) || "",
-            rating,
-            subTitle: `${epText} ${genreText}`.trim(),
-            desc: (tmdb && tmdb.overview) || summary,
-            year: String(dateStr).substring(0, 4),
-            releaseDate: dateStr
-        }));
+        const text = `${show.name || ""} ${show.original_name || ""}`;
+        if (DRAMA_BL_KEYWORDS.test(text) || DRAMA_SPORTS_KEYWORDS.test(text)) continue;
+        if (!tmdb) continue;   // 匹配不到 TMDB 就无法打开详情页，跳过
+        entries.push({
+            source: "tvmaze", tmdbId: tmdb.id, key: String(tmdb.id),
+            title: tmdb.name || show.name || "",
+            country: "cn", language: "zh",
+            rating: tmdb.vote_average || (show.rating && show.rating.average) || 0,
+            overview: tmdb.overview || String(show.summary || "").replace(/<[^>]+>/g, "").trim(),
+            poster: tmdb.poster_path, backdrop: tmdb.backdrop_path,
+            genreIds: tmdb.genre_ids,
+            season: g.episodes.length ? 1 : 0,
+            episodes: g.episodes
+        });
     }
-    DramaCnDayCache[dateStr] = items;
-    return items;
+    DramaCnDayCache[dateStr] = entries;
+    return entries;
 }
 
-// 单个候选解析：
-// 1) 快路径 —— last/next_episode_to_air 命中当天日期，只花 1 次请求；
-// 2) 回退  —— 查一次季分集精确比对；
-// 3) 网络异常 —— 保留条目（软命中），避免列表无故变少。
-async function dramaResolveOne(item, dateStr) {
-    let detail = null;
-    for (let attempt = 0; attempt < 2 && !detail; attempt++) {
-        try { detail = await Widget.tmdb.get(`/tv/${item.id}`, { params: { language: "zh-CN" } }); }
-        catch (_) { detail = null; }
-    }
-    if (!detail) return { item, episode: null, soft: true };
-    const nextEp = detail.next_episode_to_air;
-    const lastEp = detail.last_episode_to_air;
-    if (nextEp && nextEp.air_date === dateStr) return { item, episode: nextEp, soft: false };
-    if (lastEp && lastEp.air_date === dateStr) return { item, episode: lastEp, soft: false };
-    const seasons = (detail.seasons || []).filter(s => s.season_number > 0);
-    const seasonNum = (nextEp && nextEp.season_number) || (lastEp && lastEp.season_number) ||
-        (seasons.length ? seasons[seasons.length - 1].season_number : 0);
-    if (!seasonNum) return null;
-    try {
-        const season = await Widget.tmdb.get(`/tv/${item.id}/season/${seasonNum}`, { params: { language: "zh-CN" } });
-        const hit = ((season && season.episodes) || []).find(ep => ep && ep.air_date === dateStr);
-        return hit ? { item, episode: hit, soft: false } : null;
-    } catch (_) {
-        return { item, episode: null, soft: true };
-    }
-}
+// -------------------------------------------------------------------------
+// ③ 合并当日数据集：按国家轮转交错，保证美剧/韩剧/国产剧同屏出现，无单一产地刷屏
+// -------------------------------------------------------------------------
+async function dramaBuildTodayDataset(dateStr) {
+    let st = DramaTodayCache[dateStr];
+    if (st && st.dataset) return st.dataset;
+    if (!st) st = DramaTodayCache[dateStr] = {};
 
-function dramaBuildCard(entry, dateStr) {
-    const item = entry.item;
-    const episode = entry.episode;
-    const genreText = dramaGetGenreText(item.genre_ids) || "剧集";
-    const episodeLabel = episode && episode.episode_number ? `第${episode.episode_number}集` : "今日更新";
-    const fullDate = (episode && episode.air_date) || dateStr;
-    return calendarBuildItem({
-        id: item.id, tmdbId: item.id, type: "tv",
-        title: item.name,
-        poster: item.poster_path, backdrop: item.backdrop_path,
-        rating: (item.vote_average || 0).toFixed(1),
-        subTitle: `${episodeLabel} ${genreText}`.trim(),
-        desc: item.overview,
-        year: String(fullDate).substring(0, 4),
-        releaseDate: fullDate
-    });
-}
+    const [traktRows, cnEntries] = await Promise.all([
+        dramaFetchTraktDay(dateStr),
+        dramaCollectChineseEntries(dateStr)
+    ]);
+    st.traktOk = traktRows !== null;
+    // Trakt 不可用时用 TMDB discover 兜底国际剧集，避免整块空白
+    const intl = st.traktOk
+        ? dramaCollectTraktEntries(traktRows)
+        : await dramaCollectTmdbFallback(dateStr);
 
-// 交错合并：每 2 条海外剧穿插 1 条国产剧，并按 tmdbId 去重（国产优先）
-function dramaInterleave(cn, gl) {
-    const seen = {};
-    for (const x of cn) seen[String(x.tmdbId || x.id)] = true;
-    const out = [];
-    let ci = 0, gi = 0;
-    const glClean = gl.filter(x => !seen[String(x.tmdbId || x.id)]);
-    while (ci < cn.length || gi < glClean.length) {
-        for (let k = 0; k < DRAMA_SCAN.CN_PER_TWO && gi < glClean.length; k++) out.push(glClean[gi++]);
-        if (ci < cn.length) out.push(cn[ci++]);
-    }
-    return out;
-}
-
-// 按页取数：每页独立交错（海外 2 : 国产 1），分页之间互不重叠、顺序固定。
-// 若某一页国产剧不够，就用海外剧补足，保证每页都是满的。
-function dramaPageSlice(cn, gl, page, pageSize) {
-    const glPerPage = Math.ceil(pageSize * DRAMA_SCAN.CN_PER_TWO / (DRAMA_SCAN.CN_PER_TWO + 1));
-    const cnPerPage = pageSize - glPerPage;
+    // 去重：同一部剧两边都有时以 Trakt 为准（它带集数）
     const cnKeys = {};
-    for (const x of cn) cnKeys[String(x.tmdbId || x.id)] = true;
-    const glOnly = [];
-    const seenGl = {};
-    for (const x of gl) {
-        const key = String(x.tmdbId || x.id);
-        if (cnKeys[key] || seenGl[key]) continue;
-        seenGl[key] = true;
-        glOnly.push(x);
+    for (const e of intl) cnKeys[e.key] = true;
+    const cn = cnEntries.filter(e => !cnKeys[e.key]);
+
+    // 按产地分组，条目多的产地优先排，然后轮转
+    const buckets = {};
+    for (const e of intl.concat(cn)) {
+        const c = e.country || "??";
+        if (!buckets[c]) buckets[c] = [];
+        buckets[c].push(e);
     }
-    const glSeg = glOnly.slice((page - 1) * glPerPage, page * glPerPage);
-    const cnSeg = cn.slice((page - 1) * cnPerPage, page * cnPerPage);
-    const out = [];
-    let ci = 0, gi = 0;
-    while (ci < cnSeg.length || gi < glSeg.length) {
-        for (let k = 0; k < DRAMA_SCAN.CN_PER_TWO && gi < glSeg.length; k++) out.push(glSeg[gi++]);
-        if (ci < cnSeg.length) out.push(cnSeg[ci++]);
-    }
-    if (out.length < pageSize) {
-        const used = {};
-        for (const x of out) used[String(x.tmdbId || x.id)] = true;
-        for (const x of glOnly.concat(cn)) {
-            if (out.length >= pageSize) break;
-            const key = String(x.tmdbId || x.id);
-            if (used[key]) continue;
-            used[key] = true;
-            out.push(x);
+    const order = Object.keys(buckets).sort((a, b) => buckets[b].length - buckets[a].length || (a < b ? -1 : 1));
+    const dataset = [];
+    let more = true;
+    while (more) {
+        more = false;
+        for (const c of order) {
+            const list = buckets[c];
+            if (!list || !list.length) continue;
+            dataset.push(list.shift());
+            if (list.length) more = true;
         }
+    }
+    st.dataset = dataset;
+    st.enriched = {};
+    return dataset;
+}
+
+// -------------------------------------------------------------------------
+// ④ 取当页卡片：只对"这一页要显示的条目"补 TMDB 中文名/海报，其余保持零请求
+// -------------------------------------------------------------------------
+async function dramaEnrichEntry(entry) {
+    if (entry.source === "tvmaze") return entry;              // 搜索结果已含中文名/海报
+    const cached = DramaTmdbDetailCache[entry.tmdbId];
+    if (cached !== undefined) return cached ? Object.assign({}, entry, cached) : entry;
+    try {
+        const d = await Widget.tmdb.get(`/tv/${entry.tmdbId}`, { params: { language: "zh-CN" } });
+        if (!d) { DramaTmdbDetailCache[entry.tmdbId] = null; return entry; }
+        const info = {
+            title: d.name || entry.title,
+            poster: d.poster_path || entry.poster,
+            backdrop: d.backdrop_path || entry.backdrop,
+            rating: d.vote_average || entry.rating,
+            overview: d.overview || entry.overview,
+            genreIds: d.genre_ids
+        };
+        DramaTmdbDetailCache[entry.tmdbId] = info;
+        return Object.assign({}, entry, info);
+    } catch (_) {
+        DramaTmdbDetailCache[entry.tmdbId] = null;
+        return entry;
+    }
+}
+
+function dramaEpisodeLabel(entry) {
+    const eps = (entry.episodes || []).slice().sort((a, b) => a - b);
+    if (eps.length === 0) return "今日更新";
+    if (eps.length === 1) return `第${eps[0]}集`;
+    return `第${eps[0]}-${eps[eps.length - 1]}集`;
+}
+
+function dramaEntryToCard(entry, dateStr) {
+    const genreText = dramaGetGenreText(entry.genreIds) || "剧集";
+    const poster = entry.poster, backdrop = entry.backdrop;
+    const isHttp = s => s && String(s).startsWith("http");
+    const fullPoster = isHttp(poster) ? poster : (poster ? `https://image.tmdb.org/t/p/w500${poster}` : "");
+    const fullBackdrop = isHttp(backdrop) ? backdrop : (backdrop ? `https://image.tmdb.org/t/p/w780${backdrop}` : "");
+    return {
+        id: String(entry.tmdbId),
+        tmdbId: entry.tmdbId,
+        type: "tmdb",
+        mediaType: "tv",
+        title: entry.title,
+        genreTitle: `${dramaEpisodeLabel(entry)} ${genreText}`.trim(),
+        subTitle: `${dramaEpisodeLabel(entry)} ${genreText}`.trim(),
+        posterPath: fullPoster || fullBackdrop,
+        backdropPath: fullBackdrop || fullPoster,
+        description: `${dramaEpisodeLabel(entry)} ${genreText} · ⭐ ${(Number(entry.rating) || 0).toFixed(1)}\n${entry.overview || "暂无简介"}`,
+        rating: Number(entry.rating) || 0,
+        year: String(dateStr).substring(0, 4),
+        releaseDate: dateStr
+    };
+}
+
+// -------------------------------------------------------------------------
+// ⑤ 降级方案：Trakt 不可用（网络/403）时用 TMDB discover 兜底国际剧集
+// 只取前几页，不逐条校验分集 —— 宁可集数显示为"今日更新"，也不能整块空白。
+// -------------------------------------------------------------------------
+async function dramaCollectTmdbFallback(dateStr) {
+    const q = {
+        language: "zh-CN", sort_by: "popularity.desc", include_null_first_air_dates: false,
+        "air_date.gte": dateStr, "air_date.lte": dateStr, timezone: "Asia/Shanghai",
+        without_genres: DRAMA_SERVER_EXCLUDED_GENRE_IDS.join(","),
+        without_origin_country: DRAMA_EXCLUDED_COUNTRIES.join("|"),
+        without_original_language: DRAMA_EXCLUDED_LANGUAGES.join("|")
+    };
+    const pages = [1, 2, 3, 4];
+    const batches = await Promise.all(pages.map(async p => {
+        try {
+            const r = await Widget.tmdb.get("/discover/tv", { params: Object.assign({}, q, { page: p }) });
+            return (r && r.results) || [];
+        } catch (_) { return []; }
+    }));
+    const flat = [].concat(...batches);
+    const out = [];
+    const seen = {};
+    for (const it of flat) {
+        if (!it || !it.id || seen[it.id]) continue;
+        seen[it.id] = true;
+        if (dramaIsExcludedTmdbItem(it)) continue;
+        out.push({
+            source: "tmdb", tmdbId: it.id, key: String(it.id), title: it.name,
+            country: String((it.origin_country || [""])[0] || "").toLowerCase(),
+            language: String(it.original_language || "").toLowerCase(),
+            rating: it.vote_average || 0, overview: it.overview || "",
+            poster: it.poster_path, backdrop: it.backdrop_path, genreIds: it.genre_ids,
+            episodes: []
+        });
     }
     return out;
 }
 
-// 今日更新：国产专线 + 全球热度路，攒够当前页所需数量立刻停手
+// -------------------------------------------------------------------------
+// ⑥ 主入口：从当天数据集里按地区取当页
+// -------------------------------------------------------------------------
 async function calendarScanDramaToday(region, dateStr, baseParams, needCount, isExcluded) {
-    const key = `${dateStr}|${region}`;
-    let st = DramaTodayCache[key];
-    if (!st) st = DramaTodayCache[key] = {
-        cnReady: false, cnItems: [], cnUsable: false,
-        queue: [], items: [], seen: {}, nextPage: 1, done: false
-    };
-
-    const keepCandidate = it => region !== "Global" || !isExcluded(it);
-
-    // ① 国产剧专线（全球聚合 / 中国地区）
-    if (!st.cnReady) {
-        st.cnReady = true;
-        if (region === "Global" || region === "CN") {
-            const cn = await dramaBuildChineseToday(dateStr);
-            if (cn && cn.length) { st.cnItems = cn; st.cnUsable = true; }
-        }
-    }
-
-    // ② 全球路：补齐海外剧名额（国产剧已占约 1/3，其余由热度榜填充）
-    const loadGlobalPages = async (count) => {
-        const startP = st.nextPage;
-        const idxs = [];
-        for (let i = 0; i < count; i++) idxs.push(startP + i);
-        const batches = await Promise.all(idxs.map(async p => {
-            try {
-                const res = await Widget.tmdb.get("/discover/tv", { params: Object.assign({}, baseParams, { page: p }) });
-                return (res && res.results) || [];
-            } catch (_) { return []; }
-        }));
-        st.nextPage = startP + count;
-        if (st.nextPage > DRAMA_SCAN.MAX_TMDB_PAGES) st.done = true;
-        const flat = [].concat(...batches);
-        if (!flat.length) { st.done = true; return false; }
-        for (const it of flat) {
-            if (!it || !it.id || st.seen[it.id]) continue;
-            st.seen[it.id] = true;
-            if (!keepCandidate(it)) continue;
-            st.queue.push(it);
-        }
-        return true;
-    };
-
-    const resolveStep = async (take) => {
-        const batch = st.queue.splice(0, take);
-        const resolved = await Promise.all(batch.map(it => dramaResolveOne(it, dateStr).catch(() => null)));
-        for (const r of resolved) if (r) st.items.push(dramaBuildCard(r, dateStr));
-    };
-
-    // 每页需要约 2/3 的海外剧名额（其余留给国产剧）
-    const pageNo = Math.max(1, Math.round(needCount / DRAMA_PAGE_SIZE));
-    const glPerPage = Math.ceil(DRAMA_PAGE_SIZE * DRAMA_SCAN.CN_PER_TWO / (DRAMA_SCAN.CN_PER_TWO + 1));
-    const needGlobal = pageNo * glPerPage;
-
-    let guard = 0;
-    while (st.items.length < needGlobal && guard++ < 40) {
-        if (st.queue.length === 0) {
-            if (st.done || st.nextPage > DRAMA_SCAN.MAX_TMDB_PAGES) break;
-            const got = await loadGlobalPages(4);
-            if (!got) break;
-            continue;
-        }
-        const gap = needGlobal - st.items.length;
-        await resolveStep(Math.min(DRAMA_SCAN.CHUNK, Math.max(gap, 0) + DRAMA_SCAN.AHEAD));
-    }
-
-    return dramaPageSlice(st.cnItems, st.items, pageNo, DRAMA_PAGE_SIZE);
+    const dataset = await dramaBuildTodayDataset(dateStr);
+    const page = Math.max(1, Math.round(needCount / DRAMA_PAGE_SIZE));
+    const rk = String(region || "").toUpperCase();
+    const pool = rk === "GLOBAL" ? dataset : dataset.filter(e => String(e.country || "").toUpperCase() === rk);
+    if (!pool.length) return [];
+    const slice = pool.slice((page - 1) * DRAMA_PAGE_SIZE, page * DRAMA_PAGE_SIZE);
+    const enriched = await Promise.all(slice.map(e => dramaEnrichEntry(e).catch(() => e)));
+    return enriched.map(e => dramaEntryToCard(e, dateStr));
 }
 
 async function calendarLoadDrama(params = {}) {
@@ -2767,52 +2845,7 @@ async function calendarLoadDrama(params = {}) {
     const page = params.page || 1;
     const dates = calendarCalculateDates(mode);
     const isPremiere = mode.includes("premiere");
-    // 过滤规则（全球聚合严苛净化）：
-    // 1. 指定题材：纪录片(99)、家庭(10751)、新闻(10763)、真人秀(10764)、肥皂剧(10766)、脱口秀(10767)
-    // 2. 垃圾/冷门低质电视节目：无类型 (genre_ids 为空)
-    // 3. 常见低质国外小语种/特定产地：印度(IN/hi/ta/te)、泰国(TH/th)、俄罗斯(RU/ru)、土耳其(TR/tr)、芬兰(FI/fi)、波兰(PL/pl)、巴西葡萄牙语冷门剧等
-    // 4. 同性恋/耽美/LGBTQ/BL/GL 题材：双男主、同性爱恋、原著BL小说、boys' love
-    // 5. 职业摔角/体育竞技/格斗：wrestling/aew/wwe/nwa/stardom/ufc/mma/boxing
-    // 6. 海外自制播客录屏/跑团直播/无简介低分垃圾：Dice Actors, Tivolt, Nadie sabe nada, Svengoolie 等
-    const excludedGlobalGenreIds = [99, 10751, 10763, 10764, 10766, 10767];
-    // 服务端只排除"任何地区都不要"的题材；家庭(10751)交给客户端判断，
-    // 否则《兰香如故》这类被 TMDB 标了家庭标签的国产剧会被服务端参数提前枪毙，
-    // 客户端的"国产剧放行家庭题材"逻辑形同虚设。
-    const serverExcludedGenreIds = [99, 10763, 10764, 10766, 10767];
-    const excludedBlockedCountries = ["IN", "TH", "RU", "TR", "PL", "FI", "HU", "NL", "RO", "BR", "LB", "SY", "AE", "EG", "SA", "JO", "IQ", "KW", "QA", "OM", "BH", "DZ", "MA", "TN"];
-    const excludedBlockedLanguages = ["hi", "th", "ru", "tr", "ta", "te", "pl", "fi", "hu", "nl", "ro", "pt", "ar"];
-    const excludedGlobalGenreText = /(?:\bgay\b|\blgbtq?\b|\blesbian\b|\bhomosexual\b|\bsame[- ]sex\b|\bqueer\b|\bboys['’]?\s*love\b|\bbl\b|\bgl\b|\byaoi\b|\byuri\b|同性恋|耽美|男男|女女|同志|腐剧|双男主|恋上他|爱上他|美少年之恋|绑架我的人)/i;
-    const excludedSportsWrestlingText = /(?:\bwrestling\b|\bpro[- ]wrestling\b|\baew\b|\bwwe\b|\bnwa\b|\bmlw\b|\bstardom\b|\bseadlin[n]?ng\b|\btjpw\b|\bufc\b|\bmma\b|\braw\b|\bsmackdown\b|\bcollision\b|\bdynamite\b|\bpowerrr\b|\bbaseball\b|\bfootball\b|\bbasketball\b|プロレス|女子プロレス|摔角|摔跤|格斗|角力|スターダム)/i;
-    const excludedTrashHostsText = /(?:\bsvengoolie\b|\bdice actors\b|\btivolt\b|\bnadie sabe nada\b|\bkovan viikon\b|\balucina[çc][ãa]o\b|\bmegaszt[aá]r\b|\bbeste zangers\b|\bthe missing piece\b|请记住我的名字|绑架我的人)/i;
 
-    const isExcludedGlobalItem = item => {
-        const genres = Array.isArray(item.genre_ids) ? item.genre_ids.map(Number) : [];
-        // 没有类型的条目多为国外棒球转播、选秀加更等零散节目，直接剔除
-        if (genres.length === 0) return true;
-        // 剔除全球黑名单题材（家庭10751针对非国产剧，国产剧放行）
-        if (genres.some(id => excludedGlobalGenreIds.includes(id))) {
-            const isChinese = (item.origin_country || []).some(c => ["CN", "HK", "TW"].includes(String(c).toUpperCase())) || item.original_language === "zh";
-            if (!isChinese || genres.some(id => [99, 10763, 10764, 10766, 10767].includes(id))) return true;
-        }
-
-        const countries = (item.origin_country || []).map(c => String(c).toUpperCase());
-        const origLang = String(item.original_language || "").toLowerCase();
-        if (countries.some(c => excludedBlockedCountries.includes(c))) return true;
-        if (excludedBlockedLanguages.includes(origLang)) return true;
-
-        const text = `${item.name || ""} ${item.original_name || ""} ${item.overview || ""}`;
-        if (excludedGlobalGenreText.test(text)) return true;
-        if (excludedSportsWrestlingText.test(text)) return true;
-        if (excludedTrashHostsText.test(text)) return true;
-
-        // 剔除无评分、无简介且非中英日韩主流大厂的国外自制短片
-        const isMajorCountry = countries.some(c => ["CN", "HK", "TW", "US", "GB", "JP", "KR"].includes(c));
-        if (!isMajorCountry && (!item.overview || item.overview.trim().length === 0) && (item.vote_count || 0) === 0) {
-            return true;
-        }
-
-        return false;
-    };
     const queryParams = {
         language: "zh-CN",
         sort_by: "popularity.desc",
@@ -2821,9 +2854,9 @@ async function calendarLoadDrama(params = {}) {
         timezone: "Asia/Shanghai"
     };
     if (region === "Global") {
-        queryParams.without_genres = serverExcludedGenreIds.join(",");
-        queryParams.without_origin_country = excludedBlockedCountries.join("|");
-        queryParams.without_original_language = excludedBlockedLanguages.join("|");
+        queryParams.without_genres = DRAMA_SERVER_EXCLUDED_GENRE_IDS.join(",");
+        queryParams.without_origin_country = DRAMA_EXCLUDED_COUNTRIES.join("|");
+        queryParams.without_original_language = DRAMA_EXCLUDED_LANGUAGES.join("|");
     }
     const dateField = isPremiere ? "first_air_date" : "air_date";
     queryParams[`${dateField}.gte`] = dates.start;
@@ -2834,11 +2867,11 @@ async function calendarLoadDrama(params = {}) {
         if (langMap[region]) queryParams.with_original_language = langMap[region];
     }
     try {
-        // 今日更新：多源扫描（内存复用 + 提前收敛，翻页/切地区几乎瞬时）
+        // 今日更新：多源数据集 + 当页补全
         if (mode === "update_today") {
             const needCount = page * DRAMA_PAGE_SIZE;
-            const pageItems = await calendarScanDramaToday(region, dates.start, queryParams, needCount, isExcludedGlobalItem);
-            if (pageItems.length === 0) return page === 1 ? [{ id: "empty", type: "text", title: "暂无今日排期" }] : [];
+            const pageItems = await calendarScanDramaToday(region, dates.start, queryParams, needCount, dramaIsExcludedTmdbItem);
+            if (!pageItems.length) return page === 1 ? [{ id: "empty", type: "text", title: "暂无今日排期" }] : [];
             return pageItems;
         }
 
@@ -2847,12 +2880,11 @@ async function calendarLoadDrama(params = {}) {
         if (DramaPremiereCache[pKey]) return DramaPremiereCache[pKey];
         const res = await Widget.tmdb.get("/discover/tv", { params: queryParams });
         const results = ((res && res.results) || []).filter(item =>
-            region !== "Global" || !isExcludedGlobalItem(item)
+            region !== "Global" || !dramaIsExcludedTmdbItem(item)
         );
         if (results.length === 0) return page === 1 ? [{ id: "empty", type: "text", title: "暂无更新" }] : [];
         const built = results.map(item => {
             const fullDate = item.first_air_date || "";
-            const yearStr = fullDate.substring(0, 4);
             const shortDate = fullDate.slice(5).replace("-", "/");
             const genreText = dramaGetGenreText(item.genre_ids) || "剧集";
             const displaySubtitle = shortDate ? `${shortDate} ${genreText}` : genreText;
@@ -2862,7 +2894,7 @@ async function calendarLoadDrama(params = {}) {
                 rating: item.vote_average?.toFixed(1),
                 subTitle: displaySubtitle,
                 desc: item.overview,
-                year: yearStr,
+                year: fullDate.substring(0, 4),
                 releaseDate: fullDate
             });
         });
