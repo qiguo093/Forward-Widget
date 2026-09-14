@@ -2501,7 +2501,11 @@ async function calendarLoadDrama(params = {}) {
         const genres = Array.isArray(item.genre_ids) ? item.genre_ids.map(Number) : [];
         // 没有类型的条目多为国外棒球转播、选秀加更等零散节目，直接剔除
         if (genres.length === 0) return true;
-        if (genres.some(id => excludedGlobalGenreIds.includes(id))) return true;
+        // 剔除全球黑名单题材（家庭10751针对非国产剧，国产剧放行）
+        if (genres.some(id => excludedGlobalGenreIds.includes(id))) {
+            const isChinese = (item.origin_country || []).some(c => ["CN", "HK", "TW"].includes(String(c).toUpperCase())) || item.original_language === "zh";
+            if (!isChinese || genres.some(id => [99, 10763, 10764, 10766, 10767].includes(id))) return true;
+        }
 
         const countries = (item.origin_country || []).map(c => String(c).toUpperCase());
         const origLang = String(item.original_language || "").toLowerCase();
@@ -2544,15 +2548,16 @@ async function calendarLoadDrama(params = {}) {
     }
     try {
         let allExact = [];
-        let scanPage = (page - 1) * 8 + 1;
-        const maxScanPages = scanPage + 7; // 连续扫 8 个 TMDB 页以捞出靠后的大量剧集
-        for (; scanPage <= maxScanPages && allExact.length < 20; scanPage++) {
+        let scanPage = (page - 1) * 5 + 1; // 动态翻页起点
+        let totalPages = 999;
+        for (; scanPage <= totalPages && allExact.length < 20; scanPage++) {
             queryParams.page = scanPage;
             const res = await Widget.tmdb.get("/discover/tv", { params: queryParams });
+            if (res && res.total_pages) totalPages = res.total_pages;
             const results = ((res && res.results) || []).filter(item =>
                 region !== "Global" || !isExcludedGlobalItem(item)
             );
-            if (results.length === 0) break;
+            if (results.length === 0 && scanPage >= totalPages) break;
             const datedResults = await Promise.all(results.map(async item => {
                 if (mode !== "update_today") return { item, episode: null };
                 try {
