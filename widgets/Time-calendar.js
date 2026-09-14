@@ -2549,19 +2549,36 @@ async function calendarLoadDrama(params = {}) {
             region !== "Global" || !isExcludedGlobalItem(item)
         );
         if (results.length === 0) return page === 1 ? [{ id: "empty", type: "text", title: "暂无更新" }] : [];
-        const mappedResults = await Promise.all(results.map(async item => {
-            let rawDate = mode === "update_today" ? dates.start : (item.first_air_date || "");
-            if (mode === "update_today") {
-                try {
-                    const detail = await Widget.tmdb.get(`/tv/${item.id}`, { params: { language: "zh-CN" } });
-                    rawDate = detail?.next_episode_to_air?.air_date || detail?.last_episode_to_air?.air_date || rawDate;
-                } catch (_) {}
-            }
-            const fullDate = rawDate;
+        const datedResults = await Promise.all(results.map(async item => {
+            if (mode !== "update_today") return { item, episode: null };
+            try {
+                const detail = await Widget.tmdb.get(`/tv/${item.id}`, { params: { language: "zh-CN" } });
+                const seasonNumbers = [];
+                const addSeason = n => { const value = Number(n); if (Number.isInteger(value) && value > 0 && !seasonNumbers.includes(value)) seasonNumbers.push(value); };
+                addSeason(detail?.next_episode_to_air?.season_number);
+                addSeason(detail?.last_episode_to_air?.season_number);
+                const seasons = Array.isArray(detail?.seasons) ? detail.seasons : [];
+                seasons.filter(s => Number(s.season_number) > 0 && (!s.air_date || s.air_date <= dates.end))
+                    .sort((a, b) => Number(b.season_number) - Number(a.season_number))
+                    .forEach(s => addSeason(s.season_number));
+                if (!seasonNumbers.length) addSeason(1);
+                for (const seasonNumber of seasonNumbers) {
+                    const season = await Widget.tmdb.get(`/tv/${item.id}/season/${seasonNumber}`, { params: { language: "zh-CN" } });
+                    const episode = (season?.episodes || []).find(ep => ep && ep.air_date === dates.start);
+                    if (episode) return { item, episode, seasonNumber };
+                }
+            } catch (_) {}
+            return null;
+        }));
+        const exactResults = datedResults.filter(Boolean);
+        if (mode === "update_today" && exactResults.length === 0) return page === 1 ? [{ id: "empty", type: "text", title: "暂无今日排期" }] : [];
+        return exactResults.map(({ item, episode, seasonNumber }) => {
+            const fullDate = episode?.air_date || (item.first_air_date || "");
             const yearStr = fullDate.substring(0, 4);
             const shortDate = fullDate.slice(5).replace("-", "/");
             const genreText = calendarGetGenreText(item.genre_ids) || "剧集";
-            let timeLabel = mode === "update_today" ? "" : shortDate;
+            const episodeLabel = episode ? `第${episode.episode_number}集` : "";
+            const timeLabel = mode === "update_today" ? episodeLabel : shortDate;
             const displaySubtitle = timeLabel ? `${timeLabel} ${genreText}` : genreText;
             return calendarBuildItem({
                 id: item.id, tmdbId: item.id, type: "tv",
@@ -2572,8 +2589,7 @@ async function calendarLoadDrama(params = {}) {
                 year: yearStr,
                 releaseDate: fullDate
             });
-        }));
-        return mappedResults;
+        });
     } catch (e) { return [{ id: "err", type: "text", title: "网络错误" }]; }
 }
 
