@@ -17,6 +17,9 @@ const ScrapingCache = {
 
 const DEFAULT_TRAKT_ID = "95b59922670c84040db3632c7aac6f33704f6ffe5cbf3113a056e37cb45cb482";
 
+// Trakt 对没有 User-Agent 的请求直接 403 返回 HTML，所有 Trakt 请求必须显式携带。
+const TRAKT_REQUEST_UA = "Mozilla/5.0 (iPhone; CPU iPhone OS 17_0 like Mac OS X) AppleWebKit/605.1.15 (KHTML, like Gecko) Version/17.0 Mobile/15E148 Safari/604.1";
+
 const GLOBAL_GENRE_MAP_ALL = {
     16: "动画", 10759: "动作冒险", 35: "喜剧", 18: "剧情", 14: "奇幻", 878: "科幻", 9648: "悬疑", 
     10749: "爱情", 27: "恐怖", 10765: "科幻奇幻", 80: "犯罪", 99: "纪录片", 10751: "家庭", 
@@ -1186,7 +1189,7 @@ async function loadImdbList(category, mediaType, page) {
 
 async function fetchTraktData(type, list, id, page) {
     try {
-        const res = await Widget.http.get(`https://api.trakt.tv/${type}/${list}?limit=15&page=${page}`, { headers: { "Content-Type": "application/json", "trakt-api-version": "2", "trakt-api-key": id } });
+        const res = await Widget.http.get(`https://api.trakt.tv/${type}/${list}?limit=15&page=${page}`, { headers: { "Content-Type": "application/json", "trakt-api-version": "2", "trakt-api-key": id, "User-Agent": TRAKT_REQUEST_UA } });
         return res.data || [];
     } catch (e) { return []; }
 }
@@ -2581,7 +2584,8 @@ async function calendarFetchTraktChineseAnime(updateDate, dayName) {
             headers: {
                 "Content-Type": "application/json",
                 "trakt-api-version": "2",
-                "trakt-api-key": CALENDAR_TRAKT_ID
+                "trakt-api-key": CALENDAR_TRAKT_ID,
+                "User-Agent": TRAKT_REQUEST_UA
             }
         });
         const rows = Array.isArray(res.data) ? res.data : [];
@@ -2954,7 +2958,7 @@ async function calendarLoadVariety(params = {}) {
 
     try {
         const res = await Widget.http.get(traktUrl, {
-            headers: { "Content-Type": "application/json", "trakt-api-version": "2", "trakt-api-key": clientId }
+            headers: { "Content-Type": "application/json", "trakt-api-version": "2", "trakt-api-key": clientId, "User-Agent": TRAKT_REQUEST_UA }
         });
         const data = res.data || [];
 

@@ -17,6 +17,9 @@ const ScrapingCache = {
 
 const DEFAULT_TRAKT_ID = "95b59922670c84040db3632c7aac6f33704f6ffe5cbf3113a056e37cb45cb482";
 
+// Trakt 对没有 User-Agent 的请求直接 403 返回 HTML，所有 Trakt 请求必须显式携带。
+const TRAKT_REQUEST_UA = "Mozilla/5.0 (iPhone; CPU iPhone OS 17_0 like Mac OS X) AppleWebKit/605.1.15 (KHTML, like Gecko) Version/17.0 Mobile/15E148 Safari/604.1";
+
 const GLOBAL_GENRE_MAP_ALL = {
     16: "动画", 10759: "动作冒险", 35: "喜剧", 18: "剧情", 14: "奇幻", 878: "科幻", 9648: "悬疑", 
     10749: "爱情", 27: "恐怖", 10765: "科幻奇幻", 80: "犯罪", 99: "纪录片", 10751: "家庭", 
@@ -893,7 +896,7 @@ async function loadImdbList(category, mediaType, page) {
 
 async function fetchTraktData(type, list, id, page) {
     try {
-        const res = await Widget.http.get(`https://api.trakt.tv/${type}/${list}?limit=15&page=${page}`, { headers: { "Content-Type": "application/json", "trakt-api-version": "2", "trakt-api-key": id } });
+        const res = await Widget.http.get(`https://api.trakt.tv/${type}/${list}?limit=15&page=${page}`, { headers: { "Content-Type": "application/json", "trakt-api-version": "2", "trakt-api-key": id, "User-Agent": TRAKT_REQUEST_UA } });
         return res.data || [];
     } catch (e) { return []; }
 }
@@ -2297,7 +2300,8 @@ async function calendarFetchTraktChineseAnime(updateDate, dayName) {
             headers: {
                 "Content-Type": "application/json",
                 "trakt-api-version": "2",
-                "trakt-api-key": CALENDAR_TRAKT_ID
+                "trakt-api-key": CALENDAR_TRAKT_ID,
+                "User-Agent": TRAKT_REQUEST_UA
             }
         });
         const rows = Array.isArray(res.data) ? res.data : [];
@@ -2574,7 +2578,7 @@ async function dramaFetchTraktDay(dateStr) {
                 "trakt-api-version": "2",
                 "trakt-api-key": CALENDAR_TRAKT_ID,
                 // Trakt 对没有 User-Agent 的请求直接返回 403，必须显式带上
-                "User-Agent": "Mozilla/5.0 (iPhone; CPU iPhone OS 17_0 like Mac OS X) AppleWebKit/605.1.15 (KHTML, like Gecko) Version/17.0 Mobile/15E148 Safari/604.1"
+                "User-Agent": TRAKT_REQUEST_UA
             }
         });
         const rows = (res && res.data) || [];
@@ -2986,7 +2990,7 @@ async function calendarLoadVariety(params = {}) {
 
     try {
         const res = await Widget.http.get(traktUrl, {
-            headers: { "Content-Type": "application/json", "trakt-api-version": "2", "trakt-api-key": clientId }
+            headers: { "Content-Type": "application/json", "trakt-api-version": "2", "trakt-api-key": clientId, "User-Agent": TRAKT_REQUEST_UA }
         });
         const data = res.data || [];
 
@@ -3156,9 +3160,18 @@ async function loadStandaloneVarietyAggregate(params = {}) {
 
 const VARIETY_PAGE_SIZE = 20;
 const VARIETY_MAIN_COUNTRIES = "US|KR|JP|GB|CA|AU|TW|HK|SG|NZ|IE";
-const VARIETY_MAX_SCAN_PAGES = 8;
-const VARIETY_MAX_RESOLVE = 80;
+const VARIETY_MAX_RESOLVE = 160;
 const VARIETY_RESOLVE_CONCURRENCY = 24;
+
+// 扫描页数随预览范围自适应：范围越长，需要翻的页越多。
+// 8 页会把 160 条候选全部拉回来，其中相当一部分在详情校验后会被丢弃（discover 的
+// air_date 过滤误报率高），所以短范围没必要扫到底 —— 这是首屏耗时的主要来源。
+function varietyScanPages(days) {
+    const d = parseInt(days) || 14;
+    if (d <= 7) return 4;
+    if (d <= 14) return 6;
+    return 8;
+}
 
 // 低质 / 小语种产地（与剧集追更口径保持一致，作为白名单之外的兜底防线）
 const VARIETY_EXCLUDED_COUNTRIES = ["IN", "TH", "RU", "TR", "PL", "FI", "HU", "NL", "RO", "BR", "ID", "PH", "VN", "MY", "DE", "FR", "IT", "ES", "PT", "SE", "NO", "DK", "LB", "SY", "AE", "EG", "SA", "JO", "IQ", "KW", "QA", "OM", "BH", "DZ", "MA", "TN", "AR", "MX", "CO", "PE", "CL"];
@@ -3191,35 +3204,43 @@ function calendarGetFutureDateStr(days) {
 }
 
 // -------------------------------------------------------------------------
-// 垃圾过滤：国外深夜脱口秀 / 新闻 / 纪录片 / 摔角体育 / 小语种 / 无简介杂项
+// 垃圾过滤
+// 国外综艺整体保留真人秀：真人秀（10764）不再因为「缺少中文简介」「同时带纪录片
+// 标签」「票数偏低」而被丢弃 —— TMDB 对海外真人秀大量缺 zh-CN 简介，若按普通条目
+// 处理会把 Strictly Come Dancing / The Challenge / Big Brother 这类整批误杀。
+// 仍然一律排除：摔角格斗与体育、新闻、非真人秀的脱口秀、小语种产地、无海报。
 // -------------------------------------------------------------------------
 function varietyIsExcluded(item) {
     if (!item || !item.id) return true;
     if (!item.poster_path) return true;
-    const overview = String(item.overview || "").trim();
-    if (overview.length < 8) return true;
 
     const countries = Array.isArray(item.origin_country) ? item.origin_country : [];
     const country = countries[0] || "";
     const lang = String(item.original_language || "");
     const titleText = `${item.name || ""} ${item.original_name || ""}`;
+    const genres = Array.isArray(item.genre_ids) ? item.genre_ids : [];
+    const isCN = country === "CN" || lang === "zh";
+    const isReality = genres.indexOf(10764) >= 0;
+    // 国外真人秀放宽（国产综艺仍有充足中文简介，保持原口径）
+    const relaxReality = !isCN && isReality;
 
     if (VARIETY_EXCLUDED_COUNTRIES.indexOf(country) >= 0) return true;
     if (VARIETY_EXCLUDED_LANGUAGES.indexOf(lang) >= 0) return true;
     if (VARIETY_SPORTS_KEYWORDS.test(titleText)) return true;
     if (VARIETY_TRASH_KEYWORDS.test(titleText)) return true;
     if (VARIETY_BL_KEYWORDS.test(titleText)) return true;
+    if (!isCN && genres.indexOf(10763) >= 0) return true;              // 新闻
 
-    const genres = Array.isArray(item.genre_ids) ? item.genre_ids : [];
-    const isCN = country === "CN" || lang === "zh";
+    if (!relaxReality && String(item.overview || "").trim().length < 8) return true;
 
     if (!isCN) {
-        if (genres.indexOf(10763) >= 0) return true;                        // 新闻
-        if (genres.indexOf(99) >= 0) return true;                           // 纪录片
-        if (genres.indexOf(10767) >= 0 && genres.indexOf(10764) < 0) return true; // 纯脱口秀（深夜/日间秀）
         const votes = Number(item.vote_count) || 0;
         const pop = Number(item.popularity) || 0;
-        if (votes <= 0 && pop < 10) return true;                            // 零票零热度海外杂项
+        if (votes <= 0 && pop < 10) return true;                        // 零票零热度海外杂项
+        if (!isReality) {
+            if (genres.indexOf(99) >= 0) return true;                   // 纪录片
+            if (genres.indexOf(10767) >= 0) return true;                // 非真人秀的脱口秀
+        }
     }
     return false;
 }
@@ -3255,7 +3276,7 @@ async function varietyFetchDiscoverPage(country, listType, days, page) {
 async function varietyCollectPool(country, listType, days) {
     const first = await varietyFetchDiscoverPage(country, listType, days, 1);
     let rows = Array.isArray(first.results) ? first.results.slice() : [];
-    const totalPages = Math.min(Number(first.total_pages) || 1, VARIETY_MAX_SCAN_PAGES);
+    const totalPages = Math.min(Number(first.total_pages) || 1, varietyScanPages(days));
     if (totalPages > 1) {
         const jobs = [];
         for (let p = 2; p <= totalPages; p++) jobs.push(varietyFetchDiscoverPage(country, listType, days, p));
