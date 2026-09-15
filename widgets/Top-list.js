@@ -3165,27 +3165,31 @@ async function calendarLoadVariety(params = {}) {
 
     // 首页刷新时检查 5 分钟 TTL
     if (page === 1) {
-        const lastTime = VarietyTimeCacheTime[cacheKey] || 0;
+        // ⚠️ TTL 必须用「全局时间戳」记账，不能用 cacheKey。
+        // cacheKey 含 mode|region|dateStr|page，一旦切换地区/翻页就会产生新的 key，
+        // 用新 key 去查必然「无记录」→ 触发全量清空 → 刚才拿到的数据全被丢掉，
+        // 于是「切换地区 0 请求」永远不成立（每次切地区都要重新抓一遍）。
+        // 改成全局记账后语义才对：数据在 5 分钟内整体有效，过期后整体重取。
+        const lastTime = VarietyTimeCacheTime.__all__ || 0;
         if (!lastTime || (now - lastTime) >= VARIETY_TIME_CACHE_TTL_MS) {
             Object.keys(VarietyTimePageCache).forEach(k => delete VarietyTimePageCache[k]);
             Object.keys(VarietyTimeDetailCache).forEach(k => delete VarietyTimeDetailCache[k]);
             Object.keys(VarietyTimeSeasonCache).forEach(k => delete VarietyTimeSeasonCache[k]);
             Object.keys(VarietyTimeTrendingDataset).forEach(k => delete VarietyTimeTrendingDataset[k]);
-            VarietyTimeCacheTime[cacheKey] = now;
+            VarietyTimeCacheTime.__all__ = now;
         }
     }
     if (VarietyTimePageCache[cacheKey]) return VarietyTimePageCache[cacheKey];
 
     if (mode === "trending") {
-        // 按需解析到「本页所需张数」为止：第 1 页解析约 20 条、第 2 页只补增量，
-        // 翻回前面的页 0 请求（数据集驻留内存）。
-        const st = await varietyTimeTrendingResolve(region, page * 20);
-        const start = (page - 1) * 20;
-        const slice = st.cards.slice(start, start + 20);
-        if (!slice.length) {
-            return page === 1 ? [{ id: "empty", type: "text", title: "暂无更新", description: "近期暂无可播出的综艺" }] : [];
+        // 一页给全：首页直接返回该产地全部（受 VARIETY_TIME_TRENDING_MAX_PAGES 上限保护）。
+        // 已经不再分页，故后续页码不再重复返回；改地区时数据集按产地各自驻留，也是 0 请求。
+        if (page > 1) return [];
+        const st = await varietyTimeTrendingResolve(region);
+        if (!st.cards.length) {
+            return [{ id: "empty", type: "text", title: "暂无更新", description: "近期暂无可播出的综艺" }];
         }
-        return slice;
+        return st.cards;
     }
 
     // 华语/国内及 Trakt 未覆盖的地区走 TMDB 真实分集解析
@@ -3319,48 +3323,74 @@ const VARIETY_TIME_DISCOVER_COUNTRIES = "US|KR|GB|CA|AU|TW|HK|SG|NZ|IE";
 // 和 1990 年的《Fullfive》会按 popularity 排到前排，榜单会变成"历史总热度榜"。
 const VARIETY_TIME_TRENDING_WINDOW_DAYS = 730;
 
-// 「近期热播」按需增量解析引擎。
-//
-// 旧实现的三个问题：
-//   ① 每次翻页都重新抓 discover、并把该产地全部候选（2 页 = 40 条）逐个拉详情，
-//      但页面上只用得到 20 张 —— 解析量是需求的 2 倍；
-//   ② 第 2 页会把第 1 页的活重做一遍（cacheKey 含 page，页间不共享）；
-//   ③ 候选池被服务端 air_date 窗口砍得太狠（TW 只剩 3 条），列表撑不满。
-//
-// 现在：数据集按产地驻留，需要多少张卡就解析多少条；翻页只做增量，回退 0 请求。
-async function varietyTimeTrendingResolve(region, needCount) {
-    let st = VarietyTimeTrendingDataset[region];
-    if (!st) st = VarietyTimeTrendingDataset[region] = { cards: [], raw: [], seen: {}, nextPage: 1, exhausted: false };
+// 「近期热播」一次并发抓取的 discover 页数上限。
+// 台湾综艺 3 页即可全量给出；其余产地取人气最高的 6 页（120 条）。
+const VARIETY_TIME_TRENDING_MAX_PAGES = 6;
 
-    const CHUNK = 10;
-    // 页数上限：人气排序下前几页已足够；也是防止极端情况下无限翻页的保险丝
-    const MAX_DISCOVER_PAGE = 5;
+// 「近期热播」：纯 discover 直出，零详情请求 + 一次给全。
+//
+// 参考「综艺追更 → 热度榜」的秒开设计：卡片需要的标题/海报/评分/热度/首播日期
+// 在 discover 响应里就全有了，不必逐条 /tv/{id} 补详情 —— 所以这里是**纯本地渲染**，
+// 网络开销只有 discover 本身。
+//
+// 「不受翻页限制」：一次并发抓取多页后合并返回，首页即给全量。
+// 实测各产地候选量（窗口 ±730 天）：台湾 46 条(3页) / 国产 494(25页) /
+// 韩国 657(33页) / 欧美 1205(61页) / 全球 2803(141页)。
+// 故取 6 页上限 —— 台湾可以完整给出，其余产地给出人气最高的 120 条。
+// 多页是**并发**发出的，所以耗时约等于一次请求（~0.5s）。
+async function varietyTimeTrendingResolve(region) {
+    const cached = VarietyTimeTrendingDataset[region];
+    if (cached) return cached;
 
-    while (st.cards.length < needCount && !st.exhausted) {
-        // ① 候选不足则继续抓 discover 下一页
-        while (!st.raw.length && !st.exhausted) {
-            if (st.nextPage > MAX_DISCOVER_PAGE) { st.exhausted = true; break; }
-            const res = await varietyTimeHttpGet("/discover/tv", varietyTimeDiscoverParams(region, null, st.nextPage));
-            const rows = (res && Array.isArray(res.results)) ? res.results : [];
-            if (!rows.length) { st.exhausted = true; break; }
-            rows.forEach(it => {
-                if (!it || !it.id || st.seen[it.id]) return;
-                st.seen[it.id] = 1;
-                if (varietyTimeIsExcluded(it, region)) return;   // 用 discover 原生字段先粗筛，省下详情请求
-                st.raw.push(it);
-            });
-            st.nextPage++;
-            const tp = Number(res && res.total_pages) || 0;
-            if (tp && st.nextPage > tp) st.exhausted = true;
+    const first = await varietyTimeHttpGet("/discover/tv", varietyTimeDiscoverParams(region, null, 1));
+    if (!first || !Array.isArray(first.results)) return { cards: [] };  // 失败不写缓存，下轮重试
+
+    let rows = first.results.slice();
+    const totalPages = Math.min(Number(first.total_pages) || 1, VARIETY_TIME_TRENDING_MAX_PAGES);
+    if (totalPages > 1) {
+        const jobs = [];
+        for (let p = 2; p <= totalPages; p++) {
+            jobs.push(varietyTimeHttpGet("/discover/tv", varietyTimeDiscoverParams(region, null, p)));
         }
-        if (!st.raw.length) break;
-
-        // ② 按批解析详情（分批并发，避免触发 TMDB 限流）
-        const batch = st.raw.splice(0, CHUNK);
-        const out = await Promise.all(batch.map(it => varietyTimeResolveTmdbCandidate(it, "trending", "", region)));
-        out.forEach(c => { if (c) st.cards.push(c); });
+        const pages = await Promise.all(jobs);
+        pages.forEach(r => { if (r && Array.isArray(r.results)) rows = rows.concat(r.results); });
     }
+
+    const st = { cards: [] };
+    const seen = {};
+    rows.forEach(item => {
+        if (!item || !item.id || seen[item.id]) return;
+        seen[item.id] = 1;
+        if (varietyTimeIsExcluded(item, region)) return;   // 用 discover 原生字段过滤，不额外请求详情
+        const card = varietyTimeBuildTrendingCard(item);
+        if (card) st.cards.push(card);
+    });
+    VarietyTimeTrendingDataset[region] = st;
     return st;
+}
+
+// 用 discover 原生字段直出卡片（零详情请求），排版与「综艺追更 → 热度榜」保持一致
+function varietyTimeBuildTrendingCard(item) {
+    const dateStr = item.first_air_date || "";
+    const yearStr = dateStr ? dateStr.substring(0, 4) : "";
+    const ratingNum = item.vote_average ? Number(item.vote_average).toFixed(1) : "0.0";
+    const ratingText = Number(ratingNum) > 0 ? `${ratingNum}分` : "暂无评分";
+    const sub = `${ratingText} · 热度 ${Math.round(Number(item.popularity) || 0)}`;
+    return {
+        id: String(item.id),
+        tmdbId: Number(item.id),
+        type: "tmdb",
+        mediaType: "tv",
+        title: item.name || item.original_name,
+        genreTitle: sub,
+        subTitle: sub,
+        posterPath: item.poster_path ? `https://image.tmdb.org/t/p/w500${item.poster_path}` : "",
+        backdropPath: item.backdrop_path ? `https://image.tmdb.org/t/p/w780${item.backdrop_path}` : "",
+        description: `${sub} · 📅 首播 ${dateStr || "待定"}\n${item.overview || "暂无简介"}`,
+        rating: parseFloat(ratingNum) || 0,
+        year: yearStr,
+        releaseDate: dateStr
+    };
 }
 
 // 综艺时刻 discover 查询参数（候选池用；真实分集日期另由 varietyTimeResolveTmdbCandidate 严格比对）
