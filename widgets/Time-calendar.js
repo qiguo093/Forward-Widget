@@ -3688,6 +3688,13 @@ const VarietySeasonCache = {};
 const VarietyResolvedCache = {};
 const VarietyCacheTime = {};
 
+// ⚠️ 这个常量原先**被引用却从未定义**：varietyCacheStale() 里拿它做比较时，
+// 只有在 `t` 未定义时才会因 `!t` 短路而侥幸不报错；一旦同一 key 第二次进来
+// （t 已有值，右侧被求值）就会抛 ReferenceError: VARIETY_CACHE_TTL_MS is not defined
+// —— 而调用点 `if (pageNum === 1 && varietyCacheStale(cacheKey))` 位于 try 之外，
+// 会让「翻页后回到第 1 页」整条路径报错。补上定义即修复。
+const VARIETY_CACHE_TTL_MS = 5 * 60 * 1000;
+
 function varietyCacheStale(key) {
     const t = VarietyCacheTime[key];
     return !t || (Date.now() - t) >= VARIETY_CACHE_TTL_MS;
@@ -3809,53 +3816,124 @@ function varietyInterleaveByRegion(items) {
 // -------------------------------------------------------------------------
 // 极速热度榜：直接读取 Discover 原生返回（单次网络请求，秒级加载，零详情开销）
 // -------------------------------------------------------------------------
+// 热度榜一次并发抓取的 discover 页数上限。
+// 为什么必须多抓几页：榜单按 popularity 排序，而我们的过滤很严
+// （海外真人秀仅放行选秀、纪录片/脱口秀/新闻一律拦），实测「全部地区」
+// **第 1 页 20 条里只有 6 条能存活** —— 只抓一页的话用户就看到"就这么几个"。
+// 12 页（240 条）合并后约存活 40 条，列表才够看。
+const VARIETY_HOT_MAX_PAGES = 12;
+// 单次返回的卡片上限（防止极端情况下渲染压力）：12 页里国内能存活 200+ 条
+const VARIETY_HOT_MAX_CARDS = 120;
+
+// 热度榜结果缓存（同一脚本实例内有效）。
+// App 切换模块参数时会重新执行整个脚本，所以这个缓存只覆盖「翻页后回到第 1 页」
+// 这类同一实例内的重复调用 —— 跨参数切换仍靠宿主 cacheDuration。
+const VarietyHotCache = {};
+
+// 各频道对应的产地白名单；返回 null 表示不限制（全部地区）
+function varietyHotRegionCountries(cleanRegion) {
+    if (cleanRegion === "cn") return ["CN"];
+    if (cleanRegion === "tw") return ["TW"];
+    if (cleanRegion === "global") return ["US", "KR", "GB", "CA", "AU", "TW", "HK", "SG", "NZ", "IE"];
+    return null;
+}
+
+// 精选置顶：白名单节目热度普遍很低（粉雄救兵 pop 9、克拉克森的农场 pop 15），
+// 在按人气排序的候选池里永远排不进来 —— 只放行过滤规则它们依然看不见，
+// 必须按 TMDB id 点名取回并置顶。
+const VARIETY_HOT_PINNED = [
+    { id: 76922, country: "US" },    // 粉雄救兵 (Queer Eye)
+    { id: 117648, country: "GB" },   // 克拉克森的农场 (Clarkson's Farm)
+];
+
+async function varietyHotPinned(cleanRegion) {
+    const allowed = varietyHotRegionCountries(cleanRegion);
+    const targets = VARIETY_HOT_PINNED.filter(p => allowed === null || allowed.indexOf(p.country) >= 0);
+    if (!targets.length) return [];
+    const results = await Promise.all(targets.map(p => varietyHttpGet(`/tv/${p.id}`, { language: "zh-CN" })));
+    return results.filter(d => d && d.id && !varietyIsExcluded(d)).map(varietyBuildHotCard);
+}
+
+// 用 discover 原生字段直出热度卡（零详情请求）
+function varietyBuildHotCard(item) {
+    const dateStr = item.first_air_date || "";
+    const yearStr = dateStr ? dateStr.substring(0, 4) : "";
+    const ratingNum = item.vote_average ? Number(item.vote_average).toFixed(1) : "0.0";
+    const ratingText = Number(ratingNum) > 0 ? `${ratingNum}分` : "暂无评分";
+    const popText = `热度 ${Math.round(Number(item.popularity) || 0)}`;
+    const sub = `${ratingText} • ${popText}`;
+
+    return {
+        id: String(item.id),
+        tmdbId: Number(item.id),
+        type: "tmdb",
+        mediaType: "tv",
+        title: item.name || item.original_name,
+        genreTitle: sub,
+        subTitle: sub,
+        posterPath: item.poster_path ? `https://image.tmdb.org/t/p/w500${item.poster_path}` : "",
+        backdropPath: item.backdrop_path ? `https://image.tmdb.org/t/p/w780${item.backdrop_path}` : "",
+        description: `📅 首播时间: ${dateStr}\n${item.overview || "暂无简介"}`,
+        rating: parseFloat(ratingNum),
+        year: yearStr,
+        releaseDate: dateStr,
+        _country: (Array.isArray(item.origin_country) && item.origin_country[0]) || ""
+    };
+}
+
+// 热度榜：一次并发抓多页 → 合并去重 → 过滤 → 置顶「精选」。
+// 首页即给全量（不受翻页限制），耗时约等于一次请求。
 async function varietyResolveHotFast(cleanRegion, pageNum) {
-    const queryParams = {
-        language: "zh-CN",
-        page: pageNum,
-        with_genres: "10764|10767",
-        include_null_first_air_dates: false,
-        sort_by: "popularity.desc",
-        timezone: "Asia/Shanghai"
+    if (pageNum > 1) return [];   // 已一页给全，不再分页
+
+    const cached = VarietyHotCache[cleanRegion];
+    if (cached && (Date.now() - cached.ts) < VARIETY_CACHE_TTL_MS) return cached.items;
+
+    const buildParams = (p) => {
+        const q = {
+            language: "zh-CN",
+            page: p,
+            with_genres: "10764|10767",
+            include_null_first_air_dates: false,
+            sort_by: "popularity.desc",
+            timezone: "Asia/Shanghai"
+        };
+        const cc = varietyHotRegionCountries(cleanRegion);
+        if (cc) q.with_origin_country = cc.join("|");
+        // 「全部地区」不限制 with_origin_country，让全球热门均可进入
+        return q;
     };
 
-    if (cleanRegion === "cn") queryParams.with_origin_country = "CN";
-    else if (cleanRegion === "tw") queryParams.with_origin_country = "TW";
-    else if (cleanRegion === "global") queryParams.with_origin_country = "US|KR|GB|CA|AU|TW|HK|SG|NZ|IE";
-    // all 模式不限制 with_origin_country，让全球热门均可进入
-
     try {
-        const res = await varietyHttpGet("/discover/tv", queryParams);
-        const items = (res && Array.isArray(res.results)) ? res.results : [];
-        if (!items.length) return [];
+        // 精选置顶与首页 discover 并行发出，不额外增加首屏等待
+        const [first, pinned] = await Promise.all([
+            varietyHttpGet("/discover/tv", buildParams(1)),
+            varietyHotPinned(cleanRegion)
+        ]);
+        if (!first || !Array.isArray(first.results)) return pinned;
 
-        const filtered = items.filter(item => !varietyIsExcluded(item));
+        let rows = first.results.slice();
+        const totalPages = Math.min(Number(first.total_pages) || 1, VARIETY_HOT_MAX_PAGES);
+        if (totalPages > 1) {
+            const jobs = [];
+            for (let p = 2; p <= totalPages; p++) jobs.push(varietyHttpGet("/discover/tv", buildParams(p)));
+            const pages = await Promise.all(jobs);
+            // 整页失败必须跳过而不是让整体失败（前面几页仍然可用）
+            pages.forEach(r => { if (r && Array.isArray(r.results)) rows = rows.concat(r.results); });
+        }
 
-        return filtered.map(item => {
-            const dateStr = item.first_air_date || "";
-            const yearStr = dateStr ? dateStr.substring(0, 4) : "";
-            const ratingNum = item.vote_average ? Number(item.vote_average).toFixed(1) : "0.0";
-            const ratingText = Number(ratingNum) > 0 ? `${ratingNum}分` : "暂无评分";
-            const popText = `热度 ${Math.round(Number(item.popularity) || 0)}`;
-            const sub = `${ratingText} • ${popText}`;
-
-            return {
-                id: String(item.id),
-                tmdbId: Number(item.id),
-                type: "tmdb",
-                mediaType: "tv",
-                title: item.name || item.original_name,
-                genreTitle: sub,
-                subTitle: sub,
-                posterPath: item.poster_path ? `https://image.tmdb.org/t/p/w500${item.poster_path}` : "",
-                backdropPath: item.backdrop_path ? `https://image.tmdb.org/t/p/w780${item.backdrop_path}` : "",
-                description: `📅 首播时间: ${dateStr}\n${item.overview || "暂无简介"}`,
-                rating: parseFloat(ratingNum),
-                year: yearStr,
-                releaseDate: dateStr,
-                _country: (Array.isArray(item.origin_country) && item.origin_country[0]) || ""
-            };
+        const out = pinned.slice();
+        const seen = {};
+        out.forEach(c => { seen[c.id] = 1; });
+        rows.forEach(item => {
+            if (!item || !item.id || seen[item.id]) return;
+            seen[item.id] = 1;
+            if (varietyIsExcluded(item)) return;
+            out.push(varietyBuildHotCard(item));
         });
+        const result = out.slice(0, VARIETY_HOT_MAX_CARDS);
+        VarietyHotCache[cleanRegion] = { ts: Date.now(), items: result };
+        return result;
     } catch (e) {
         return [];
     }
@@ -4004,7 +4082,8 @@ async function calendarLoadVarietyUltimate(params = {}) {
     const days = String(params.days ?? "14");
     const pageNum = Math.max(1, parseInt(params.page) || 1);
 
-    // 🚀 热度榜（hot）：极速秒开模式，直接从 Discover 单次网络请求拿结果（1~2秒加载，零详情开销）
+    // 🚀 热度榜（hot）：秒开模式，discover 原生数据直出（零详情请求）。
+    // 一次**并发**抓多页后合并，首页即给全量、不再分页 —— 详见 varietyResolveHotFast。
     if (listType === "hot") {
         const hotItems = await varietyResolveHotFast(cleanRegion, pageNum);
         if (!hotItems.length) {
