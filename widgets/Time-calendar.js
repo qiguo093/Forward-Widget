@@ -2345,12 +2345,28 @@ async function calendarFetchTraktChineseAnime(updateDate, dayName) {
 // =========================================================================
 // 1. 业务逻辑：动漫周更 (Anime) 
 // =========================================================================
+const ANIME_CACHE_TTL_MS = 5 * 60 * 1000;
+const AnimePageCache = {};
+const AnimeCacheTime = {};
 
 async function calendarLoadAnime(params = {}) {
-    // 👈 核心修改：接管 sort_by 变回 weekday
     const weekday = params.sort_by || "today"; 
     const page = Math.max(1, Number(params.page || 1));
     const pageSize = 20;
+
+    const cacheKey = `${weekday}|${page}`;
+    const now = Date.now();
+    // 首页 (page=1) 时做 5 分钟 TTL 判定：若已超时则整体释放动漫缓存，确保 12:00 新上线的动漫下午刷新可见
+    if (page === 1) {
+        const lastTime = AnimeCacheTime[weekday] || 0;
+        if (!lastTime || (now - lastTime) >= ANIME_CACHE_TTL_MS) {
+            Object.keys(AnimePageCache).forEach(k => {
+                if (k.startsWith(`${weekday}|`)) delete AnimePageCache[k];
+            });
+            delete AnimeCacheTime[weekday];
+        }
+    }
+    if (AnimePageCache[cacheKey]) return AnimePageCache[cacheKey];
 
     let targetDayId = parseInt(weekday);
     if (weekday === "today" || isNaN(targetDayId)) {
@@ -2481,11 +2497,17 @@ async function calendarLoadAnime(params = {}) {
         }
 
         if (mergedAll.length === 0) {
-            return page === 1 ? [{ id: "empty", type: "text", title: "暂无更新" }] : [];
+            const emptyRes = page === 1 ? [{ id: "empty", type: "text", title: "暂无更新" }] : [];
+            AnimePageCache[cacheKey] = emptyRes;
+            AnimeCacheTime[weekday] = Date.now();
+            return emptyRes;
         }
 
         const start = (page - 1) * pageSize;
-        return mergedAll.slice(start, start + pageSize);
+        const resSlice = mergedAll.slice(start, start + pageSize);
+        AnimePageCache[cacheKey] = resSlice;
+        AnimeCacheTime[weekday] = Date.now();
+        return resSlice;
 
     } catch (e) {
         return [{ id: "err", type: "text", title: "加载失败", subTitle: e.message }];
@@ -2505,6 +2527,8 @@ async function calendarLoadAnime(params = {}) {
 // 缓存策略：当天全量数据集驻留内存，下拉翻页与切换地区只做增量，不再重复请求。
 // =========================================================================
 const DRAMA_PAGE_SIZE = 20;
+const DRAMA_CACHE_TTL_MS = 5 * 60 * 1000;
+let DramaCacheTime = 0;
 const DramaTodayCache = {};      // dateStr → { dataset, enriched, region }
 const DramaPremiereCache = {};   // `${mode}|${region}|${dateStr}|${page}` → cards
 const DramaTmdbDetailCache = {}; // tmdbId → TMDB 详情
@@ -2922,7 +2946,21 @@ async function calendarScanDramaToday(region, dateStr, baseParams, needCount, is
 async function calendarLoadDrama(params = {}) {
     const mode = params.mode || "update_today";
     const region = params.sort_by || "Global";
-    const page = params.page || 1;
+    const page = Number(params.page || 1);
+
+    // 第一页加载时检查 5 分钟 TTL：若超过则全量清理剧集缓存（包含 Trakt/TVmaze 当日表和 TMDB 详情缓存），
+    // 保证上午查到的旧排期在下午志愿者补录后刷新即可见最新集数。
+    if (page === 1) {
+        const now = Date.now();
+        if (!DramaCacheTime || (now - DramaCacheTime) >= DRAMA_CACHE_TTL_MS) {
+            Object.keys(DramaTodayCache).forEach(k => delete DramaTodayCache[k]);
+            Object.keys(DramaPremiereCache).forEach(k => delete DramaPremiereCache[k]);
+            Object.keys(DramaTmdbDetailCache).forEach(k => delete DramaTmdbDetailCache[k]);
+            Object.keys(DramaCnDayCache).forEach(k => delete DramaCnDayCache[k]);
+            DramaCacheTime = now;
+        }
+    }
+
     const dates = calendarCalculateDates(mode);
     const isPremiere = mode.includes("premiere");
 
