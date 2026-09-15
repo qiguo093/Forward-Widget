@@ -2955,8 +2955,12 @@ const VARIETY_TIME_EXCLUDED_COUNTRIES = ["IN", "TH", "RU", "TR", "PL", "FI", "HU
 const VARIETY_TIME_SPORTS_KEYWORDS = /(?:\bwrestling\b|\bwwe\b|\baew\b|\bnwa\b|\bmlw\b|\bnjpw\b|\bstardom\b|\bseadlin\w*ng\b|\btjpw\b|\bufc\b|\bmma\b|\bbellator\b|\bsmackdown\b|\bwrestlemania\b|\bimpact wrestling\b|\bring of honor\b|摔角|摔跤|格斗|角力|プロレス|スターダム)/i;
 const VARIETY_TIME_TRASH_KEYWORDS = /(?:\bsvengoolie\b|\bdice actors\b|\btivolt\b|\bnadie sabe nada\b|\bkovan viikon\b|\balucina[çc][ãa]o\b|\bmegaszt[aá]r\b|\bbeste zangers\b|\bthe missing piece\b|\bdimension 20\b|\bcritical role\b|\bactual play\b|\badventuring party\b|\bsmosh\b|\bm\s*countdown\b|\bmusic\s*bank\b|\bmusic\s*core\b|\binkigayo\b|show\s*champion|跑团|打歌|音乐中心|人气歌谣|音乐银行|쇼!?\s*챔피언|电视购物|付费课程|口语流利|零基础直达)/i;
 const VARIETY_TIME_BL_KEYWORDS = /(?:\bboys['\u2019]?\s*love\b|\byaoi\b|\byuri\b|\bbl drama\b|同性恋|耽美|男男|女女|腐剧|双男主)/i;
-
 const VARIETY_TIME_TALENT_KEYWORDS = /(?:\bgot\s*talent\b|\btalent\b|\bthe\s*voice\b|\bvoice\b|\bx[- ]?factor\b|\bidol\b|\bmasked\s*singer\b|\bsing(?:ing|er|s)?\b|\bdanc(?:ing|e|er|ers)\b|\bstrictly\b|\bworld\s*of\s*dance\b|达人秀|达人|好声音|蒙面|歌手|歌唱|合唱|唱歌|歌王|舞蹈|街舞|舞动|舞林|与星共舞|选秀|偶像练习)/i;
+
+const VARIETY_TIME_CACHE_TTL_MS = 5 * 60 * 1000;
+const VarietyTimeDetailCache = {};
+const VarietyTimePageCache = {};
+const VarietyTimeCacheTime = {};
 
 function varietyTimeBeijingDate(offsetDays = 0) {
     const t = new Date(Date.now() + 8 * 3600 * 1000 + offsetDays * 86400000);
@@ -3014,40 +3018,130 @@ function varietyTimeIsExcluded(item, selectedRegion = "") {
     return false;
 }
 
-async function calendarLoadVariety(params = {}) {
-    const mode = params.mode || params.variety_mode || "today";
-    const region = params.sort_by || "cn";
-    const page = Math.max(1, parseInt(params.page) || 1);
-    const clientId = CALENDAR_TRAKT_ID;
-
-    if (mode === "trending") return await calendarFetchVariety(region, null, page); 
-
-    const dateStr = calendarGetSafeDate(mode); 
-    const countryParam = region === "global" ? "" : region; 
-    const traktUrl = `https://api.trakt.tv/calendars/all/shows/${dateStr}/1?genres=reality,game-show,talk-show${countryParam ? `&countries=${countryParam}` : ''}`;
-
+async function varietyTimeFetchDetail(tmdbId) {
+    if (tmdbId in VarietyTimeDetailCache) return VarietyTimeDetailCache[tmdbId];
+    let d = null;
     try {
-        const res = await Widget.http.get(traktUrl, {
-            headers: { "Content-Type": "application/json", "trakt-api-version": "2", "trakt-api-key": clientId, "User-Agent": TRAKT_REQUEST_UA }
-        });
-        const data = res.data || [];
-
-        if (Array.isArray(data) && data.length > 0) {
-            const promises = data.map(async (item) => {
-                if (!item.show || !item.show.ids || !item.show.ids.tmdb) return null;
-                return await calendarFetchDetail(item.show.ids.tmdb, item, dateStr, region);
-            });
-            const results = (await Promise.all(promises)).filter(Boolean);
-            if (results.length > 0) {
-                const start = (page - 1) * 20;
-                return results.slice(start, start + 20);
-            }
-        }
+        d = await Widget.tmdb.get(`/tv/${tmdbId}`, { params: { language: "zh-CN" } });
     } catch (e) {
-        console.error("Trakt Request Failed:", e.message);
+        d = null;
+    }
+    VarietyTimeDetailCache[tmdbId] = d;
+    return d;
+}
+
+// 核心：基于真实分集播出日期构建卡片（不再拿查询日期强制覆盖）
+async function varietyTimeResolveTmdbCandidate(item, mode, targetDateStr, region) {
+    const detail = await varietyTimeFetchDetail(item.id);
+    if (!detail || varietyTimeIsExcluded(detail, region)) return null;
+
+    const next = detail.next_episode_to_air;
+    const last = detail.last_episode_to_air;
+
+    if (mode === "today" || mode === "tomorrow") {
+        const targetDate = targetDateStr;
+        const eps = [];
+        if (next && next.air_date === targetDate) eps.push(next);
+        if (last && last.air_date === targetDate) eps.push(last);
+        if (!eps.length) return null; // 真实播出日期不等于目标日期，坚决丢弃！
+
+        const ep = eps[0];
+        const s = String(ep.season_number || 1).padStart(2, '0');
+        const e = String(ep.episode_number || 1).padStart(2, '0');
+        const genreText = calendarGetGenreText(detail.genres?.map(g => g.id)) || "综艺";
+        const sub = `S${s}-E${e} ${genreText}`;
+
+        return calendarBuildItem({
+            id: detail.id, tmdbId: detail.id, type: "tv",
+            title: detail.name || detail.original_name,
+            poster: detail.poster_path, backdrop: detail.backdrop_path,
+            rating: detail.vote_average?.toFixed(1) || "0.0",
+            subTitle: sub,
+            desc: detail.overview,
+            year: targetDate.substring(0, 4),
+            releaseDate: targetDate
+        });
     }
 
-    return await calendarFetchVariety(region, dateStr, page);
+    // trending 近期热播
+    const ep = next || last || null;
+    const epDate = (ep && ep.air_date) || detail.first_air_date || "";
+    const genreText = calendarGetGenreText(detail.genres?.map(g => g.id)) || "综艺";
+    const shortDate = epDate ? epDate.substring(5).replace("-", "/") : "";
+    const sub = shortDate ? `${shortDate} ${genreText}` : `近期热播 · ${genreText}`;
+
+    return calendarBuildItem({
+        id: detail.id, tmdbId: detail.id, type: "tv",
+        title: detail.name || detail.original_name,
+        poster: detail.poster_path, backdrop: detail.backdrop_path,
+        rating: detail.vote_average?.toFixed(1) || "0.0",
+        subTitle: sub,
+        desc: detail.overview,
+        year: epDate.substring(0, 4),
+        releaseDate: epDate
+    });
+}
+
+async function calendarLoadVariety(params = {}) {
+    const mode = params.mode || params.variety_mode || "today";
+    const region = (params.sort_by || "cn").toLowerCase();
+    const page = Math.max(1, parseInt(params.page) || 1);
+    const clientId = CALENDAR_TRAKT_ID;
+    const dateStr = calendarGetSafeDate(mode);
+
+    const cacheKey = `${mode}|${region}|${dateStr}|${page}`;
+    const now = Date.now();
+
+    // 首页刷新时检查 5 分钟 TTL
+    if (page === 1) {
+        const lastTime = VarietyTimeCacheTime[cacheKey] || 0;
+        if (!lastTime || (now - lastTime) >= VARIETY_TIME_CACHE_TTL_MS) {
+            Object.keys(VarietyTimePageCache).forEach(k => delete VarietyTimePageCache[k]);
+            Object.keys(VarietyTimeDetailCache).forEach(k => delete VarietyTimeDetailCache[k]);
+            VarietyTimeCacheTime[cacheKey] = now;
+        }
+    }
+    if (VarietyTimePageCache[cacheKey]) return VarietyTimePageCache[cacheKey];
+
+    if (mode === "trending") {
+        const res = await calendarFetchVariety(region, null, page, mode);
+        VarietyTimePageCache[cacheKey] = res;
+        return res;
+    }
+
+    // 海外/国际走 Trakt（若有），国内及 Trakt 未覆盖的走 TMDB 真实分集解析
+    const isDomestic = region === "cn" || region.includes("国") || region.includes("中");
+
+    if (!isDomestic) {
+        const countryParam = region === "global" ? "" : region;
+        const traktUrl = `https://api.trakt.tv/calendars/all/shows/${dateStr}/1?genres=reality,game-show,talk-show${countryParam ? `&countries=${countryParam}` : ''}`;
+        try {
+            const res = await Widget.http.get(traktUrl, {
+                headers: { "Content-Type": "application/json", "trakt-api-version": "2", "trakt-api-key": clientId, "User-Agent": TRAKT_REQUEST_UA }
+            });
+            const data = res.data || [];
+            if (Array.isArray(data) && data.length > 0) {
+                const promises = data.map(async (item) => {
+                    if (!item.show || !item.show.ids || !item.show.ids.tmdb) return null;
+                    return await calendarFetchDetail(item.show.ids.tmdb, item, dateStr, region);
+                });
+                const results = (await Promise.all(promises)).filter(Boolean);
+                if (results.length > 0) {
+                    const start = (page - 1) * 20;
+                    const pageSlice = results.slice(start, start + 20);
+                    VarietyTimePageCache[cacheKey] = pageSlice;
+                    return pageSlice;
+                }
+            }
+        } catch (e) {
+            console.error("Trakt Request Failed:", e.message);
+        }
+    }
+
+    // TMDB 候选池 + 真实分集日期过滤
+    const tmdbRes = await calendarFetchVariety(region, dateStr, page, mode);
+    VarietyTimePageCache[cacheKey] = tmdbRes;
+    return tmdbRes;
 }
 
 // =========================================================================
@@ -3077,29 +3171,28 @@ function calendarGetWeekdayName(id) {
     return map[id] || "";
 }
 
-async function calendarFetchVariety(region, dateStr, page = 1) {
+async function calendarFetchVariety(region, dateStr, page = 1, mode = "today") {
     const queryParams = {
         language: "zh-CN",
-        sort_by: "popularity.desc", 
+        sort_by: "popularity.desc",
         page: page,
-        with_genres: "10764|10767", 
+        with_genres: "10764|10767",
         include_null_first_air_dates: false,
-        timezone: "Asia/Shanghai" 
+        timezone: "Asia/Shanghai"
     };
 
     if (region !== "global") {
         queryParams.with_origin_country = region.toUpperCase();
     } else {
-        // 全球热门：限制主流产地，避免混入希伯来/挪威等小语种冷门
         queryParams.with_origin_country = "US|KR|GB|CA|AU|TW|HK|SG|NZ|IE";
     }
 
     if (dateStr) {
-        queryParams["air_date.gte"] = dateStr;
-        queryParams["air_date.lte"] = dateStr;
+        // discover 拉取前后数天的候选池，再由 varietyTimeResolveTmdbCandidate 严格比对当天分集！
+        queryParams["air_date.gte"] = varietyTimeBeijingDate(-1);
+        queryParams["air_date.lte"] = varietyTimeBeijingDate(7);
     } else {
         queryParams.sort_by = "popularity.desc";
-        // 近期热播：看近期有播出的活跃节目（近30天~未来30天）
         queryParams["air_date.gte"] = varietyTimeBeijingDate(-30);
         queryParams["air_date.lte"] = varietyTimeBeijingDate(30);
     }
@@ -3109,26 +3202,15 @@ async function calendarFetchVariety(region, dateStr, page = 1) {
         const data = res || {};
         if (!data.results || !Array.isArray(data.results)) return [];
 
-        const filtered = data.results.filter(item => !varietyTimeIsExcluded(item, region));
+        const rawList = data.results.filter(item => !varietyTimeIsExcluded(item, region));
+        const resolvedPromises = rawList.map(item => varietyTimeResolveTmdbCandidate(item, mode, dateStr || "", region));
+        const resolved = (await Promise.all(resolvedPromises)).filter(Boolean);
 
-        return filtered.map(item => {
-            const cardDate = dateStr || item.first_air_date || "";
-            const yearStr = cardDate ? cardDate.substring(0, 4) : "";
-            const genreText = calendarGetGenreText(item.genre_ids) || "综艺";
-            const shortDate = dateStr ? dateStr.substring(5).replace("-", "/") : "";
-            
-            const displaySubtitle = shortDate ? `${shortDate} ${genreText}` : `近期热播 · ${genreText}`;
+        if (resolved.length === 0) {
+            return page === 1 ? [{ id: "empty", type: "text", title: "暂无更新", description: mode === "today" ? "今日暂无播出的综艺" : "暂无满足条件的排期" }] : [];
+        }
 
-            return calendarBuildItem({
-                id: item.id, tmdbId: item.id, type: "tv",
-                title: item.name, poster: item.poster_path, backdrop: item.backdrop_path,
-                rating: item.vote_average?.toFixed(1), 
-                subTitle: displaySubtitle, 
-                desc: item.overview,
-                year: yearStr,
-                releaseDate: cardDate
-            });
-        });
+        return resolved.slice(0, 20);
     } catch (e) { return []; }
 }
 
@@ -3136,12 +3218,9 @@ async function calendarFetchDetail(tmdbId, traktItem, fallbackDate = "", selecte
     try {
         const d = await Widget.tmdb.get(`/tv/${tmdbId}`, { params: { language: "zh-CN" } });
         if (!d) return null;
-        
-        // 校验是否属于被过滤项
         if (varietyTimeIsExcluded(d, selectedRegion)) return null;
 
         const ep = traktItem && traktItem.episode ? traktItem.episode : {};
-        // 优先使用当集播出日期或 fallbackDate (当天查询日期)，不再使用首播年份
         const cardDate = (traktItem && traktItem.first_aired ? traktItem.first_aired.substring(0, 10) : "") || fallbackDate || d.first_air_date || "";
         const yearStr = cardDate ? cardDate.substring(0, 4) : "";
         
