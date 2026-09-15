@@ -2965,6 +2965,10 @@ const VarietyTimeDetailCache = {};
 const VarietyTimeSeasonCache = {};
 const VarietyTimePageCache = {};
 const VarietyTimeCacheTime = {};
+// 「近期热播」的数据集：按产地驻留已解析好的卡片，跨页复用、按需增量解析。
+// 旧实现每次翻页都重新抓 discover 并把整池候选（40 条）全部解析一遍详情，
+// 却只展示其中 20 张 —— 请求量翻倍且翻页全量重做。现在改为「要多少解析多少」。
+const VarietyTimeTrendingDataset = {};
 
 function varietyTimeBeijingDate(offsetDays = 0) {
     const t = new Date(Date.now() + 8 * 3600 * 1000 + offsetDays * 86400000);
@@ -3166,15 +3170,22 @@ async function calendarLoadVariety(params = {}) {
             Object.keys(VarietyTimePageCache).forEach(k => delete VarietyTimePageCache[k]);
             Object.keys(VarietyTimeDetailCache).forEach(k => delete VarietyTimeDetailCache[k]);
             Object.keys(VarietyTimeSeasonCache).forEach(k => delete VarietyTimeSeasonCache[k]);
+            Object.keys(VarietyTimeTrendingDataset).forEach(k => delete VarietyTimeTrendingDataset[k]);
             VarietyTimeCacheTime[cacheKey] = now;
         }
     }
     if (VarietyTimePageCache[cacheKey]) return VarietyTimePageCache[cacheKey];
 
     if (mode === "trending") {
-        const res = await calendarFetchVariety(region, null, page, mode);
-        VarietyTimePageCache[cacheKey] = res;
-        return res;
+        // 按需解析到「本页所需张数」为止：第 1 页解析约 20 条、第 2 页只补增量，
+        // 翻回前面的页 0 请求（数据集驻留内存）。
+        const st = await varietyTimeTrendingResolve(region, page * 20);
+        const start = (page - 1) * 20;
+        const slice = st.cards.slice(start, start + 20);
+        if (!slice.length) {
+            return page === 1 ? [{ id: "empty", type: "text", title: "暂无更新", description: "近期暂无可播出的综艺" }] : [];
+        }
+        return slice;
     }
 
     // 华语/国内及 Trakt 未覆盖的地区走 TMDB 真实分集解析
@@ -3255,9 +3266,10 @@ function calendarGetWeekdayName(id) {
     return map[id] || "";
 }
 
-// 综艺时刻候选池扫描页数：今日/明日需要拿到"当天全部综艺"（TMDB 按热度排序，
-// 低热度节目会被挤到第 2 页之后 —— 实测《一万元舞台》《舞蹈新风暴》都在第 2 页）；
-// 近期热播本来就是人气榜，前两页足够。
+// 综艺时刻候选池扫描页数（仅用于「今日更新 / 明日预告」路径）：
+// 这两天需要拿到"当天全部综艺"（TMDB 按热度排序，低热度节目会被挤到第 2 页之后
+// —— 实测《一万元舞台》《舞蹈新风暴》都在第 2 页）；其余情况前两页足够。
+// 注：「近期热播」已改走 varietyTimeTrendingResolve 的按需增量引擎，不再用本函数。
 function varietyTimeScanPages(mode) {
     return (mode === "today" || mode === "tomorrow") ? 6 : 2;
 }
@@ -3295,28 +3307,86 @@ function varietyTimeTraktAirDate(row) {
     return d.toISOString().slice(0, 10);
 }
 
-async function calendarFetchVariety(region, dateStr, page = 1, mode = "today") {
-    const buildParams = (p) => {
-        const q = {
-            language: "zh-CN",
-            sort_by: "popularity.desc",
-            page: p,
-            with_genres: "10764|10767",
-            include_null_first_air_dates: false,
-            timezone: "Asia/Shanghai"
-        };
-        if (region !== "global") q.with_origin_country = region.toUpperCase();
-        else q.with_origin_country = "US|KR|GB|CA|AU|TW|HK|SG|NZ|IE";
-        if (dateStr) {
-            // discover 只做候选池，真实分集日期由 varietyTimeResolveTmdbCandidate 逐条严格比对
-            q["air_date.gte"] = varietyTimeBeijingDate(-1);
-            q["air_date.lte"] = varietyTimeBeijingDate(7);
-        } else {
-            q["air_date.gte"] = varietyTimeBeijingDate(-30);
-            q["air_date.lte"] = varietyTimeBeijingDate(30);
+// 综艺 discover 的「国外产地」白名单
+const VARIETY_TIME_DISCOVER_COUNTRIES = "US|KR|GB|CA|AU|TW|HK|SG|NZ|IE";
+
+// 近期热播的 discover 时间窗（天）。⚠️ 这里是 **分集播出日期**(air_date) 的过滤，
+// 不是节目首播日。TMDB 对台湾/香港综艺的分集记录严重缺失，窗口越窄塌陷越狠：
+//   实测（台湾综艺）±30 天 → 窗口内仅 3 条；±365 天 → 24 条（过滤后 19 张，差 1 张撑不满）；
+//   ±730 天 → 46 条（首页 18 张 + 第 2 页 16 张，可翻页）。
+// 同时 ±730 天仍能排除停播多年的老节目（康熙来了 2017 结束、龙兄虎弟 1995 结束），
+// 比「完全去掉窗口」更符合「近期在播」的语义 —— 无窗口时 1962 年的《金马奖》
+// 和 1990 年的《Fullfive》会按 popularity 排到前排，榜单会变成"历史总热度榜"。
+const VARIETY_TIME_TRENDING_WINDOW_DAYS = 730;
+
+// 「近期热播」按需增量解析引擎。
+//
+// 旧实现的三个问题：
+//   ① 每次翻页都重新抓 discover、并把该产地全部候选（2 页 = 40 条）逐个拉详情，
+//      但页面上只用得到 20 张 —— 解析量是需求的 2 倍；
+//   ② 第 2 页会把第 1 页的活重做一遍（cacheKey 含 page，页间不共享）；
+//   ③ 候选池被服务端 air_date 窗口砍得太狠（TW 只剩 3 条），列表撑不满。
+//
+// 现在：数据集按产地驻留，需要多少张卡就解析多少条；翻页只做增量，回退 0 请求。
+async function varietyTimeTrendingResolve(region, needCount) {
+    let st = VarietyTimeTrendingDataset[region];
+    if (!st) st = VarietyTimeTrendingDataset[region] = { cards: [], raw: [], seen: {}, nextPage: 1, exhausted: false };
+
+    const CHUNK = 10;
+    // 页数上限：人气排序下前几页已足够；也是防止极端情况下无限翻页的保险丝
+    const MAX_DISCOVER_PAGE = 5;
+
+    while (st.cards.length < needCount && !st.exhausted) {
+        // ① 候选不足则继续抓 discover 下一页
+        while (!st.raw.length && !st.exhausted) {
+            if (st.nextPage > MAX_DISCOVER_PAGE) { st.exhausted = true; break; }
+            const res = await varietyTimeHttpGet("/discover/tv", varietyTimeDiscoverParams(region, null, st.nextPage));
+            const rows = (res && Array.isArray(res.results)) ? res.results : [];
+            if (!rows.length) { st.exhausted = true; break; }
+            rows.forEach(it => {
+                if (!it || !it.id || st.seen[it.id]) return;
+                st.seen[it.id] = 1;
+                if (varietyTimeIsExcluded(it, region)) return;   // 用 discover 原生字段先粗筛，省下详情请求
+                st.raw.push(it);
+            });
+            st.nextPage++;
+            const tp = Number(res && res.total_pages) || 0;
+            if (tp && st.nextPage > tp) st.exhausted = true;
         }
-        return q;
+        if (!st.raw.length) break;
+
+        // ② 按批解析详情（分批并发，避免触发 TMDB 限流）
+        const batch = st.raw.splice(0, CHUNK);
+        const out = await Promise.all(batch.map(it => varietyTimeResolveTmdbCandidate(it, "trending", "", region)));
+        out.forEach(c => { if (c) st.cards.push(c); });
+    }
+    return st;
+}
+
+// 综艺时刻 discover 查询参数（候选池用；真实分集日期另由 varietyTimeResolveTmdbCandidate 严格比对）
+function varietyTimeDiscoverParams(region, dateStr, p) {
+    const q = {
+        language: "zh-CN",
+        sort_by: "popularity.desc",
+        page: p,
+        with_genres: "10764|10767",
+        include_null_first_air_dates: false,
+        timezone: "Asia/Shanghai"
     };
+    if (region !== "global") q.with_origin_country = region.toUpperCase();
+    else q.with_origin_country = VARIETY_TIME_DISCOVER_COUNTRIES;
+    if (dateStr) {
+        q["air_date.gte"] = varietyTimeBeijingDate(-1);
+        q["air_date.lte"] = varietyTimeBeijingDate(7);
+    } else {
+        q["air_date.gte"] = varietyTimeBeijingDate(-VARIETY_TIME_TRENDING_WINDOW_DAYS);
+        q["air_date.lte"] = varietyTimeBeijingDate(VARIETY_TIME_TRENDING_WINDOW_DAYS);
+    }
+    return q;
+}
+
+async function calendarFetchVariety(region, dateStr, page = 1, mode = "today") {
+    const buildParams = (p) => varietyTimeDiscoverParams(region, dateStr, p);
 
     try {
         const first = await varietyTimeHttpGet("/discover/tv", buildParams(1));
