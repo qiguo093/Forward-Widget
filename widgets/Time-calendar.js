@@ -2449,6 +2449,37 @@ const ANIME_CACHE_TTL_MS = 5 * 60 * 1000;
 const AnimePageCache = {};
 const AnimeCacheTime = {};
 
+// -------------------------------------------------------------------------
+// 持久缓存：App 在切换模块参数（比如「今天」→「周一」）时会**重新执行一遍
+// widget 脚本**，模块内的内存缓存（AnimePageCache）会随之丢失，于是切回
+// 「今天」又得重新联网拉一次 —— 用户看到的就是「空白 + 转圈重新加载」。
+// 这里用 Widget.storage 把结果落盘，跨脚本重载依然命中，切来切去即可秒开。
+// 版本号后缀用于：日后卡片结构变化时，直接换 key 即可让旧缓存自然失效。
+// -------------------------------------------------------------------------
+const ANIME_STORE_PREFIX = "anime_week_v2";
+// 持久层 TTL 比内存层（5 分钟）宽松得多：动漫周更的数据一天之内基本不变，
+// 用户来回切星期、隔十几分钟再打开，都不该重新等一遍网络。
+const ANIME_STORE_TTL_MS = 30 * 60 * 1000;
+
+async function animeStoreGet(weekday, updateDate, page) {
+    try {
+        if (!Widget.storage || !Widget.storage.get) return null;
+        const raw = await Widget.storage.get(`${ANIME_STORE_PREFIX}|${weekday}|${updateDate}|${page}`);
+        if (!raw) return null;
+        const obj = typeof raw === "string" ? JSON.parse(raw) : raw;
+        if (!obj || !Array.isArray(obj.items) || !obj.items.length) return null;
+        if (Date.now() - Number(obj.ts || 0) >= ANIME_STORE_TTL_MS) return null;   // 过期，等联网刷新
+        return obj.items;
+    } catch (e) { return null; }
+}
+
+async function animeStoreSet(weekday, updateDate, page, items) {
+    try {
+        if (!Widget.storage || !Widget.storage.set || !Array.isArray(items) || !items.length) return;
+        await Widget.storage.set(`${ANIME_STORE_PREFIX}|${weekday}|${updateDate}|${page}`, JSON.stringify({ ts: Date.now(), items }));
+    } catch (e) { /* 存储失败不影响正常返回 */ }
+}
+
 // 判断 Bangumi 条目是不是国产动画：看**原名**里有没有日文假名或拉丁字母。
 // Bangumi 的日历以日本动画为主，但也混着国漫（《太古神尊》《东大高武学院》
 // 《是王者啊？》这类原名就是中文），不能一律当番剧排到后面。
@@ -2456,13 +2487,30 @@ const AnimeCacheTime = {};
 //   含拉丁  → 非国产（如 BLEACH 千年血戦篇、『斬 -ZAN-』Pilot Film 这类
 //             用罗马字/英文命名的日番，以及欧美动画）—— 只靠"有没有汉字"
 //             会把它们误判成国漫，必须先用拉丁字母挡掉
+//   N期 结尾 → 日本动画（日番写「第2期 / 十七期」，国漫写「第二季」，用字不同）
 //   其余纯汉字 → 国产
+// ⚠️ 这条启发式**只在没有 TMDB 匹配结果时**才用 —— 它必然存在误判
+// （《幼女戦記Ⅱ》《闇芝居 十七期》原名都是纯汉字，实为日番）。
+// 有 TMDB 匹配时一律改用 original_language 判定，见 animeIsChineseByTmdb。
 function isChineseAnimeByName(originalName) {
     const src = String(originalName || "");
     if (!src) return false;
     if (/[\u3040-\u309F\u30A0-\u30FF\uFF66-\uFF9D]/.test(src)) return false;   // 平假名/片假名/半角片假名
     if (/[A-Za-z]/.test(src)) return false;                                    // 拉丁字母
+    if (/[一二三四五六七八九十百\d]+期/.test(src)) return false;                // 日番季数写法「N期」
     return /[\u4e00-\u9fff]/.test(src);                                       // 中日共用汉字
+}
+
+// 国漫判定的首选信号：TMDB 匹配结果的 original_language。
+// zh → 国产动画，ja → 日本动画。比"看标题里有没有假名"可靠得多。
+// ⚠️ 但 TMDB 上的**数据残条**（genre_ids 为空的那种）连语言字段都不可信 ——
+// 例如《BLEACH 千年血战篇 -祸进谭》的条目被标成 zh，实为日番。
+// 所以残条一律返回 null，让调用方退回名称启发式判定。
+function animeIsChineseByTmdb(tmdbItem) {
+    const lang = String((tmdbItem && tmdbItem.original_language) || "").toLowerCase();
+    const genres = Array.isArray(tmdbItem && tmdbItem.genre_ids) ? tmdbItem.genre_ids : [];
+    if (!lang || !genres.length) return null;   // 语言缺失或数据残条 → 不可信
+    return lang === "zh";
 }
 
 // =========================================================================
@@ -2495,7 +2543,22 @@ async function calendarLoadAnime(params = {}) {
     const page = Math.max(1, Number(params.page || 1));
     const pageSize = 20;
 
-    const cacheKey = `${weekday}|${page}`;
+    // 先算出这次到底对应哪一天，再拼缓存键 —— 键里必须带日期：
+    // 否则跨零点时「今天」还是同一个键，会把昨天那份列表当成今天的返回。
+    let targetDayId = parseInt(weekday);
+    if (weekday === "today" || isNaN(targetDayId)) {
+        const today = new Date();
+        const jsDay = today.getDay();
+        targetDayId = jsDay === 0 ? 7 : jsDay;
+    }
+    const dayName = calendarGetWeekdayName(targetDayId);
+    // 显示本次所选周更日，而非作品最初首播日；指定星期则取最近一次该星期。
+    const updateDateObj = new Date();
+    const currentDayId = updateDateObj.getDay() || 7;
+    updateDateObj.setDate(updateDateObj.getDate() + ((targetDayId - currentDayId + 7) % 7));
+    const updateDate = [updateDateObj.getFullYear(), String(updateDateObj.getMonth() + 1).padStart(2, "0"), String(updateDateObj.getDate()).padStart(2, "0")].join("-");
+
+    const cacheKey = `${weekday}|${updateDate}|${page}`;
     const now = Date.now();
     // 首页 (page=1) 时做 5 分钟 TTL 判定：若已超时则整体释放动漫缓存，确保 12:00 新上线的动漫下午刷新可见
     if (page === 1) {
@@ -2510,25 +2573,22 @@ async function calendarLoadAnime(params = {}) {
     }
     if (AnimePageCache[cacheKey]) return AnimePageCache[cacheKey];
 
-    let targetDayId = parseInt(weekday);
-    if (weekday === "today" || isNaN(targetDayId)) {
-        const today = new Date();
-        const jsDay = today.getDay();
-        targetDayId = jsDay === 0 ? 7 : jsDay;
+    // 内存缓存未命中 → 查持久缓存（App 切换参数会重新执行脚本，内存会被清空）
+    const storedItems = await animeStoreGet(weekday, updateDate, page);
+    if (storedItems) {
+        AnimePageCache[cacheKey] = storedItems;
+        return storedItems;
     }
-    const dayName = calendarGetWeekdayName(targetDayId);
-    // 显示本次所选周更日，而非作品最初首播日；指定星期则取最近一次该星期。
-    const updateDateObj = new Date();
-    const currentDayId = updateDateObj.getDay() || 7;
-    updateDateObj.setDate(updateDateObj.getDate() + ((targetDayId - currentDayId + 7) % 7));
-    const updateDate = [updateDateObj.getFullYear(), String(updateDateObj.getMonth() + 1).padStart(2, "0"), String(updateDateObj.getDate()).padStart(2, "0")].join("-");
 
     try {
-        const [bgmRes, biliRes, tmdbCnItems] = await Promise.all([
-            Widget.http.get("https://api.bgm.tv/calendar").catch(() => ({ data: [] })),
-            Widget.http.get("https://api.bilibili.com/pgc/web/timeline?types=4").catch(() => ({ data: {} })),
-            calendarFetchTmdbCnAnime(updateDate, dayName)
-        ]);
+        // 三个数据源同时开跑。Bangumi / B站 的条目还要各自去 TMDB 搜一次，
+        // 那段搜索与 TMDB 国漫兜底是两件独立的事，必须并行起来 ——
+        // 否则总耗时是「兜底」+「搜索」两段串行相加。
+        const bgmResP = Widget.http.get("https://api.bgm.tv/calendar").catch(() => ({ data: [] }));
+        const biliResP = Widget.http.get("https://api.bilibili.com/pgc/web/timeline?types=4").catch(() => ({ data: {} }));
+        const tmdbCnP = calendarFetchTmdbCnAnime(updateDate, dayName);
+
+        const [bgmRes, biliRes] = await Promise.all([bgmResP, biliResP]);
 
         const bgmData = bgmRes.data || [];
         const dayData = bgmData.find(d => d.weekday && d.weekday.id === targetDayId);
@@ -2562,7 +2622,9 @@ async function calendarLoadAnime(params = {}) {
                 itemData.desc = tmdbItem.overview || itemData.desc;
                 itemData.rating = tmdbItem.vote_average?.toFixed(1) || itemData.rating;
             }
-            const isCnAnime = isChineseAnimeByName(item.name, title);
+            const isCnAnime = (tmdbItem && !animeIsLiveActionMatch(tmdbItem) && animeIsChineseByTmdb(tmdbItem) !== null)
+                ? animeIsChineseByTmdb(tmdbItem)
+                : isChineseAnimeByName(item.name, title);
             if (isCnAnime) itemData.genreText = "国漫";
             const bgmItem = calendarBuildItem({
                 ...itemData,
@@ -2608,9 +2670,10 @@ async function calendarLoadAnime(params = {}) {
             });
         });
 
-        const [bangumiItems, biliItems] = await Promise.all([
+        const [bangumiItems, biliItems, tmdbCnItems] = await Promise.all([
             Promise.all(bangumiPromises),
-            Promise.all(biliPromises)
+            Promise.all(biliPromises),
+            tmdbCnP
         ]);
 
         const seenIds = new Set();
@@ -2667,6 +2730,7 @@ async function calendarLoadAnime(params = {}) {
         const resSlice = mergedAll.slice(start, start + pageSize);
         AnimePageCache[cacheKey] = resSlice;
         AnimeCacheTime[weekday] = Date.now();
+        await animeStoreSet(weekday, updateDate, page, resSlice);
         return resSlice;
 
     } catch (e) {
@@ -3441,6 +3505,12 @@ const VARIETY_ASIAN_COUNTRIES = ["KR", "JP", "TW", "HK", "SG"];
 // 韩综单独保留（用户要求加入，见下方 isKR 分支）。
 const VARIETY_TALENT_KEYWORDS = /(?:\bgot\s*talent\b|\btalent\b|\bthe\s*voice\b|\bvoice\b|\bx[- ]?factor\b|\bidol\b|\bmasked\s*singer\b|\bsing(?:ing|er|s)?\b|\bdanc(?:ing|e|er|ers)\b|\bstrictly\b|\bworld\s*of\s*dance\b|达人秀|达人|好声音|蒙面|歌手|歌唱|合唱|唱歌|歌王|舞蹈|街舞|舞动|舞林|与星共舞|选秀|偶像练习)/i;
 
+// 「精选白名单」：少数公认高质量、但不属于「选秀竞技」的海外真人秀
+// （纪实/改造/生活类），单独放行，绕过「国外真人秀仅放行选秀竞技」那一条。
+// 命中本规则**只跳过那一条**，其余规则照旧生效（纪录片 99、摔角体育、BL、
+// 新闻、零票低热度等仍然会拦）。与 Top-list.js 的同名规则保持一致。
+const VARIETY_PREMIUM_ALLOW = /(?:\bqueer\s*eye\b|粉雄救兵|\bclarkson'?s?\s*farm\b|克拉克森的农场)/i;
+
 const VARIETY_BL_KEYWORDS = /(?:\bboys['\u2019]?\s*love\b|\byaoi\b|\byuri\b|\bbl drama\b|同性恋|耽美|男男|女女|腐剧|双男主)/i;
 
 function varietyBeijingDate(offsetDays) {
@@ -3482,10 +3552,11 @@ function varietyIsExcluded(item) {
     const isKR = country === "KR" || lang === "ko";
     const isReality = genres.indexOf(10764) >= 0;
     const isTalent = VARIETY_TALENT_KEYWORDS.test(titleText);
-    // 国外真人秀一律屏蔽；仅放行唱歌/舞蹈/达人秀类选秀竞技，韩综单独保留。
-    if (!isCN && isReality && !isKR && !isTalent) return true;
+    const isPremium = VARIETY_PREMIUM_ALLOW.test(titleText);
+    // 国外真人秀一律屏蔽；仅放行唱歌/舞蹈/达人秀类选秀竞技与精选白名单，韩综单独保留。
+    if (!isCN && isReality && !isKR && !isTalent && !isPremium) return true;
     // 放宽「要求中文简介」仅对仍有资格进入列表的条目生效
-    const relaxReality = !isCN && isReality && (isKR || isTalent);
+    const relaxReality = !isCN && isReality && (isKR || isTalent || isPremium);
 
     if (genres.indexOf(99) >= 0) return true;                          // 纪录片：一律拦截
     if (VARIETY_EXCLUDED_COUNTRIES.indexOf(country) >= 0) return true;
