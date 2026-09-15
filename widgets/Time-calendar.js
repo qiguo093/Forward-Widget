@@ -2537,7 +2537,11 @@ function dramaIsExcludedTmdbItem(item) {
     if (countries.some(c => DRAMA_EXCLUDED_COUNTRIES.includes(c))) return true;
     if (DRAMA_EXCLUDED_LANGUAGES.includes(origLang)) return true;
     const text = `${item.name || ""} ${item.original_name || ""} ${item.overview || ""}`;
-    if (DRAMA_BL_KEYWORDS.test(text) || DRAMA_SPORTS_KEYWORDS.test(text) || DRAMA_TRASH_KEYWORDS.test(text)) return true;
+    if (DRAMA_BL_KEYWORDS.test(text) || DRAMA_TRASH_KEYWORDS.test(text)) return true;
+    // 摔角/体育品牌名（AEW、WWE、UFC…）只比对标题：
+    // 剧情简介里出现 "football" 的剧本剧（如《未来全明星》）不该被误杀
+    const titleText = `${item.name || ""} ${item.original_name || ""}`;
+    if (DRAMA_SPORTS_KEYWORDS.test(titleText)) return true;
     const isMajor = countries.some(c => ["CN", "HK", "TW", "US", "GB", "JP", "KR"].includes(c));
     if (!isMajor && (!item.overview || !item.overview.trim()) && (item.vote_count || 0) === 0) return true;
     return false;
@@ -2556,7 +2560,13 @@ function dramaGetGenreText(ids) {
 // -------------------------------------------------------------------------
 async function dramaFetchTraktDay(dateStr) {
     try {
-        const url = `https://api.trakt.tv/calendars/all/shows/${dateStr}/1?extended=full`;
+        // Trakt 的日历按北美时区切分"一天"，边界是模糊的：查 date 会混进次日，
+        // 而当日真正要播的剧又有一部分落在前一天。所以从「前一天」起抓 3 天窗口，
+        // 再由 dramaCollectTraktEntries 按实际播出日期精确过滤。
+        const t = new Date(`${dateStr}T00:00:00Z`);
+        t.setUTCDate(t.getUTCDate() - 1);
+        const from = t.toISOString().slice(0, 10);
+        const url = `https://api.trakt.tv/calendars/all/shows/${from}/3?extended=full`;
         const res = await Widget.http.get(url, {
             headers: {
                 "Content-Type": "application/json",
@@ -2571,14 +2581,59 @@ async function dramaFetchTraktDay(dateStr) {
     } catch (_) { return null; }   // null 表示不可用，调用方降级
 }
 
+// 取一集的"实际播出日期"，对齐 TMDB 详情页显示的日期。
+// ⚠️ 坑：Trakt 的 released 是 **UTC 日期**，而 TMDB 详情页用的是 **节目所在地的当地日期**。
+// 美剧黄金档 20:00~23:00 ET 播出时，UTC 已经是次日，两者会整整差一天：
+//   实测《费城永远阳光灿烂》S18E6 → TMDB 9/14，Trakt released 9/15；
+//   实测《未来全明星》S8E11     → TMDB 9/14，Trakt released 9/15；
+//   实测《流人》S6E1            → TMDB 9/16，Trakt released 9/16（伦敦时段，不跨日）。
+// 所以这里按节目的 airs.timezone 把 first_aired 换算成当地日期，与详情页保持一致。
+function dramaTraktAirDate(row) {
+    const show = (row && row.show) || {};
+    const fa = row && row.first_aired;
+    if (fa) {
+        const d = new Date(fa);
+        if (!isNaN(d.getTime())) {
+            const tz = (show.airs && show.airs.timezone) || "";
+            if (tz) {
+                try {
+                    const parts = new Intl.DateTimeFormat("en-US", {
+                        timeZone: tz, year: "numeric", month: "2-digit", day: "2-digit"
+                    }).formatToParts(d);
+                    const pick = t => { for (const p of parts) if (p.type === t) return p.value; return ""; };
+                    const y = pick("year"), m = pick("month"), dd = pick("day");
+                    if (y && m && dd) return `${y}-${m}-${dd}`;
+                } catch (_) { /* Intl 不可用或时区无效 → 走下面的兜底 */ }
+                // 兜底：用「节目表的当地播出时刻」与「UTC 时刻」的时差反推当地日期，无需时区库
+                const t = String((show.airs && show.airs.time) || "").slice(0, 5);
+                const hm = t.match(/^(\d{1,2}):(\d{2})$/);
+                if (hm) {
+                    const localMin = Number(hm[1]) * 60 + Number(hm[2]);
+                    const utcMin = d.getUTCHours() * 60 + d.getUTCMinutes();
+                    let diff = localMin - utcMin;
+                    if (diff > 780) diff -= 1440;
+                    if (diff < -780) diff += 1440;
+                    return new Date(d.getTime() + diff * 60000).toISOString().slice(0, 10);
+                }
+            }
+            return d.toISOString().slice(0, 10);
+        }
+    }
+    return row && row.released ? String(row.released).slice(0, 10) : "";
+}
+
 // 按剧聚合（同一部剧当天可能连播多集），并套用净化规则
-function dramaCollectTraktEntries(rows) {
+function dramaCollectTraktEntries(rows, dateStr) {
     const byId = {};
     for (const row of rows) {
         const show = (row && row.show) || {};
         const ep = (row && row.episode) || {};
         const tmdbId = show.ids && show.ids.tmdb;
         if (!tmdbId) continue;
+        // 精确校验播出日期：Trakt 的日历按北美时区切"天"，边界模糊 ——
+        // 实测查 9/15 返回的 111 条里有 72 条实际是 9/16；反过来当天真正要播的
+        // 剧又有相当一部分落在 9/14 的查询里。所以上面多抓一天，这里按实际日期过滤。
+        if (dateStr && dramaTraktAirDate(row) !== dateStr) continue;
         const genres = (show.genres || []).map(g => String(g).toLowerCase());
         if (genres.length === 0) continue;
         if (genres.some(g => DRAMA_EXCLUDED_TRAKT_GENRES.includes(g))) continue;
@@ -2588,7 +2643,9 @@ function dramaCollectTraktEntries(rows) {
         if (DRAMA_EXCLUDED_COUNTRIES.includes(country.toUpperCase())) continue;
         if (DRAMA_EXCLUDED_LANGUAGES.includes(lang)) continue;
         const text = `${show.title || ""} ${show.original_title || ""} ${show.overview || ""}`;
-        if (DRAMA_BL_KEYWORDS.test(text) || DRAMA_SPORTS_KEYWORDS.test(text) || DRAMA_TRASH_KEYWORDS.test(text)) continue;
+        if (DRAMA_BL_KEYWORDS.test(text) || DRAMA_TRASH_KEYWORDS.test(text)) continue;
+        // 摔角/体育品牌名只比对标题，避免误杀"讲球队故事的剧本剧"
+        if (DRAMA_SPORTS_KEYWORDS.test(`${show.title || ""} ${show.original_title || ""}`)) continue;
         const key = String(tmdbId);
         if (!byId[key]) {
             byId[key] = {
@@ -2706,7 +2763,7 @@ async function dramaBuildTodayDataset(dateStr) {
     st.traktOk = traktRows !== null;
     // Trakt 不可用时用 TMDB discover 兜底国际剧集，避免整块空白
     const intl = st.traktOk
-        ? dramaCollectTraktEntries(traktRows)
+        ? dramaCollectTraktEntries(traktRows, dateStr)
         : await dramaCollectTmdbFallback(dateStr);
 
     // 去重：同一部剧两边都有时以 Trakt 为准（它带集数）
