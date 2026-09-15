@@ -3215,7 +3215,11 @@ function varietyDays(v) {
 // 扫描页数随预览范围自适应：范围越长，需要翻的页越多。
 // 8 页会把 160 条候选全部拉回来，其中相当一部分在详情校验后会被丢弃（discover 的
 // air_date 过滤误报率高），所以短范围没必要扫到底 —— 这是首屏耗时的主要来源。
-function varietyScanPages(days) {
+// 扫描页数随「榜单类型 + 预览范围」自适应：
+// · 热度榜是纯人气榜（几乎不做日期过滤），discover 已按人气排序，前几页足够撑满列表
+// · 追新榜需要更深的候选池 —— 大量条目会在日期校验阶段被丢弃
+function varietyScanPages(days, listType) {
+    if (listType === "hot") return 2;
     const d = parseInt(days) || 14;
     if (d <= 7) return 4;
     if (d <= 14) return 6;
@@ -3361,7 +3365,7 @@ async function varietyCollectPool(country, listType, days) {
     const first = await varietyFetchDiscoverPage(country, listType, days, 1);
     if (!first) return [];   // 首页失败：放弃该产地，避免用到残缺数据
     let rows = Array.isArray(first.results) ? first.results.slice() : [];
-    const totalPages = Math.min(Number(first.total_pages) || 1, varietyScanPages(days));
+    const totalPages = Math.min(Number(first.total_pages) || 1, varietyScanPages(days, listType));
     if (totalPages > 1) {
         const jobs = [];
         for (let p = 2; p <= totalPages; p++) jobs.push(varietyFetchDiscoverPage(country, listType, days, p));
@@ -3411,6 +3415,8 @@ const VarietyCandidateCache = {};
 const VarietyDetailCache = {};
 const VarietySeasonCache = {};
 const VarietyResolvedCache = {};
+// 热度榜按需增量解析的进度（追新榜需要全局排序，仍走全量解析）
+const VarietyHotState = {};
 const VarietyCacheTime = {};
 
 function varietyCacheStale(key) {
@@ -3423,6 +3429,7 @@ function varietyCacheStale(key) {
 function varietyInvalidateDataset(key) {
     delete VarietyCandidateCache[key];
     delete VarietyResolvedCache[key];
+    delete VarietyHotState[key];
     delete VarietyCacheTime[key];
     Object.keys(VarietyDetailCache).forEach(k => delete VarietyDetailCache[k]);
     Object.keys(VarietySeasonCache).forEach(k => delete VarietySeasonCache[k]);
@@ -3635,15 +3642,37 @@ async function varietyResolveOne(cand, listType, todayStr, endStr, cleanRegion) 
     return varietyBuildCard(detail, null, listType, latestSeasonDate);
 }
 
-async function varietyResolveDataset(region, listType, days, cands) {
+async function varietyResolveDataset(region, listType, days, cands, needCount) {
     const cleanRegion = varietyNormalizeRegion(region);
     const dVal = varietyDays(days);
     const key = `${listType}|${cleanRegion}|${dVal}`;
-    // 时效由首页（page=1）统一把关，翻页时直接用现有数据集，避免滚动中途触发全量重解析
-    if (VarietyResolvedCache[key]) return VarietyResolvedCache[key];
-
     const todayStr = varietyBeijingDate(0);
     const endStr = varietyBeijingDate(dVal);
+
+    // 热度榜：纯人气序（discover 已排序），按需增量解析 ——
+    // 首页只要 20 条，没必要把 70+ 条候选的详情全部拉一遍（这是首屏耗时的主因）。
+    if (listType !== "calendar") {
+        const need = Math.max(1, Number(needCount) || VARIETY_PAGE_SIZE);
+        const state = VarietyHotState[key] || (VarietyHotState[key] = { items: [], cursor: 0 });
+        while (state.items.length < need && state.cursor < cands.length) {
+            const chunk = cands.slice(state.cursor, state.cursor + VARIETY_RESOLVE_CONCURRENCY);
+            state.cursor += chunk.length;
+            const rows = await Promise.all(chunk.map(c => varietyResolveOne(c, listType, todayStr, endStr, cleanRegion)));
+            rows.forEach(r => {
+                if (!r) return;
+                // 国内模式必须绝对纯净
+                if (cleanRegion === "cn" && r._country !== "CN" && !(r.description || "").includes("CN")) return;
+                state.items.push(r);
+            });
+        }
+        VarietyCacheTime[key] = Date.now();
+        return state.items;
+    }
+
+    // 追新榜：需要全局排序（日期升序 + 同日产地交错），必须全量解析后缓存
+    // 时效由首页（page=1）统一把关，翻页时直接用现有数据集
+    if (VarietyResolvedCache[key]) return VarietyResolvedCache[key];
+
     const limit = Math.min(cands.length, VARIETY_MAX_RESOLVE);
     const items = [];
 
@@ -3661,14 +3690,11 @@ async function varietyResolveDataset(region, listType, days, cands) {
         return true;
     });
 
-    let ordered = filteredItems;
-    if (listType === "calendar") {
-        filteredItems.sort((a, b) => {
-            if (a.releaseDate === b.releaseDate) return 0;
-            return a.releaseDate > b.releaseDate ? 1 : -1;
-        });
-        ordered = varietyInterleaveByRegion(filteredItems);
-    }
+    filteredItems.sort((a, b) => {
+        if (a.releaseDate === b.releaseDate) return 0;
+        return a.releaseDate > b.releaseDate ? 1 : -1;
+    });
+    const ordered = varietyInterleaveByRegion(filteredItems);
 
     VarietyResolvedCache[key] = ordered;
     VarietyCacheTime[key] = Date.now();
@@ -3697,7 +3723,9 @@ async function calendarLoadVarietyUltimate(params = {}) {
                 : [];
         }
 
-        const items = await varietyResolveDataset(cleanRegion, listType, days, cands);
+        // 热度榜按需解析：只需要「当前页 + 少量缓冲」条，避免拉满全部候选详情
+        const needCount = pageNum * VARIETY_PAGE_SIZE + 4;
+        const items = await varietyResolveDataset(cleanRegion, listType, days, cands, needCount);
         if (!items.length) {
             return pageNum === 1
                 ? [{ id: "variety_empty", type: "text", title: "暂无排期", subTitle: listType === "calendar" ? (days === "0" ? "今日暂无播出的综艺" : `未来 ${days} 天内暂无可播出的综艺`) : "暂无可播出的综艺" }]
