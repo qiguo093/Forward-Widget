@@ -3316,6 +3316,23 @@ function varietyIsExcluded(item) {
 // -------------------------------------------------------------------------
 // 候选池：多页扫描 discover，服务端 air_date 过滤 + 客户端垃圾过滤
 // -------------------------------------------------------------------------
+// 统一的 TMDB 请求（带重试）。任何一页失败若被当成"空页"，该页节目会整批消失
+// （实测《一万元舞台》在第 2 页，丢页就看不到它）。
+async function varietyHttpGet(api, params, tries = 3) {
+    for (let attempt = 0; attempt < tries; attempt++) {
+        if (attempt > 0) {
+            await new Promise(r => setTimeout(r, 250 * attempt));
+        }
+        try {
+            const res = await Widget.tmdb.get(api, { params });
+            if (res) return res;
+        } catch (e) {
+            /* 继续重试 */
+        }
+    }
+    return null;
+}
+
 async function varietyFetchDiscoverPage(country, listType, days, page) {
     const params = {
         language: "zh-CN",
@@ -3336,23 +3353,25 @@ async function varietyFetchDiscoverPage(country, listType, days, page) {
         params["air_date.gte"] = varietyBeijingDate(-7);
         params["air_date.lte"] = varietyBeijingDate(60);
     }
-    try {
-        const res = await Widget.tmdb.get("/discover/tv", { params });
-        return res || {};
-    } catch (e) {
-        return { results: [] };
-    }
+    // 失败返回 null（区别于"确实没有结果"），调用方据此重试
+    return await varietyHttpGet("/discover/tv", params);
 }
 
 async function varietyCollectPool(country, listType, days) {
     const first = await varietyFetchDiscoverPage(country, listType, days, 1);
+    if (!first) return [];   // 首页失败：放弃该产地，避免用到残缺数据
     let rows = Array.isArray(first.results) ? first.results.slice() : [];
     const totalPages = Math.min(Number(first.total_pages) || 1, varietyScanPages(days));
     if (totalPages > 1) {
         const jobs = [];
         for (let p = 2; p <= totalPages; p++) jobs.push(varietyFetchDiscoverPage(country, listType, days, p));
         const pages = await Promise.all(jobs);
-        pages.forEach(r => { if (r && Array.isArray(r.results)) rows = rows.concat(r.results); });
+        // 单页失败必须重试，不能静默跳过 —— 否则该页节目整批消失
+        for (let i = 0; i < pages.length; i++) {
+            let r = pages[i];
+            if (!r) r = await varietyFetchDiscoverPage(country, listType, days, i + 2);
+            if (r && Array.isArray(r.results)) rows = rows.concat(r.results);
+        }
     }
     const seen = {};
     const out = [];
@@ -3390,6 +3409,7 @@ const VARIETY_CACHE_TTL_MS = 5 * 60 * 1000;
 
 const VarietyCandidateCache = {};
 const VarietyDetailCache = {};
+const VarietySeasonCache = {};
 const VarietyResolvedCache = {};
 const VarietyCacheTime = {};
 
@@ -3405,26 +3425,39 @@ function varietyInvalidateDataset(key) {
     delete VarietyResolvedCache[key];
     delete VarietyCacheTime[key];
     Object.keys(VarietyDetailCache).forEach(k => delete VarietyDetailCache[k]);
+    Object.keys(VarietySeasonCache).forEach(k => delete VarietySeasonCache[k]);
 }
 
 async function varietyFetchDetail(tmdbId) {
     if (tmdbId in VarietyDetailCache) return VarietyDetailCache[tmdbId];
-    // 失败必须重试：详情请求偶发抖动时若直接返回 null，该节目会被当作"无排期"丢弃，
-    // 而结果随即被宿主缓存住，导致下拉也刷不回来。
-    let d = null;
-    for (let attempt = 0; attempt < 3 && !d; attempt++) {
-        if (attempt > 0) {
-            await new Promise(r => setTimeout(r, 300 * attempt));
-        }
-        try {
-            d = await Widget.tmdb.get(`/tv/${tmdbId}`, { params: { language: "zh-CN" } });
-        } catch (e) {
-            d = null;
-        }
-    }
+    const d = await varietyHttpGet(`/tv/${tmdbId}`, { language: "zh-CN" });
     // 只缓存成功结果；失败不进缓存，下次刷新还能重新尝试
     if (d) VarietyDetailCache[tmdbId] = d;
     return d;
+}
+
+// 取某一季的分集表。TMDB 的 next/last_episode_to_air 字段偶尔滞后或不完整
+// （当天分集确实存在，但字段没指向当天），需回查季分集表做兜底确认 ——
+// 与「剧集追更」的 dramaResolveOne 同一思路。
+async function varietyFetchSeasonEpisodes(tmdbId, seasonNumber) {
+    const key = `${tmdbId}|${seasonNumber}`;
+    if (key in VarietySeasonCache) return VarietySeasonCache[key];
+    const se = await varietyHttpGet(`/tv/${tmdbId}/season/${seasonNumber}`, { language: "zh-CN" });
+    const eps = (se && Array.isArray(se.episodes)) ? se.episodes : null;
+    if (eps) VarietySeasonCache[key] = eps;
+    return eps || [];
+}
+
+// 该节目最新的有效季号（用于兜底回查）
+function varietyLatestSeasonNumber(detail, next, last) {
+    if (next && next.season_number) return next.season_number;
+    if (last && last.season_number) return last.season_number;
+    const seasons = Array.isArray(detail.seasons)
+        ? detail.seasons.filter(s => s && Number(s.season_number) > 0).map(s => Number(s.season_number))
+        : [];
+    if (!seasons.length) return null;
+    seasons.sort((a, b) => b - a);
+    return seasons[0];
 }
 
 function varietyBuildCard(detail, ep, listType, sortDate) {
@@ -3573,6 +3606,21 @@ async function varietyResolveOne(cand, listType, todayStr, endStr, cleanRegion) 
         const eps = [];
         if (next && next.air_date && next.air_date >= targetGte && next.air_date <= targetLte) eps.push(next);
         if (last && last.air_date && last.air_date >= targetGte && last.air_date <= targetLte) eps.push(last);
+
+        if (!eps.length) {
+            // 兜底：next/last_episode_to_air 偶尔滞后（当天分集已存在却没指向当天），
+            // 回查最近一季的分集表确认。仅国产区启用 —— 该区以 TMDB 为主源、候选量小；
+            // 海外由 Trakt 保证精度，全开会产生大量额外请求。
+            if (cleanRegion === "cn") {
+                const seasonNumber = varietyLatestSeasonNumber(detail, next, last);
+                if (seasonNumber) {
+                    const list = await varietyFetchSeasonEpisodes(detail.id, seasonNumber);
+                    list.forEach(e => {
+                        if (e && e.air_date && e.air_date >= targetGte && e.air_date <= targetLte) eps.push(e);
+                    });
+                }
+            }
+        }
 
         if (!eps.length) return null;
 
