@@ -99,8 +99,10 @@ var WidgetMetadata = {
             description: "全球剧集更新与首播日历",
             functionName: "loadStandaloneDramaCalendar",
             type: "video",
-            // 不用宿主结果缓存：宿主缓存可能按"同参数"命中第一页结果，导致下拉翻页拿不到新数据。
-            // 改为脚本内部内存缓存（同日同地区复用，切地区来回零请求）。
+            // 宿主结果缓存 2 小时（7200 秒）。注意：宿主缓存命中时脚本不会执行，
+            // 因此不宜设得过长（如 86400），否则志愿者补录当天集数后刷新看不到。
+            // 脚本内部另有内存数据集，翻页/切地区为 0 请求。
+            cacheDuration: 7200,
             params: [
                 { name: "sort_by", title: "地区偏好", type: "enumeration", value: "Global", enumOptions: [ { title: "全球聚合", value: "Global" }, { title: "美国", value: "US" }, { title: "日本", value: "JP" }, { title: "韩国", value: "KR" }, { title: "中国", value: "CN" }, { title: "英国", value: "GB" } ] },
                 { name: "calendar_mode", title: "时间范围", type: "enumeration", value: "update_today", enumOptions: [ { title: "今日更新", value: "update_today" }, { title: "明日首播", value: "premiere_tomorrow" }, { title: "7天内首播", value: "premiere_week" }, { title: "30天内首播", value: "premiere_month" } ] },
@@ -112,8 +114,10 @@ var WidgetMetadata = {
             description: "未来综艺排期与热度榜单",
             functionName: "loadStandaloneVarietyAggregate",
             type: "video",
-            // 不用宿主结果缓存：宿主缓存可能按"同参数"命中第一页结果，导致下拉翻页拿不到新数据。
-            // 改为脚本内部内存缓存（同地区同范围复用，切地区来回零请求）。
+            // 宿主结果缓存 2 小时（7200 秒）。注意：宿主缓存命中时脚本不会执行，
+            // 因此不宜设得过长（如 86400），否则志愿者补录当天集数后刷新看不到。
+            // 脚本内部另有内存数据集，翻页/切地区为 0 请求。
+            cacheDuration: 7200,
             params: [
                 { name: "sort_by", title: "综艺筛选", type: "enumeration", value: "all", enumOptions: [ { title: "全部地区", value: "all" }, { title: "国内综艺", value: "cn" }, { title: "国外综艺", value: "global" } ] },
                 { name: "list_type", title: "榜单类型", type: "enumeration", value: "calendar", enumOptions: [ { title: "追新榜", value: "calendar" }, { title: "热度榜", value: "hot" } ] },
@@ -126,7 +130,7 @@ var WidgetMetadata = {
             description: "国创与番剧每周更新表",
             functionName: "loadStandaloneAnimeWeek",
             type: "video",
-            cacheDuration: 43200,
+            cacheDuration: 7200,
             params: [
                 { name: "sort_by", title: "选择日期", type: "enumeration", value: "today", enumOptions: [ { title: "今天", value: "today" }, { title: "周一", value: "1" }, { title: "周二", value: "2" }, { title: "周三", value: "3" }, { title: "周四", value: "4" }, { title: "周五", value: "5" }, { title: "周六", value: "6" }, { title: "周日", value: "7" } ] },
                 { name: "page", title: "页码", type: "page" }
