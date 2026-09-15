@@ -3487,15 +3487,19 @@ async function varietyResolveOne(cand, listType, todayStr, endStr, cleanRegion) 
     const last = detail.last_episode_to_air;
 
     if (listType === "calendar") {
-        let ep = null;
-        // 关键修复：当 days=0（今日更新）时，todayStr === endStr，必须严格等于今天，不能放行未来日期！
         const targetGte = todayStr;
         const targetLte = endStr;
 
-        if (next && next.air_date && next.air_date >= targetGte && next.air_date <= targetLte) ep = next;
-        else if (last && last.air_date && last.air_date >= targetGte && last.air_date <= targetLte) ep = last;
-        
-        if (!ep) return null;
+        // 收集所有落在 [gte, lte] 有效区间内的分集候选
+        const eps = [];
+        if (next && next.air_date && next.air_date >= targetGte && next.air_date <= targetLte) eps.push(next);
+        if (last && last.air_date && last.air_date >= targetGte && last.air_date <= targetLte) eps.push(last);
+
+        if (!eps.length) return null;
+
+        // 核心修复：优先选择离今天（todayStr）最新的/最近的分集（如 2026-09-15 优先于 2026-09-28）
+        eps.sort((a, b) => (a.air_date > b.air_date ? 1 : (a.air_date < b.air_date ? -1 : 0)));
+        const ep = eps[0];
         return varietyBuildCard(detail, ep, listType, ep.air_date);
     }
 
@@ -3548,6 +3552,14 @@ async function calendarLoadVarietyUltimate(params = {}) {
     const cleanRegion = varietyNormalizeRegion(rawRegion);
     const days = String(params.days ?? "14");
     const pageNum = Math.max(1, parseInt(params.page) || 1);
+
+    // 第一页请求时，清理对应内存缓存，保证 TMDB 最新编辑的分集数据能实时刷新
+    if (pageNum === 1) {
+        const dVal = varietyDays(days);
+        const cacheKey = `${listType}|${cleanRegion}|${dVal}`;
+        delete VarietyResolvedCache[cacheKey];
+        delete VarietyCandidateCache[cacheKey];
+    }
 
     try {
         const cands = await varietyGetCandidates(cleanRegion, listType, days);
