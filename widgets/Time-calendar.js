@@ -2343,6 +2343,112 @@ async function calendarFetchTraktChineseAnime(updateDate, dayName) {
 }
 
 // =========================================================================
+// TMDB 国漫兜底：补上 B站国创 / Bangumi / Trakt 三源都覆盖不到的
+// 腾讯视频、优酷等平台独播国漫（如《遮天》《武神主宰》《炼气十万年》）。
+//
+// 判据说明：
+//   · 主判据 = discover 的 air_date 过滤（TMDB 按分集表精确匹配"这一天有没有分集"）
+//   · detail 请求只用来补集号 / 评分 / 简介，并做儿童向二次过滤；
+//     切勿把 next_episode_to_air 当硬判据 —— 它有滞后（某集播完仍长期挂在 next 上），
+//     拿它做"必须等于目标日"会让整批国漫从未来日期直接消失。
+// =========================================================================
+const AnimeCnTmdbCache = {};   // updateDate → items（仅缓存成功结果）
+
+// 低幼 / 教育类噪音关键词：这类条目即便标着"动画"也不是用户要看的国漫
+const ANIME_CN_NOISE_KEYWORDS = /古诗|诗词|语文|数学|英语|成语|识字|拼音|儿歌|启蒙|亲子|早教|课堂|教程|玩具|益智|睡前故事|十万个为什么/;
+
+async function calendarFetchTmdbCnAnime(updateDate, dayName) {
+    if (AnimeCnTmdbCache[updateDate]) return AnimeCnTmdbCache[updateDate];
+    const collected = [];
+    let ok = false;
+    try {
+        const disc = await Widget.tmdb.get("/discover/tv", {
+            params: {
+                language: "zh-CN",
+                with_genres: "16",              // 动画
+                with_origin_country: "CN",      // 国产
+                "air_date.gte": updateDate,
+                "air_date.lte": updateDate,
+                sort_by: "popularity.desc",
+                page: 1
+            }
+        });
+        const rows = (disc && Array.isArray(disc.results)) ? disc.results : [];
+        ok = true;
+
+        const CHUNK = 12;
+        for (let i = 0; i < rows.length; i += CHUNK) {
+            const part = await Promise.all(rows.slice(i, i + CHUNK).map(async (row) => {
+                const tmdbId = row && row.id;
+                if (!tmdbId) return null;
+                const title = String(row.name || "");
+                if (ANIME_CN_NOISE_KEYWORDS.test(title)) return null;
+                // 儿童(10762)：低幼向动画，不属于「动漫周更」的受众范围（先用 discover 的 genre_ids 挡掉，省一次详情请求）
+                if (Array.isArray(row.genre_ids) && row.genre_ids.includes(10762)) return null;
+
+                const buildFrom = (src, epLabel) => calendarBuildItem({
+                    id: tmdbId,
+                    tmdbId,
+                    type: "tv",
+                    title: src.name || title,
+                    poster: src.poster_path || row.poster_path,
+                    backdrop: src.backdrop_path || row.backdrop_path,
+                    rating: (src.vote_average ?? row.vote_average)?.toFixed?.(1) || "0.0",
+                    subTitle: `${updateDate} ${dayName} 国漫 · 今日更新${epLabel}`,
+                    desc: src.overview || row.overview || `今日更新${epLabel}`,
+                    year: updateDate.substring(0, 4),
+                    releaseDate: updateDate
+                });
+                const withPop = (item) => ({ item, pop: Number(row.popularity || 0) });
+
+                let detail = null;
+                for (let attempt = 0; attempt < 2 && !detail; attempt++) {
+                    try {
+                        detail = await Widget.tmdb.get(`/tv/${tmdbId}`, { params: { language: "zh-CN" } });
+                    } catch (e) {
+                        if (attempt === 0) await new Promise(r => setTimeout(r, 300));
+                    }
+                }
+                // 详情拿不到（网络抖动）：软命中 —— 信任 discover 的日期过滤先展示，
+                // 宁可少一个集号，也不要让整条节目从列表里消失。
+                if (!detail) return withPop(buildFrom(row, ""));
+
+                const genreIds = (detail.genres || []).map(g => g.id);
+                if (genreIds.includes(10762)) return null;
+
+                // ⚠️ 这里**不能**把 next/last 当成硬性判据：
+                // TMDB 的 next_episode_to_air 存在滞后（某集播完后仍长期挂在 next 上），
+                // 用它做"必须等于目标日"的校验，会让未来日期（以及部分当天）整批国漫消失。
+                // 真正的判据是 discover 的 air_date 过滤本身 —— 它按分集表精确匹配目标日，
+                // 这也是 TMDB 里最本质的"今天有没有更新"信息。next/last 只用来取集号。
+                const last = detail.last_episode_to_air || {};
+                const next = detail.next_episode_to_air || {};
+                const isNext = next.air_date === updateDate;
+                const isLast = last.air_date === updateDate;
+
+                let epLabel = "";
+                if (isNext || isLast) {
+                    const ep = isNext ? next : last;
+                    const seasonNo = Number(ep.season_number || 1);
+                    const epNo = Number(ep.episode_number || 0);
+                    epLabel = seasonNo > 1
+                        ? ` · 第${seasonNo}季第${epNo}集`
+                        : (epNo ? ` · 第${epNo}集` : "");
+                }
+                return withPop(buildFrom(detail, epLabel));
+            }));
+            part.forEach(x => { if (x && x.item) collected.push(x); });
+        }
+        collected.sort((a, b) => b.pop - a.pop);
+    } catch (e) {
+        console.error("[calendar] TMDB 国漫兜底获取失败:", e.message || e);
+    }
+    const items = collected.map(x => x.item);
+    if (ok) AnimeCnTmdbCache[updateDate] = items;   // 失败不进缓存，避免一次抖动锁死整轮
+    return items;
+}
+
+// =========================================================================
 // 1. 业务逻辑：动漫周更 (Anime) 
 // =========================================================================
 const ANIME_CACHE_TTL_MS = 5 * 60 * 1000;
@@ -2363,6 +2469,7 @@ async function calendarLoadAnime(params = {}) {
             Object.keys(AnimePageCache).forEach(k => {
                 if (k.startsWith(`${weekday}|`)) delete AnimePageCache[k];
             });
+            Object.keys(AnimeCnTmdbCache).forEach(k => delete AnimeCnTmdbCache[k]);
             delete AnimeCacheTime[weekday];
         }
     }
@@ -2382,10 +2489,11 @@ async function calendarLoadAnime(params = {}) {
     const updateDate = [updateDateObj.getFullYear(), String(updateDateObj.getMonth() + 1).padStart(2, "0"), String(updateDateObj.getDate()).padStart(2, "0")].join("-");
 
     try {
-        const [bgmRes, biliRes, traktItems] = await Promise.all([
+        const [bgmRes, biliRes, traktItems, tmdbCnItems] = await Promise.all([
             Widget.http.get("https://api.bgm.tv/calendar").catch(() => ({ data: [] })),
             Widget.http.get("https://api.bilibili.com/pgc/web/timeline?types=4").catch(() => ({ data: {} })),
-            calendarFetchTraktChineseAnime(updateDate, dayName)
+            calendarFetchTraktChineseAnime(updateDate, dayName),
+            calendarFetchTmdbCnAnime(updateDate, dayName)
         ]);
 
         const bgmData = bgmRes.data || [];
@@ -2467,11 +2575,23 @@ async function calendarLoadAnime(params = {}) {
         ]);
 
         const seenIds = new Set();
+        const seenTitles = new Set();
+        // 标题归一化：去掉标点空格与「第X季 / 年番」等修饰，用于**跨源**去重
+        // （同一部国漫可能同时出现在 B站时间线、Trakt 与 TMDB 兜底里，
+        //   而 B站条目若没匹配上 TMDB，光靠 tmdbId 是去不掉的）
+        const animeTitleKey = (t) => String(t || "")
+            .replace(/[\s《》【】\[\]（）()·・:：!！?？\-—_,，.。'"“”]/g, "")
+            .replace(/第[一二三四五六七八九十\d]+季/g, "")
+            .replace(/年番/g, "")
+            .toLowerCase();
         const dedupeAdd = (item, list) => {
             if (!item) return;
             const key = String(item.tmdbId || item.id || item.title);
+            const titleKey = animeTitleKey(item.title);
             if (seenIds.has(key)) return;
+            if (titleKey && seenTitles.has(titleKey)) return;
             seenIds.add(key);
+            if (titleKey) seenTitles.add(titleKey);
             list.push(item);
         };
 
@@ -2481,14 +2601,15 @@ async function calendarLoadAnime(params = {}) {
         const uniqueTraktItems = [];
         traktItems.forEach(item => dedupeAdd(item, uniqueTraktItems));
 
+        const uniqueTmdbCnItems = [];
+        tmdbCnItems.forEach(item => dedupeAdd(item, uniqueTmdbCnItems));
+
         const uniqueBangumiItems = [];
         bangumiItems.forEach(item => dedupeAdd(item, uniqueBangumiItems));
 
-        // 3. 不再使用 TMDB 的单日 air_date 作为国漫确认依据：国内连载剧常存在日期偏差。
-        // 国漫只采用 B站真实时间线和 Trakt donghua/cn 当天更新结果，避免 TMDB 单日日期偏差。
-
-        // 4. 国漫优先与番剧合理混排：交错合并，确保前页同时看到国漫和番剧
-        const allCnItems = [...uniqueBiliItems, ...uniqueTraktItems];
+        // 3. 国漫主源为 B站真实时间线 + Trakt 当天更新；TMDB 兜底（已用
+        //    next/last_episode_to_air 精确校验目标日期）补上腾讯/优酷等平台独播国漫。
+        const allCnItems = [...uniqueBiliItems, ...uniqueTraktItems, ...uniqueTmdbCnItems];
         const mergedAll = [];
         const maxLen = Math.max(allCnItems.length, uniqueBangumiItems.length);
         for (let i = 0; i < maxLen; i++) {
