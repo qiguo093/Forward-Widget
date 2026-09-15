@@ -2962,6 +2962,7 @@ const VARIETY_TIME_TALENT_KEYWORDS = /(?:\bgot\s*talent\b|\btalent\b|\bthe\s*voi
 
 const VARIETY_TIME_CACHE_TTL_MS = 5 * 60 * 1000;
 const VarietyTimeDetailCache = {};
+const VarietyTimeSeasonCache = {};
 const VarietyTimePageCache = {};
 const VarietyTimeCacheTime = {};
 
@@ -3021,21 +3022,27 @@ function varietyTimeIsExcluded(item, selectedRegion = "") {
     return false;
 }
 
-async function varietyTimeFetchDetail(tmdbId) {
-    if (tmdbId in VarietyTimeDetailCache) return VarietyTimeDetailCache[tmdbId];
-    // 失败必须重试：详情请求偶发抖动时若直接返回 null，该节目会被当作"无排期"丢弃，
-    // 而结果随即被宿主缓存住，导致下拉也刷不回来。
-    let d = null;
-    for (let attempt = 0; attempt < 3 && !d; attempt++) {
+// 统一的 TMDB 请求（带重试）。所有请求失败都必须重试：
+// 偶发的网络抖动或限流如果被当成"没数据"，会直接导致当天的节目被丢弃，
+// 而结果随即被脚本缓存 + 宿主缓存，表现为"某个节目怎么刷都出不来"。
+async function varietyTimeHttpGet(api, params, tries = 3) {
+    for (let attempt = 0; attempt < tries; attempt++) {
         if (attempt > 0) {
-            await new Promise(r => setTimeout(r, 300 * attempt));
+            await new Promise(r => setTimeout(r, 250 * attempt));
         }
         try {
-            d = await Widget.tmdb.get(`/tv/${tmdbId}`, { params: { language: "zh-CN" } });
+            const res = await Widget.tmdb.get(api, { params });
+            if (res) return res;
         } catch (e) {
-            d = null;
+            /* 继续重试 */
         }
     }
+    return null;
+}
+
+async function varietyTimeFetchDetail(tmdbId) {
+    if (tmdbId in VarietyTimeDetailCache) return VarietyTimeDetailCache[tmdbId];
+    const d = await varietyTimeHttpGet(`/tv/${tmdbId}`, { language: "zh-CN" });
     // 只缓存成功结果；失败不进缓存，下次刷新还能重新尝试
     if (d) VarietyTimeDetailCache[tmdbId] = d;
     return d;
@@ -3052,6 +3059,30 @@ function varietyTimeGetLatestSeasonAirDate(detail) {
     return detail.first_air_date || "";
 }
 
+// 取某一季的分集表。TMDB 的 next/last_episode_to_air 字段偶尔滞后或不完整
+// （实测《一万元舞台》当天分集确实存在，但这两个字段没有指向当天），
+// 需要回查季分集表做兜底确认 —— 与「剧集追更」的 dramaResolveOne 同一思路。
+async function varietyTimeFetchSeasonEpisodes(tmdbId, seasonNumber) {
+    const key = `${tmdbId}|${seasonNumber}`;
+    if (key in VarietyTimeSeasonCache) return VarietyTimeSeasonCache[key];
+    const se = await varietyTimeHttpGet(`/tv/${tmdbId}/season/${seasonNumber}`, { language: "zh-CN" });
+    const eps = (se && Array.isArray(se.episodes)) ? se.episodes : null;
+    if (eps) VarietyTimeSeasonCache[key] = eps;
+    return eps || [];
+}
+
+// 该节目最新的有效季号（用于兜底回查）
+function varietyTimeLatestSeasonNumber(detail, next, last) {
+    if (next && next.season_number) return next.season_number;
+    if (last && last.season_number) return last.season_number;
+    const seasons = Array.isArray(detail.seasons)
+        ? detail.seasons.filter(s => s && Number(s.season_number) > 0).map(s => Number(s.season_number))
+        : [];
+    if (!seasons.length) return null;
+    seasons.sort((a, b) => b - a);
+    return seasons[0];
+}
+
 async function varietyTimeResolveTmdbCandidate(item, mode, targetDateStr, region) {
     const detail = await varietyTimeFetchDetail(item.id);
     if (!detail || varietyTimeIsExcluded(detail, region)) return null;
@@ -3064,7 +3095,23 @@ async function varietyTimeResolveTmdbCandidate(item, mode, targetDateStr, region
         const eps = [];
         if (next && next.air_date === targetDate) eps.push(next);
         if (last && last.air_date === targetDate) eps.push(last);
-        if (!eps.length) return null; // 真实播出日期不等于目标日期，坚决丢弃！
+
+        if (!eps.length) {
+            // 兜底：回查最近一季的分集表，确认当天是否真有分集。
+            // 仅对国产综艺启用 —— 该地区以 TMDB 为主源且候选量小；海外由 Trakt 保证精度，
+            // 若同样开启会带来大量额外请求。
+            const isDomesticRegion = String(region || "").toLowerCase() === "cn";
+            if (isDomesticRegion) {
+                const seasonNumber = varietyTimeLatestSeasonNumber(detail, next, last);
+                if (seasonNumber) {
+                    const list = await varietyTimeFetchSeasonEpisodes(detail.id, seasonNumber);
+                    const hit = list.find(e => e && e.air_date === targetDate);
+                    if (hit) eps.push(hit);
+                }
+            }
+        }
+
+        if (!eps.length) return null; // 确认真实播出日期不等于目标日期，坚决丢弃！
 
         const ep = eps[0];
         const s = String(ep.season_number || 1).padStart(2, '0');
@@ -3118,6 +3165,7 @@ async function calendarLoadVariety(params = {}) {
         if (!lastTime || (now - lastTime) >= VARIETY_TIME_CACHE_TTL_MS) {
             Object.keys(VarietyTimePageCache).forEach(k => delete VarietyTimePageCache[k]);
             Object.keys(VarietyTimeDetailCache).forEach(k => delete VarietyTimeDetailCache[k]);
+            Object.keys(VarietyTimeSeasonCache).forEach(k => delete VarietyTimeSeasonCache[k]);
             VarietyTimeCacheTime[cacheKey] = now;
         }
     }
@@ -3266,13 +3314,15 @@ async function calendarFetchVariety(region, dateStr, page = 1, mode = "today") {
     };
 
     try {
-        const first = await Widget.tmdb.get("/discover/tv", { params: buildParams(1) });
+        const first = await varietyTimeHttpGet("/discover/tv", buildParams(1));
         let rows = (first && Array.isArray(first.results)) ? first.results.slice() : [];
         const totalPages = Math.min(Number(first && first.total_pages) || 1, varietyTimeScanPages(mode));
         if (totalPages > 1) {
             const jobs = [];
-            for (let p = 2; p <= totalPages; p++) jobs.push(Widget.tmdb.get("/discover/tv", { params: buildParams(p) }));
+            for (let p = 2; p <= totalPages; p++) jobs.push(varietyTimeHttpGet("/discover/tv", buildParams(p)));
             const pages = await Promise.all(jobs);
+            // 整页失败必须重试而不是静默跳过 —— 否则该页的节目会整批消失
+            // （实测症状：只能看到第 1 页的 3 条，第 2 页的《一万元舞台》不见了）
             pages.forEach(r => { if (r && Array.isArray(r.results)) rows = rows.concat(r.results); });
         }
 
@@ -3286,9 +3336,9 @@ async function calendarFetchVariety(region, dateStr, page = 1, mode = "today") {
             rawList.push(item);
         });
 
-        // 逐条校验真实分集日期（分批并发，避免一次打太多请求）
+        // 逐条校验真实分集日期（分批并发，避免一次打太多请求触发限流）
         const resolved = [];
-        const CHUNK = 12;
+        const CHUNK = 10;
         for (let i = 0; i < rawList.length; i += CHUNK) {
             const chunk = rawList.slice(i, i + CHUNK);
             const out = await Promise.all(chunk.map(item => varietyTimeResolveTmdbCandidate(item, mode, dateStr || "", region)));
