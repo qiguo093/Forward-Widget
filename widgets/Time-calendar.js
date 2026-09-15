@@ -2551,8 +2551,9 @@ async function calendarLoadAnime(params = {}) {
                 year: updateDate.substring(0, 4),
                 releaseDate: updateDate
             };
-            const tmdbItem = await calendarSearchBestMatch(title, item.name);
-            if (tmdbItem) {
+            const wantYear = Number(String(item.air_date || "").slice(0, 4)) || 0;
+            const tmdbItem = await calendarSearchBestMatch(title, item.name, wantYear);
+            if (tmdbItem && !animeIsLiveActionMatch(tmdbItem)) {
                 itemData.id = String(tmdbItem.id);
                 itemData.tmdbId = tmdbItem.id;
                 itemData.poster = tmdbItem.poster_path || cover; 
@@ -2593,7 +2594,7 @@ async function calendarLoadAnime(params = {}) {
                 releaseDate: updateDate
             };
             const tmdbItem = await calendarSearchBestMatch(title);
-            if (tmdbItem) {
+            if (tmdbItem && !animeIsLiveActionMatch(tmdbItem)) {
                 itemData.id = String(tmdbItem.id);
                 itemData.tmdbId = tmdbItem.id;
                 itemData.poster = tmdbItem.poster_path || cover;
@@ -2614,9 +2615,6 @@ async function calendarLoadAnime(params = {}) {
 
         const seenIds = new Set();
         const seenTitles = new Set();
-        // 标题归一化：去掉标点空格与「第X季 / 年番」等修饰，用于**跨源**去重
-        // （同一部国漫可能同时出现在 B站时间线、Trakt 与 TMDB 兜底里，
-        //   而 B站条目若没匹配上 TMDB，光靠 tmdbId 是去不掉的）
         // 标题归一化：先繁→简，再去掉标点空格与「第X季 / 年番」等修饰词，
         // 用于**跨源**去重 —— 同一部国漫可能同时出现在 B站时间线、TMDB 兜底
         // 与 Bangumi 日历里，且各源简繁写法不一（B站《择日飞升》 vs
@@ -3317,18 +3315,53 @@ async function calendarFetchDetail(tmdbId, traktItem) {
     } catch (e) { return null; }
 }
 
-async function calendarSearchBestMatch(query1, query2) {
-    let res = await calendarSearchTmdb(query1);
-    if (!res && query2) res = await calendarSearchTmdb(query2);
+// 从 TMDB 搜索结果里挑出最可能是「动画」的那一条。
+// ⚠️ 历史实现直接取 results[0]，结果连续出过两次事故，卡片挂上了真人封面：
+//   · 《与奔驰于透明之夜的你》—— 同名真人版排第一（genre [18]，2025-12-12），
+//     真正的动画版（genre [16,18]，2026-07-06）排在第二；
+//   · 《一家之主 第15季》(King of the Hill) —— 排第一的是一部同名的国产真人剧
+//     （genre_ids 为空的数据残条，2024-09-29），真正的条目
+//     "乡巴佬希尔一家的幸福生活"（genre [16,35,10751]）排在第二。
+// 规则：只看前 5 条候选，优先选含动画类型(16) 的；同为动画时，首播年份与
+// Bangumi 条目年份接近者优先；一条动画候选都没有时退回 results[0]（保持原行为）。
+function animePickTmdbMatch(results, wantYear) {
+    const list = (Array.isArray(results) ? results : []).slice(0, 5);
+    if (!list.length) return null;
+    const score = (r) => {
+        let s = 0;
+        const y = Number(String(r.first_air_date || "").slice(0, 4)) || 0;
+        if (wantYear && y) {
+            if (y === wantYear) s += 40;
+            else if (Math.abs(y - wantYear) === 1) s += 15;
+        }
+        return s + Math.min(Number(r.popularity || 0), 50) / 100;
+    };
+    const animated = list.filter(r => Array.isArray(r.genre_ids) && r.genre_ids.includes(16));
+    if (!animated.length) return list[0];
+    return animated.sort((a, b) => score(b) - score(a))[0];
+}
+
+// 命中项若是**明确标了非动画类型**的条目（真人剧/真人电影），不要拿它当动画用，
+// 直接放弃这次匹配、保留 Bangumi 自己的封面与标题，避免真人封面混进列表。
+// 注意：genre_ids 为空的条目**不算**「明确非动画」——TMDB 上不少新番/冷门条目
+// 就是这么个空壳（例如《死神 千年血战篇 -祸进谭》），不能因此把它丢掉。
+function animeIsLiveActionMatch(r) {
+    const g = Array.isArray(r && r.genre_ids) ? r.genre_ids : [];
+    return g.length > 0 && !g.includes(16);
+}
+
+async function calendarSearchBestMatch(query1, query2, wantYear) {
+    let res = await calendarSearchTmdb(query1, wantYear);
+    if (!res && query2) res = await calendarSearchTmdb(query2, wantYear);
     return res;
 }
 
-async function calendarSearchTmdb(query) {
+async function calendarSearchTmdb(query, wantYear) {
     if (!query) return null;
     const cleanQuery = query.replace(/第[一二三四五六七八九十\d]+[季章]/g, "").trim();
     try {
         const res = await Widget.tmdb.get("/search/tv", { params: { query: cleanQuery, language: "zh-CN", page: 1 } });
-        return (res.results || [])[0];
+        return animePickTmdbMatch(res.results, wantYear);
     } catch (e) { return null; }
 }
 
