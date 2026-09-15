@@ -3123,15 +3123,26 @@ async function calendarLoadVariety(params = {}) {
 
     if (!isDomestic) {
         const countryParam = region === "global" ? "" : region;
-        const traktUrl = `https://api.trakt.tv/calendars/all/shows/${dateStr}/1?genres=reality,game-show,talk-show${countryParam ? `&countries=${countryParam}` : ''}`;
+        // Trakt 的日历按北美时区切"一天"，边界模糊：查 dateStr 会混进次日的节目，
+        // 而当天真正要播的又有一部分落在前一天。所以从「前一天」起抓 3 天窗口，
+        // 再由 varietyTimeTraktAirDate 按节目所在地时区换算后精确过滤。
+        const t0 = new Date(`${dateStr}T00:00:00Z`);
+        t0.setUTCDate(t0.getUTCDate() - 1);
+        const traktFrom = t0.toISOString().slice(0, 10);
+        const traktUrl = `https://api.trakt.tv/calendars/all/shows/${traktFrom}/3?genres=reality,game-show,talk-show${countryParam ? `&countries=${countryParam}` : ''}`;
         try {
             const res = await Widget.http.get(traktUrl, {
                 headers: { "Content-Type": "application/json", "trakt-api-version": "2", "trakt-api-key": clientId, "User-Agent": TRAKT_REQUEST_UA }
             });
             const data = res.data || [];
             if (Array.isArray(data) && data.length > 0) {
-                const promises = data.map(async (item) => {
-                    if (!item.show || !item.show.ids || !item.show.ids.tmdb) return null;
+                // 只要真实当地播出日期等于目标日期的条目
+                const kept = data.filter(item => {
+                    const show = (item && item.show) || {};
+                    if (!show.ids || !show.ids.tmdb) return false;
+                    return varietyTimeTraktAirDate(item) === dateStr;
+                });
+                const promises = kept.map(async (item) => {
                     return await calendarFetchDetail(item.show.ids.tmdb, item, dateStr, region);
                 });
                 const results = (await Promise.all(promises)).filter(Boolean);
@@ -3180,46 +3191,105 @@ function calendarGetWeekdayName(id) {
     return map[id] || "";
 }
 
+// 综艺时刻候选池扫描页数：今日/明日需要拿到"当天全部综艺"（TMDB 按热度排序，
+// 低热度节目会被挤到第 2 页之后 —— 实测《一万元舞台》《舞蹈新风暴》都在第 2 页）；
+// 近期热播本来就是人气榜，前两页足够。
+function varietyTimeScanPages(mode) {
+    return (mode === "today" || mode === "tomorrow") ? 6 : 2;
+}
+
+// 取 Trakt 一条记录的真实"当地播出日期"，与 TMDB 详情页显示的日期对齐。
+// ⚠️ Trakt 的 calendar 按北美时区切天、released 又是 UTC 时刻，美剧黄金档播出时
+// UTC 已是次日，会把明天的节目算进今天。按节目 airs.timezone 换算成本地日期。
+function varietyTimeTraktAirDate(row) {
+    const show = (row && row.show) || {};
+    const fa = row && row.first_aired;
+    if (!fa) return row && row.released ? String(row.released).slice(0, 10) : "";
+    const d = new Date(fa);
+    if (isNaN(d.getTime())) return "";
+    const tz = (show.airs && show.airs.timezone) || "";
+    if (tz) {
+        try {
+            const parts = new Intl.DateTimeFormat("en-US", {
+                timeZone: tz, year: "numeric", month: "2-digit", day: "2-digit"
+            }).formatToParts(d);
+            const pick = t => { for (const p of parts) if (p.type === t) return p.value; return ""; };
+            const y = pick("year"), m = pick("month"), dd = pick("day");
+            if (y && m && dd) return `${y}-${m}-${dd}`;
+        } catch (_) { /* 时区无效 → 走下面前后段兜底 */ }
+        const t = String((show.airs && show.airs.time) || "").slice(0, 5);
+        const hm = t.match(/^(\d{1,2}):(\d{2})$/);
+        if (hm) {
+            const localMin = Number(hm[1]) * 60 + Number(hm[2]);
+            const utcMin = d.getUTCHours() * 60 + d.getUTCMinutes();
+            let diff = localMin - utcMin;
+            if (diff > 780) diff -= 1440;
+            if (diff < -780) diff += 1440;
+            return new Date(d.getTime() + diff * 60000).toISOString().slice(0, 10);
+        }
+    }
+    return d.toISOString().slice(0, 10);
+}
+
 async function calendarFetchVariety(region, dateStr, page = 1, mode = "today") {
-    const queryParams = {
-        language: "zh-CN",
-        sort_by: "popularity.desc",
-        page: page,
-        with_genres: "10764|10767",
-        include_null_first_air_dates: false,
-        timezone: "Asia/Shanghai"
+    const buildParams = (p) => {
+        const q = {
+            language: "zh-CN",
+            sort_by: "popularity.desc",
+            page: p,
+            with_genres: "10764|10767",
+            include_null_first_air_dates: false,
+            timezone: "Asia/Shanghai"
+        };
+        if (region !== "global") q.with_origin_country = region.toUpperCase();
+        else q.with_origin_country = "US|KR|GB|CA|AU|TW|HK|SG|NZ|IE";
+        if (dateStr) {
+            // discover 只做候选池，真实分集日期由 varietyTimeResolveTmdbCandidate 逐条严格比对
+            q["air_date.gte"] = varietyTimeBeijingDate(-1);
+            q["air_date.lte"] = varietyTimeBeijingDate(7);
+        } else {
+            q["air_date.gte"] = varietyTimeBeijingDate(-30);
+            q["air_date.lte"] = varietyTimeBeijingDate(30);
+        }
+        return q;
     };
 
-    if (region !== "global") {
-        queryParams.with_origin_country = region.toUpperCase();
-    } else {
-        queryParams.with_origin_country = "US|KR|GB|CA|AU|TW|HK|SG|NZ|IE";
-    }
-
-    if (dateStr) {
-        // discover 拉取前后数天的候选池，再由 varietyTimeResolveTmdbCandidate 严格比对当天分集！
-        queryParams["air_date.gte"] = varietyTimeBeijingDate(-1);
-        queryParams["air_date.lte"] = varietyTimeBeijingDate(7);
-    } else {
-        queryParams.sort_by = "popularity.desc";
-        queryParams["air_date.gte"] = varietyTimeBeijingDate(-30);
-        queryParams["air_date.lte"] = varietyTimeBeijingDate(30);
-    }
-
     try {
-        const res = await Widget.tmdb.get("/discover/tv", { params: queryParams });
-        const data = res || {};
-        if (!data.results || !Array.isArray(data.results)) return [];
+        const first = await Widget.tmdb.get("/discover/tv", { params: buildParams(1) });
+        let rows = (first && Array.isArray(first.results)) ? first.results.slice() : [];
+        const totalPages = Math.min(Number(first && first.total_pages) || 1, varietyTimeScanPages(mode));
+        if (totalPages > 1) {
+            const jobs = [];
+            for (let p = 2; p <= totalPages; p++) jobs.push(Widget.tmdb.get("/discover/tv", { params: buildParams(p) }));
+            const pages = await Promise.all(jobs);
+            pages.forEach(r => { if (r && Array.isArray(r.results)) rows = rows.concat(r.results); });
+        }
 
-        const rawList = data.results.filter(item => !varietyTimeIsExcluded(item, region));
-        const resolvedPromises = rawList.map(item => varietyTimeResolveTmdbCandidate(item, mode, dateStr || "", region));
-        const resolved = (await Promise.all(resolvedPromises)).filter(Boolean);
+        // 去重 + 候选过滤
+        const seen = {};
+        const rawList = [];
+        rows.forEach(item => {
+            if (!item || !item.id || seen[item.id]) return;
+            seen[item.id] = 1;
+            if (varietyTimeIsExcluded(item, region)) return;
+            rawList.push(item);
+        });
+
+        // 逐条校验真实分集日期（分批并发，避免一次打太多请求）
+        const resolved = [];
+        const CHUNK = 12;
+        for (let i = 0; i < rawList.length; i += CHUNK) {
+            const chunk = rawList.slice(i, i + CHUNK);
+            const out = await Promise.all(chunk.map(item => varietyTimeResolveTmdbCandidate(item, mode, dateStr || "", region)));
+            out.forEach(c => { if (c) resolved.push(c); });
+        }
 
         if (resolved.length === 0) {
             return page === 1 ? [{ id: "empty", type: "text", title: "暂无更新", description: mode === "today" ? "今日暂无播出的综艺" : "暂无满足条件的排期" }] : [];
         }
 
-        return resolved.slice(0, 20);
+        const start = (page - 1) * 20;
+        return resolved.slice(start, start + 20);
     } catch (e) { return []; }
 }
 
@@ -3230,7 +3300,9 @@ async function calendarFetchDetail(tmdbId, traktItem, fallbackDate = "", selecte
         if (varietyTimeIsExcluded(d, selectedRegion)) return null;
 
         const ep = traktItem && traktItem.episode ? traktItem.episode : {};
-        const cardDate = (traktItem && traktItem.first_aired ? traktItem.first_aired.substring(0, 10) : "") || fallbackDate || d.first_air_date || "";
+        // 日期以「当地播出日期」为准：调用方已按 airs.timezone 校正并过滤，
+        // 不再使用 Trakt 的 UTC first_aired —— 否则美剧黄金档会整整差一天。
+        const cardDate = fallbackDate || varietyTimeTraktAirDate(traktItem) || d.first_air_date || "";
         const yearStr = cardDate ? cardDate.substring(0, 4) : "";
         
         const s = String(ep.season || 1).padStart(2, '0');
