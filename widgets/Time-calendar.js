@@ -3336,15 +3336,18 @@ async function varietyGetCandidates(region, listType, days) {
     const jobs = [];
     if (region === "cn" || region === "all") jobs.push(varietyCollectPool("CN", listType, days).then(r => { cnList = r; }));
     if (region === "global" || region === "all") {
-        // 合并查询按热度排序，韩综热度普遍偏低（如《只要有空》pop 9、《姐姐家的产地直送》
-        // pop 5）会被挤到后面页而截断。韩国单独再扫一遍补齐 —— KR 仅 2 页，成本很低，
-        // 却能保证正经韩综不漏。（日本已整体屏蔽，不再补扫。）
+        // 合并查询按热度排序，韩综与台综热度普遍偏低（如《只要有空》pop 9、《姐姐家的产地直送》
+        // pop 5）会被挤到后面页而截断。韩国与台湾单独再扫一遍补齐 —— KR/TW 仅数页，成本很低，
+        // 却能保证正经韩台综艺不漏。（日本已整体屏蔽，不再补扫。）
         jobs.push((async () => {
             const merged = await varietyCollectPool(VARIETY_MAIN_COUNTRIES, listType, days);
-            const krExtra = await varietyCollectPool("KR", listType, days);
+            const extra = await Promise.all([
+                varietyCollectPool("KR", listType, days),
+                varietyCollectPool("TW", listType, days)
+            ]);
             const seen = {};
             const out = [];
-            merged.concat(krExtra).forEach(x => {
+            merged.concat(extra[0], extra[1]).forEach(x => {
                 if (x && x.id && !seen[x.id]) { seen[x.id] = 1; out.push(x); }
             });
             osList = out;
