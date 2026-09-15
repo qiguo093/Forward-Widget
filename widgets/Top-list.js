@@ -79,9 +79,12 @@ var WidgetMetadata = {
             description: "综艺更新与排播时刻表",
             functionName: "loadStandaloneVarietyTime",
             type: "video",
-            cacheDuration: 43200,
+            // 宿主结果缓存 2 小时（7200 秒）。注意：宿主缓存命中时脚本不会执行，
+            // 设得过长（如 43200）会导致志愿者补录当天综艺后刷新看不到。
+            // 脚本内部另有内存数据集，翻页/切地区为 0 请求。
+            cacheDuration: 7200,
             params: [
-                { name: "sort_by", title: "综艺地区", type: "enumeration", value: "cn", enumOptions: [ { title: "国产综艺", value: "cn" }, { title: "韩国综艺", value: "kr" }, { title: "欧美综艺", value: "us" }, { title: "日本综艺", value: "jp" }, { title: "全球热门", value: "global" } ] },
+                { name: "sort_by", title: "综艺地区", type: "enumeration", value: "cn", enumOptions: [ { title: "国产综艺", value: "cn" }, { title: "韩国综艺", value: "kr" }, { title: "台湾综艺", value: "tw" }, { title: "欧美综艺", value: "us" }, { title: "全球热门", value: "global" } ] },
                 { name: "variety_mode", title: "时间范围", type: "enumeration", value: "today", enumOptions: [ { title: "今日更新", value: "today" }, { title: "明日预告", value: "tomorrow" }, { title: "近期热播", value: "trending" } ] },
                 { name: "page", title: "页码", type: "page" }
             ]
