@@ -3031,6 +3031,16 @@ async function varietyTimeFetchDetail(tmdbId) {
 }
 
 // 核心：基于真实分集播出日期构建卡片（不再拿查询日期强制覆盖）
+function varietyTimeGetLatestSeasonAirDate(detail) {
+    if (!detail) return "";
+    const seasons = Array.isArray(detail.seasons) ? detail.seasons.filter(s => s && s.season_number > 0 && s.air_date) : [];
+    if (seasons.length > 0) {
+        seasons.sort((a, b) => (a.season_number < b.season_number ? 1 : (a.season_number > b.season_number ? -1 : 0)));
+        return seasons[0].air_date || detail.first_air_date || "";
+    }
+    return detail.first_air_date || "";
+}
+
 async function varietyTimeResolveTmdbCandidate(item, mode, targetDateStr, region) {
     const detail = await varietyTimeFetchDetail(item.id);
     if (!detail || varietyTimeIsExcluded(detail, region)) return null;
@@ -3063,11 +3073,10 @@ async function varietyTimeResolveTmdbCandidate(item, mode, targetDateStr, region
         });
     }
 
-    // trending 近期热播
-    const ep = next || last || null;
-    const epDate = (ep && ep.air_date) || detail.first_air_date || "";
+    // trending 近期热播：显示最近一季首播日期
+    const latestSeasonDate = varietyTimeGetLatestSeasonAirDate(detail);
     const genreText = calendarGetGenreText(detail.genres?.map(g => g.id)) || "综艺";
-    const shortDate = epDate ? epDate.substring(5).replace("-", "/") : "";
+    const shortDate = latestSeasonDate ? latestSeasonDate.substring(5).replace("-", "/") : "";
     const sub = shortDate ? `${shortDate} ${genreText}` : `近期热播 · ${genreText}`;
 
     return calendarBuildItem({
@@ -3077,8 +3086,8 @@ async function varietyTimeResolveTmdbCandidate(item, mode, targetDateStr, region
         rating: detail.vote_average?.toFixed(1) || "0.0",
         subTitle: sub,
         desc: detail.overview,
-        year: epDate.substring(0, 4),
-        releaseDate: epDate
+        year: latestSeasonDate.substring(0, 4),
+        releaseDate: latestSeasonDate
     });
 }
 

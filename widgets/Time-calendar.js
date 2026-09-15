@@ -3534,6 +3534,16 @@ async function varietyGetCandidates(region, listType, days) {
     return list;
 }
 
+function varietyGetLatestSeasonAirDate(detail) {
+    if (!detail) return "";
+    const seasons = Array.isArray(detail.seasons) ? detail.seasons.filter(s => s && s.season_number > 0 && s.air_date) : [];
+    if (seasons.length > 0) {
+        seasons.sort((a, b) => (a.season_number < b.season_number ? 1 : (a.season_number > b.season_number ? -1 : 0)));
+        return seasons[0].air_date || detail.first_air_date || "";
+    }
+    return detail.first_air_date || "";
+}
+
 async function varietyResolveOne(cand, listType, todayStr, endStr, cleanRegion) {
     const detail = await varietyFetchDetail(cand.id);
     if (!detail || !detail.id) return null;
@@ -3558,15 +3568,15 @@ async function varietyResolveOne(cand, listType, todayStr, endStr, cleanRegion) 
 
         if (!eps.length) return null;
 
-        // 核心修复：优先选择离今天（todayStr）最新的/最近的分集（如 2026-09-15 优先于 2026-09-28）
+        // 优先选择离今天（todayStr）最新的/最近的分集
         eps.sort((a, b) => (a.air_date > b.air_date ? 1 : (a.air_date < b.air_date ? -1 : 0)));
         const ep = eps[0];
         return varietyBuildCard(detail, ep, listType, ep.air_date);
     }
 
-    const ep = next || last || null;
-    const sortDate = (ep && ep.air_date) || detail.first_air_date || "";
-    return varietyBuildCard(detail, ep, listType, sortDate);
+    // 热度榜 (hot)：显示该节目的最近一季首播日（若多季则为最新一季年度，单季则为第一季首播日）
+    const latestSeasonDate = varietyGetLatestSeasonAirDate(detail);
+    return varietyBuildCard(detail, null, listType, latestSeasonDate);
 }
 
 async function varietyResolveDataset(region, listType, days, cands) {
