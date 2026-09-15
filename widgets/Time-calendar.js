@@ -3028,7 +3028,9 @@ async function calendarLoadVariety(params = {}) {
 
     const dateStr = calendarGetSafeDate(mode); 
     const countryParam = region === "global" ? "" : region; 
-    const traktUrl = `https://api.trakt.tv/calendars/all/shows/${dateStr}/1?genres=reality,game-show,talk-show${countryParam ? `&countries=${countryParam}` : ''}`;
+    // ⚠️ 遗留路径（loadGlobalCalendarHub 已无模块引用，实际不可达），为与 Top-list.js 的
+    // 活路径保持一致，同样显式带 extended=full —— 否则拿不到 show.airs.timezone，日期会差一天。
+    const traktUrl = `https://api.trakt.tv/calendars/all/shows/${dateStr}/1?genres=reality,game-show,talk-show${countryParam ? `&countries=${countryParam}` : ''}&extended=full`;
 
     try {
         const res = await Widget.http.get(traktUrl, {

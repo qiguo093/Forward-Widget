@@ -3188,7 +3188,12 @@ async function calendarLoadVariety(params = {}) {
         const t0 = new Date(`${dateStr}T00:00:00Z`);
         t0.setUTCDate(t0.getUTCDate() - 1);
         const traktFrom = t0.toISOString().slice(0, 10);
-        const traktUrl = `https://api.trakt.tv/calendars/all/shows/${traktFrom}/3?genres=reality,game-show,talk-show${countryParam ? `&countries=${countryParam}` : ''}`;
+        // ⚠️ 必须显式带 extended=full：Trakt 默认**不返回** show.airs.timezone，
+        // varietyTimeTraktAirDate 拿不到时区就会退化成按 UTC 判日；
+        // 美综黄金档 20:00~23:00 ET 播出时 UTC 已是次日 → 整整差一天（与 TMDB 详情页对不上）。
+        // 实测（目标日 2026-09-15，countries=us）：命中 12 → 14 条，
+        // 《与星共舞》《美国达人》《厨房噩梦》归位，深夜秀《肥伦今夜秀》不再错算到次日。
+        const traktUrl = `https://api.trakt.tv/calendars/all/shows/${traktFrom}/3?genres=reality,game-show,talk-show${countryParam ? `&countries=${countryParam}` : ''}&extended=full`;
         try {
             const res = await Widget.http.get(traktUrl, {
                 headers: { "Content-Type": "application/json", "trakt-api-version": "2", "trakt-api-key": clientId, "User-Agent": TRAKT_REQUEST_UA }
