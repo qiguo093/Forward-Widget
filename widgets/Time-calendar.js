@@ -3822,8 +3822,7 @@ function varietyInterleaveByRegion(items) {
 // **第 1 页 20 条里只有 6 条能存活** —— 只抓一页的话用户就看到"就这么几个"。
 // 12 页（240 条）合并后约存活 40 条，列表才够看。
 const VARIETY_HOT_MAX_PAGES = 12;
-// 单次返回的卡片上限（防止极端情况下渲染压力）：12 页里国内能存活 200+ 条
-const VARIETY_HOT_MAX_CARDS = 120;
+// 不截断：已抓取的目录全部返回；低热度精选会按真实 popularity 排到后面，用户下滑即可看到。
 
 // 热度榜结果缓存（同一脚本实例内有效）。
 // App 切换模块参数时会重新执行整个脚本，所以这个缓存只覆盖「翻页后回到第 1 页」
@@ -3877,7 +3876,8 @@ function varietyBuildHotCard(item) {
         rating: parseFloat(ratingNum),
         year: yearStr,
         releaseDate: dateStr,
-        _country: (Array.isArray(item.origin_country) && item.origin_country[0]) || ""
+        _country: (Array.isArray(item.origin_country) && item.origin_country[0]) || "",
+        _hotPopularity: Number(item.popularity) || 0
     };
 }
 
@@ -3922,16 +3922,23 @@ async function varietyResolveHotFast(cleanRegion, pageNum) {
             pages.forEach(r => { if (r && Array.isArray(r.results)) rows = rows.concat(r.results); });
         }
 
-        const out = pinned.slice();
+        // 精选节目也只是补入原始目录的低热度条目，随后按真实 popularity 排序；不再强行置顶。
+        const out = [];
         const seen = {};
-        out.forEach(c => { seen[c.id] = 1; });
         rows.forEach(item => {
             if (!item || !item.id || seen[item.id]) return;
             seen[item.id] = 1;
             if (varietyIsExcluded(item)) return;
             out.push(varietyBuildHotCard(item));
         });
-        const result = out.slice(0, VARIETY_HOT_MAX_CARDS);
+        pinned.forEach(card => {
+            if (seen[card.id]) return;
+            seen[card.id] = 1;
+            out.push(card);
+        });
+        out.sort((a, b) => (b._hotPopularity || 0) - (a._hotPopularity || 0));
+        out.forEach(card => { delete card._hotPopularity; });
+        const result = out;
         VarietyHotCache[cleanRegion] = { ts: Date.now(), items: result };
         return result;
     } catch (e) {

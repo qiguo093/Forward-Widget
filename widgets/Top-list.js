@@ -3374,22 +3374,24 @@ async function varietyTimeTrendingResolve(region) {
         pages.forEach(r => { if (r && Array.isArray(r.results)) rows = rows.concat(r.results); });
     }
 
+    // 精选节目也只是作为低热度原始条目补入，随后按真实 popularity 排序；不再强行置顶。
     const st = { cards: [] };
     const seen = {};
-    // ① 精选置顶：按 id 点名取回（与 discover 并行发出，不拖慢首屏）
-    for (const card of await varietyTimeTrendingPinned(region)) {
-        if (seen[card.id]) continue;
-        seen[card.id] = 1;
-        st.cards.push(card);
-    }
-    // ② 人气榜候选
     rows.forEach(item => {
         if (!item || !item.id || seen[item.id]) return;
         seen[item.id] = 1;
-        if (varietyTimeIsExcluded(item, region)) return;   // 用 discover 原生字段过滤，不额外请求详情
+        if (varietyTimeIsExcluded(item, region)) return;
         const card = varietyTimeBuildTrendingCard(item);
         if (card) st.cards.push(card);
     });
+    const pinned = await varietyTimeTrendingPinned(region);
+    pinned.forEach(card => {
+        if (seen[card.id]) return;
+        seen[card.id] = 1;
+        st.cards.push(card);
+    });
+    st.cards.sort((a, b) => (b._hotPopularity || 0) - (a._hotPopularity || 0));
+    st.cards.forEach(card => { delete card._hotPopularity; });
     VarietyTimeTrendingDataset[region] = st;
     return st;
 }
@@ -3434,7 +3436,8 @@ function varietyTimeBuildTrendingCard(item) {
         description: `${sub} · 📅 首播 ${dateStr || "待定"}\n${item.overview || "暂无简介"}`,
         rating: parseFloat(ratingNum) || 0,
         year: yearStr,
-        releaseDate: dateStr
+        releaseDate: dateStr,
+        _hotPopularity: Number(item.popularity) || 0
     };
 }
 
