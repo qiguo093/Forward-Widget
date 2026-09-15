@@ -3342,9 +3342,28 @@ function varietyDays(v) {
     return (isFinite(n) && n >= 0) ? n : 14;
 }
 
+// 缓存有效期：TMDB 的志愿者会随时补录当天的分集（例如中午播出、下午才补上日期），
+// 若长期缓存会导致「上午看不到 → 下午刷新仍然看不到」。设一个短 TTL，到点自动整体失效。
+const VARIETY_CACHE_TTL_MS = 5 * 60 * 1000;
+
 const VarietyCandidateCache = {};
 const VarietyDetailCache = {};
 const VarietyResolvedCache = {};
+const VarietyCacheTime = {};
+
+function varietyCacheStale(key) {
+    const t = VarietyCacheTime[key];
+    return !t || (Date.now() - t) >= VARIETY_CACHE_TTL_MS;
+}
+
+// 让某个数据集（含候选池、详情、解析结果）整体失效。
+// 详情缓存必须一起清 —— 分集日期正是存在详情里，只清结果缓存会继续读到旧的分集日期。
+function varietyInvalidateDataset(key) {
+    delete VarietyCandidateCache[key];
+    delete VarietyResolvedCache[key];
+    delete VarietyCacheTime[key];
+    Object.keys(VarietyDetailCache).forEach(k => delete VarietyDetailCache[k]);
+}
 
 async function varietyFetchDetail(tmdbId) {
     if (tmdbId in VarietyDetailCache) return VarietyDetailCache[tmdbId];
@@ -3512,6 +3531,7 @@ async function varietyResolveDataset(region, listType, days, cands) {
     const cleanRegion = varietyNormalizeRegion(region);
     const dVal = varietyDays(days);
     const key = `${listType}|${cleanRegion}|${dVal}`;
+    // 时效由首页（page=1）统一把关，翻页时直接用现有数据集，避免滚动中途触发全量重解析
     if (VarietyResolvedCache[key]) return VarietyResolvedCache[key];
 
     const todayStr = varietyBeijingDate(0);
@@ -3543,6 +3563,7 @@ async function varietyResolveDataset(region, listType, days, cands) {
     }
 
     VarietyResolvedCache[key] = ordered;
+    VarietyCacheTime[key] = Date.now();
     return ordered;
 }
 
@@ -3553,12 +3574,11 @@ async function calendarLoadVarietyUltimate(params = {}) {
     const days = String(params.days ?? "14");
     const pageNum = Math.max(1, parseInt(params.page) || 1);
 
-    // 第一页请求时，清理对应内存缓存，保证 TMDB 最新编辑的分集数据能实时刷新
-    if (pageNum === 1) {
-        const dVal = varietyDays(days);
-        const cacheKey = `${listType}|${cleanRegion}|${dVal}`;
-        delete VarietyResolvedCache[cacheKey];
-        delete VarietyCandidateCache[cacheKey];
+    // 首页请求时检查缓存时效：超过 TTL 就整体失效（含详情缓存），
+    // 这样「上午看不到的新集数，下午志愿者补录后刷新即可见」。
+    const cacheKey = `${listType}|${cleanRegion}|${varietyDays(days)}`;
+    if (pageNum === 1 && varietyCacheStale(cacheKey)) {
+        varietyInvalidateDataset(cacheKey);
     }
 
     try {
