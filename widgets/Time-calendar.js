@@ -2449,6 +2449,22 @@ const ANIME_CACHE_TTL_MS = 5 * 60 * 1000;
 const AnimePageCache = {};
 const AnimeCacheTime = {};
 
+// 判断 Bangumi 条目是不是国产动画：看**原名**里有没有日文假名或拉丁字母。
+// Bangumi 的日历以日本动画为主，但也混着国漫（《太古神尊》《东大高武学院》
+// 《是王者啊？》这类原名就是中文），不能一律当番剧排到后面。
+//   含假名  → 日本动画（如 猫と竜、花織さんは…）
+//   含拉丁  → 非国产（如 BLEACH 千年血戦篇、『斬 -ZAN-』Pilot Film 这类
+//             用罗马字/英文命名的日番，以及欧美动画）—— 只靠"有没有汉字"
+//             会把它们误判成国漫，必须先用拉丁字母挡掉
+//   其余纯汉字 → 国产
+function isChineseAnimeByName(originalName) {
+    const src = String(originalName || "");
+    if (!src) return false;
+    if (/[\u3040-\u309F\u30A0-\u30FF\uFF66-\uFF9D]/.test(src)) return false;   // 平假名/片假名/半角片假名
+    if (/[A-Za-z]/.test(src)) return false;                                    // 拉丁字母
+    return /[\u4e00-\u9fff]/.test(src);                                       // 中日共用汉字
+}
+
 async function calendarLoadAnime(params = {}) {
     const weekday = params.sort_by || "today"; 
     const page = Math.max(1, Number(params.page || 1));
@@ -2520,10 +2536,14 @@ async function calendarLoadAnime(params = {}) {
                 itemData.desc = tmdbItem.overview || itemData.desc;
                 itemData.rating = tmdbItem.vote_average?.toFixed(1) || itemData.rating;
             }
-            return calendarBuildItem({
+            const isCnAnime = isChineseAnimeByName(item.name, title);
+            if (isCnAnime) itemData.genreText = "国漫";
+            const bgmItem = calendarBuildItem({
                 ...itemData,
                 subTitle: `${updateDate} ${dayName} ${itemData.genreText}`
             });
+            bgmItem.__isCnAnime = isCnAnime;
+            return bgmItem;
         });
 
         // 2. 解析 B 站国创周更时间线（真实周更国漫）
@@ -2596,18 +2616,18 @@ async function calendarLoadAnime(params = {}) {
         const uniqueTmdbCnItems = [];
         tmdbCnItems.forEach(item => dedupeAdd(item, uniqueTmdbCnItems));
 
-        const uniqueBangumiItems = [];
-        bangumiItems.forEach(item => dedupeAdd(item, uniqueBangumiItems));
+        const uniqueBangumiItems = [];    // 日番 / 二次元
+        const bangumiCnItems = [];        // Bangumi 里混着的国漫，归到国漫组
+        bangumiItems.forEach(item => {
+            if (item && item.__isCnAnime) dedupeAdd(item, bangumiCnItems);
+            else dedupeAdd(item, uniqueBangumiItems);
+        });
 
-        // 3. 国漫主源为 B站真实时间线 + Trakt 当天更新；TMDB 兜底（已用
-        //    next/last_episode_to_air 精确校验目标日期）补上腾讯/优酷等平台独播国漫。
-        const allCnItems = [...uniqueBiliItems, ...uniqueTraktItems, ...uniqueTmdbCnItems];
-        const mergedAll = [];
-        const maxLen = Math.max(allCnItems.length, uniqueBangumiItems.length);
-        for (let i = 0; i < maxLen; i++) {
-            if (i < allCnItems.length) mergedAll.push(allCnItems[i]);
-            if (i < uniqueBangumiItems.length) mergedAll.push(uniqueBangumiItems[i]);
-        }
+        // 3. 国漫主源为 B站真实时间线；TMDB 兜底（已用分集表校验目标日期）补上
+        //    腾讯/优酷等平台独播国漫；Bangumi 里判定为国漫的条目一并归入。
+        const allCnItems = [...uniqueBiliItems, ...uniqueTraktItems, ...uniqueTmdbCnItems, ...bangumiCnItems];
+        // 4. 排序：**全部国漫排在前面**，日番/二次元等国漫排完再显示（不再交错混排）
+        const mergedAll = [...allCnItems, ...uniqueBangumiItems];
 
         if (mergedAll.length === 0) {
             const emptyRes = page === 1 ? [{ id: "empty", type: "text", title: "暂无更新" }] : [];
