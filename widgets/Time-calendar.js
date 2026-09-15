@@ -119,7 +119,7 @@ var WidgetMetadata = {
             // 脚本内部另有内存数据集，翻页/切地区为 0 请求。
             cacheDuration: 7200,
             params: [
-                { name: "sort_by", title: "综艺筛选", type: "enumeration", value: "all", enumOptions: [ { title: "全部地区", value: "all" }, { title: "国内综艺", value: "cn" }, { title: "国外综艺", value: "global" }, { title: "中国台湾", value: "tw" } ] },
+                { name: "sort_by", title: "综艺筛选", type: "enumeration", value: "all", enumOptions: [ { title: "全部地区", value: "all" }, { title: "国内综艺", value: "cn" }, { title: "台湾综艺", value: "tw" }, { title: "国外综艺", value: "global" } ] },
                 { name: "list_type", title: "榜单类型", type: "enumeration", value: "calendar", enumOptions: [ { title: "追新榜", value: "calendar" }, { title: "热度榜", value: "hot" } ] },
                 { name: "days", title: "预告范围", type: "enumeration", value: "14", belongTo: { paramName: "list_type", value: ["calendar"] }, enumOptions: [ { title: "今日更新", value: "0" }, { title: "未来 7 天", value: "7" }, { title: "未来 14 天", value: "14" }, { title: "未来 30 天", value: "30" } ] },
                 { name: "page", title: "页码", type: "page" }
