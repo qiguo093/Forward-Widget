@@ -119,7 +119,7 @@ var WidgetMetadata = {
             // 脚本内部另有内存数据集，翻页/切地区为 0 请求。
             cacheDuration: 7200,
             params: [
-                { name: "sort_by", title: "综艺筛选", type: "enumeration", value: "all", enumOptions: [ { title: "全部地区", value: "all" }, { title: "国内综艺", value: "cn" }, { title: "国外综艺", value: "global" } ] },
+                { name: "sort_by", title: "综艺筛选", type: "enumeration", value: "all", enumOptions: [ { title: "全部地区", value: "all" }, { title: "国内综艺", value: "cn" }, { title: "国外综艺", value: "global" }, { title: "中国台湾", value: "tw" } ] },
                 { name: "list_type", title: "榜单类型", type: "enumeration", value: "calendar", enumOptions: [ { title: "追新榜", value: "calendar" }, { title: "热度榜", value: "hot" } ] },
                 { name: "days", title: "预告范围", type: "enumeration", value: "14", belongTo: { paramName: "list_type", value: ["calendar"] }, enumOptions: [ { title: "今日更新", value: "0" }, { title: "未来 7 天", value: "7" }, { title: "未来 14 天", value: "14" }, { title: "未来 30 天", value: "30" } ] },
                 { name: "page", title: "页码", type: "page" }
@@ -3394,11 +3394,18 @@ async function varietyCollectPool(country, listType, days) {
 // -------------------------------------------------------------------------
 // 地区与日期参数健壮归一化
 // -------------------------------------------------------------------------
+// -------------------------------------------------------------------------
+// 地区与日期参数健壮归一化
+// -------------------------------------------------------------------------
+// -------------------------------------------------------------------------
+// 地区与日期参数健壮归一化
+// -------------------------------------------------------------------------
 function varietyNormalizeRegion(r) {
     const s = String(r || "all").toLowerCase().trim();
-    if (s === "cn" || s.includes("国") || s.includes("中") || s === "china") return "cn";
+    if (s === "cn" || s.includes("陆") || s === "china") return "cn";
+    if (s === "tw" || s.includes("台") || s.includes("taiwan")) return "tw";
     if (s === "global" || s.includes("外") || s.includes("洋")) return "global";
-    if (s.includes("国") && !s.includes("中")) return "global";
+    if (s.includes("国") && !s.includes("台")) return "cn";
     return "all";
 }
 
@@ -3407,16 +3414,10 @@ function varietyDays(v) {
     return (isFinite(n) && n >= 0) ? n : 14;
 }
 
-// 缓存有效期：TMDB 的志愿者会随时补录当天的分集（例如中午播出、下午才补上日期），
-// 若长期缓存会导致「上午看不到 → 下午刷新仍然看不到」。设一个短 TTL，到点自动整体失效。
-const VARIETY_CACHE_TTL_MS = 5 * 60 * 1000;
-
 const VarietyCandidateCache = {};
 const VarietyDetailCache = {};
 const VarietySeasonCache = {};
 const VarietyResolvedCache = {};
-// 热度榜按需增量解析的进度（追新榜需要全局排序，仍走全量解析）
-const VarietyHotState = {};
 const VarietyCacheTime = {};
 
 function varietyCacheStale(key) {
@@ -3424,12 +3425,9 @@ function varietyCacheStale(key) {
     return !t || (Date.now() - t) >= VARIETY_CACHE_TTL_MS;
 }
 
-// 让某个数据集（含候选池、详情、解析结果）整体失效。
-// 详情缓存必须一起清 —— 分集日期正是存在详情里，只清结果缓存会继续读到旧的分集日期。
 function varietyInvalidateDataset(key) {
     delete VarietyCandidateCache[key];
     delete VarietyResolvedCache[key];
-    delete VarietyHotState[key];
     delete VarietyCacheTime[key];
     Object.keys(VarietyDetailCache).forEach(k => delete VarietyDetailCache[k]);
     Object.keys(VarietySeasonCache).forEach(k => delete VarietySeasonCache[k]);
@@ -3438,14 +3436,10 @@ function varietyInvalidateDataset(key) {
 async function varietyFetchDetail(tmdbId) {
     if (tmdbId in VarietyDetailCache) return VarietyDetailCache[tmdbId];
     const d = await varietyHttpGet(`/tv/${tmdbId}`, { language: "zh-CN" });
-    // 只缓存成功结果；失败不进缓存，下次刷新还能重新尝试
     if (d) VarietyDetailCache[tmdbId] = d;
     return d;
 }
 
-// 取某一季的分集表。TMDB 的 next/last_episode_to_air 字段偶尔滞后或不完整
-// （当天分集确实存在，但字段没指向当天），需回查季分集表做兜底确认 ——
-// 与「剧集追更」的 dramaResolveOne 同一思路。
 async function varietyFetchSeasonEpisodes(tmdbId, seasonNumber) {
     const key = `${tmdbId}|${seasonNumber}`;
     if (key in VarietySeasonCache) return VarietySeasonCache[key];
@@ -3455,7 +3449,6 @@ async function varietyFetchSeasonEpisodes(tmdbId, seasonNumber) {
     return eps || [];
 }
 
-// 该节目最新的有效季号（用于兜底回查）
 function varietyLatestSeasonNumber(detail, next, last) {
     if (next && next.season_number) return next.season_number;
     if (last && last.season_number) return last.season_number;
@@ -3465,6 +3458,16 @@ function varietyLatestSeasonNumber(detail, next, last) {
     if (!seasons.length) return null;
     seasons.sort((a, b) => b - a);
     return seasons[0];
+}
+
+function varietyGetLatestSeasonAirDate(detail) {
+    if (!detail) return "";
+    const seasons = Array.isArray(detail.seasons) ? detail.seasons.filter(s => s && s.season_number > 0 && s.air_date) : [];
+    if (seasons.length > 0) {
+        seasons.sort((a, b) => (a.season_number < b.season_number ? 1 : (a.season_number > b.season_number ? -1 : 0)));
+        return seasons[0].air_date || detail.first_air_date || "";
+    }
+    return detail.first_air_date || "";
 }
 
 function varietyBuildCard(detail, ep, listType, sortDate) {
@@ -3500,7 +3503,7 @@ function varietyBuildCard(detail, ep, listType, sortDate) {
 }
 
 function varietyCountryRank(c) {
-    const order = ["CN", "KR", "JP", "TW", "HK", "SG", "NZ", "IE", "AU", "CA", "GB", "US"];
+    const order = ["CN", "TW", "KR", "JP", "HK", "SG", "NZ", "IE", "AU", "CA", "GB", "US"];
     const i = order.indexOf(c);
     return i < 0 ? 99 : i;
 }
@@ -3536,7 +3539,62 @@ function varietyInterleaveByRegion(items) {
 }
 
 // -------------------------------------------------------------------------
-// 候选池获取与过滤
+// 极速热度榜：直接读取 Discover 原生返回（单次网络请求，秒级加载，零详情开销）
+// -------------------------------------------------------------------------
+async function varietyResolveHotFast(cleanRegion, pageNum) {
+    const queryParams = {
+        language: "zh-CN",
+        page: pageNum,
+        with_genres: "10764|10767",
+        include_null_first_air_dates: false,
+        sort_by: "popularity.desc",
+        timezone: "Asia/Shanghai"
+    };
+
+    if (cleanRegion === "cn") queryParams.with_origin_country = "CN";
+    else if (cleanRegion === "tw") queryParams.with_origin_country = "TW";
+    else if (cleanRegion === "global") queryParams.with_origin_country = "US|KR|GB|CA|AU|TW|HK|SG|NZ|IE";
+    // all 模式不限制 with_origin_country，让全球热门均可进入
+
+    try {
+        const res = await varietyHttpGet("/discover/tv", queryParams);
+        const items = (res && Array.isArray(res.results)) ? res.results : [];
+        if (!items.length) return [];
+
+        const filtered = items.filter(item => !varietyIsExcluded(item));
+
+        return filtered.map(item => {
+            const dateStr = item.first_air_date || "";
+            const yearStr = dateStr ? dateStr.substring(0, 4) : "";
+            const ratingNum = item.vote_average ? Number(item.vote_average).toFixed(1) : "0.0";
+            const ratingText = Number(ratingNum) > 0 ? `${ratingNum}分` : "暂无评分";
+            const popText = `热度 ${Math.round(Number(item.popularity) || 0)}`;
+            const sub = `${ratingText} • ${popText}`;
+
+            return {
+                id: String(item.id),
+                tmdbId: Number(item.id),
+                type: "tmdb",
+                mediaType: "tv",
+                title: item.name || item.original_name,
+                genreTitle: sub,
+                subTitle: sub,
+                posterPath: item.poster_path ? `https://image.tmdb.org/t/p/w500${item.poster_path}` : "",
+                backdropPath: item.backdrop_path ? `https://image.tmdb.org/t/p/w780${item.backdrop_path}` : "",
+                description: `📅 首播时间: ${dateStr}\n${item.overview || "暂无简介"}`,
+                rating: parseFloat(ratingNum),
+                year: yearStr,
+                releaseDate: dateStr,
+                _country: (Array.isArray(item.origin_country) && item.origin_country[0]) || ""
+            };
+        });
+    } catch (e) {
+        return [];
+    }
+}
+
+// -------------------------------------------------------------------------
+// 追新榜：候选池获取与分集解析
 // -------------------------------------------------------------------------
 async function varietyGetCandidates(region, listType, days) {
     const cleanRegion = varietyNormalizeRegion(region);
@@ -3551,13 +3609,19 @@ async function varietyGetCandidates(region, listType, days) {
     if (cleanRegion === "cn" || cleanRegion === "all") {
         jobs.push(varietyCollectPool("CN", listType, dVal).then(r => { cnList = r; }));
     }
+    if (cleanRegion === "tw") {
+        jobs.push(varietyCollectPool("TW", listType, dVal).then(r => { cnList = r; }));
+    }
     if (cleanRegion === "global" || cleanRegion === "all") {
         jobs.push((async () => {
             const merged = await varietyCollectPool(VARIETY_MAIN_COUNTRIES, listType, dVal);
-            const krExtra = await varietyCollectPool("KR", listType, dVal);
+            const extra = await Promise.all([
+                varietyCollectPool("KR", listType, dVal),
+                varietyCollectPool("TW", listType, dVal)
+            ]);
             const seen = {};
             const out = [];
-            merged.concat(krExtra).forEach(x => {
+            merged.concat(extra[0], extra[1]).forEach(x => {
                 if (x && x.id && !seen[x.id]) { seen[x.id] = 1; out.push(x); }
             });
             osList = out;
@@ -3566,7 +3630,7 @@ async function varietyGetCandidates(region, listType, days) {
     await Promise.all(jobs);
 
     let list;
-    if (cleanRegion === "cn") {
+    if (cleanRegion === "cn" || cleanRegion === "tw") {
         list = cnList;
     } else if (cleanRegion === "global") {
         list = osList;
@@ -3582,25 +3646,16 @@ async function varietyGetCandidates(region, listType, days) {
     return list;
 }
 
-function varietyGetLatestSeasonAirDate(detail) {
-    if (!detail) return "";
-    const seasons = Array.isArray(detail.seasons) ? detail.seasons.filter(s => s && s.season_number > 0 && s.air_date) : [];
-    if (seasons.length > 0) {
-        seasons.sort((a, b) => (a.season_number < b.season_number ? 1 : (a.season_number > b.season_number ? -1 : 0)));
-        return seasons[0].air_date || detail.first_air_date || "";
-    }
-    return detail.first_air_date || "";
-}
-
 async function varietyResolveOne(cand, listType, todayStr, endStr, cleanRegion) {
     const detail = await varietyFetchDetail(cand.id);
     if (!detail || !detail.id) return null;
 
-    // 严厉拦截：若用户选了国内综艺，但后端详情里发现非中国产地或非中文，直接抛弃
     const candsCountry = (Array.isArray(detail.origin_country) && detail.origin_country[0]) || "";
     const origLang = String(detail.original_language || "");
     const isActuallyCN = candsCountry === "CN" || origLang === "zh";
+    const isActuallyTW = candsCountry === "TW";
     if (cleanRegion === "cn" && !isActuallyCN) return null;
+    if (cleanRegion === "tw" && !isActuallyTW) return null;
 
     const next = detail.next_episode_to_air;
     const last = detail.last_episode_to_air;
@@ -3609,16 +3664,12 @@ async function varietyResolveOne(cand, listType, todayStr, endStr, cleanRegion) 
         const targetGte = todayStr;
         const targetLte = endStr;
 
-        // 收集所有落在 [gte, lte] 有效区间内的分集候选
         const eps = [];
         if (next && next.air_date && next.air_date >= targetGte && next.air_date <= targetLte) eps.push(next);
         if (last && last.air_date && last.air_date >= targetGte && last.air_date <= targetLte) eps.push(last);
 
         if (!eps.length) {
-            // 兜底：next/last_episode_to_air 偶尔滞后（当天分集已存在却没指向当天），
-            // 回查最近一季的分集表确认。仅国产区启用 —— 该区以 TMDB 为主源、候选量小；
-            // 海外由 Trakt 保证精度，全开会产生大量额外请求。
-            if (cleanRegion === "cn") {
+            if (cleanRegion === "cn" || cleanRegion === "tw") {
                 const seasonNumber = varietyLatestSeasonNumber(detail, next, last);
                 if (seasonNumber) {
                     const list = await varietyFetchSeasonEpisodes(detail.id, seasonNumber);
@@ -3631,48 +3682,23 @@ async function varietyResolveOne(cand, listType, todayStr, endStr, cleanRegion) 
 
         if (!eps.length) return null;
 
-        // 优先选择离今天（todayStr）最新的/最近的分集
         eps.sort((a, b) => (a.air_date > b.air_date ? 1 : (a.air_date < b.air_date ? -1 : 0)));
         const ep = eps[0];
         return varietyBuildCard(detail, ep, listType, ep.air_date);
     }
 
-    // 热度榜 (hot)：显示该节目的最近一季首播日（若多季则为最新一季年度，单季则为第一季首播日）
     const latestSeasonDate = varietyGetLatestSeasonAirDate(detail);
     return varietyBuildCard(detail, null, listType, latestSeasonDate);
 }
 
-async function varietyResolveDataset(region, listType, days, cands, needCount) {
+async function varietyResolveDataset(region, listType, days, cands) {
     const cleanRegion = varietyNormalizeRegion(region);
     const dVal = varietyDays(days);
     const key = `${listType}|${cleanRegion}|${dVal}`;
-    const todayStr = varietyBeijingDate(0);
-    const endStr = varietyBeijingDate(dVal);
-
-    // 热度榜：纯人气序（discover 已排序），按需增量解析 ——
-    // 首页只要 20 条，没必要把 70+ 条候选的详情全部拉一遍（这是首屏耗时的主因）。
-    if (listType !== "calendar") {
-        const need = Math.max(1, Number(needCount) || VARIETY_PAGE_SIZE);
-        const state = VarietyHotState[key] || (VarietyHotState[key] = { items: [], cursor: 0 });
-        while (state.items.length < need && state.cursor < cands.length) {
-            const chunk = cands.slice(state.cursor, state.cursor + VARIETY_RESOLVE_CONCURRENCY);
-            state.cursor += chunk.length;
-            const rows = await Promise.all(chunk.map(c => varietyResolveOne(c, listType, todayStr, endStr, cleanRegion)));
-            rows.forEach(r => {
-                if (!r) return;
-                // 国内模式必须绝对纯净
-                if (cleanRegion === "cn" && r._country !== "CN" && !(r.description || "").includes("CN")) return;
-                state.items.push(r);
-            });
-        }
-        VarietyCacheTime[key] = Date.now();
-        return state.items;
-    }
-
-    // 追新榜：需要全局排序（日期升序 + 同日产地交错），必须全量解析后缓存
-    // 时效由首页（page=1）统一把关，翻页时直接用现有数据集
     if (VarietyResolvedCache[key]) return VarietyResolvedCache[key];
 
+    const todayStr = varietyBeijingDate(0);
+    const endStr = varietyBeijingDate(dVal);
     const limit = Math.min(cands.length, VARIETY_MAX_RESOLVE);
     const items = [];
 
@@ -3682,10 +3708,12 @@ async function varietyResolveDataset(region, listType, days, cands, needCount) {
         rows.forEach(r => { if (r) items.push(r); });
     }
 
-    // 二次硬核过滤：若为 cn 模式，强制只留 CN 产地
     const filteredItems = items.filter(it => {
         if (cleanRegion === "cn") {
             return it._country === "CN" || (it.description && it.description.includes("CN"));
+        }
+        if (cleanRegion === "tw") {
+            return it._country === "TW";
         }
         return true;
     });
@@ -3708,8 +3736,16 @@ async function calendarLoadVarietyUltimate(params = {}) {
     const days = String(params.days ?? "14");
     const pageNum = Math.max(1, parseInt(params.page) || 1);
 
-    // 首页请求时检查缓存时效：超过 TTL 就整体失效（含详情缓存），
-    // 这样「上午看不到的新集数，下午志愿者补录后刷新即可见」。
+    // 🚀 热度榜（hot）：极速秒开模式，直接从 Discover 单次网络请求拿结果（1~2秒加载，零详情开销）
+    if (listType === "hot") {
+        const hotItems = await varietyResolveHotFast(cleanRegion, pageNum);
+        if (!hotItems.length) {
+            return pageNum === 1 ? [{ id: "variety_empty", type: "text", title: "暂无数据", subTitle: "暂无热门综艺" }] : [];
+        }
+        return hotItems;
+    }
+
+    // 追新榜（calendar）：精确分集判定与 5 分钟内存 TTL
     const cacheKey = `${listType}|${cleanRegion}|${varietyDays(days)}`;
     if (pageNum === 1 && varietyCacheStale(cacheKey)) {
         varietyInvalidateDataset(cacheKey);
@@ -3723,9 +3759,7 @@ async function calendarLoadVarietyUltimate(params = {}) {
                 : [];
         }
 
-        // 热度榜按需解析：只需要「当前页 + 少量缓冲」条，避免拉满全部候选详情
-        const needCount = pageNum * VARIETY_PAGE_SIZE + 4;
-        const items = await varietyResolveDataset(cleanRegion, listType, days, cands, needCount);
+        const items = await varietyResolveDataset(cleanRegion, listType, days, cands);
         if (!items.length) {
             return pageNum === 1
                 ? [{ id: "variety_empty", type: "text", title: "暂无排期", subTitle: listType === "calendar" ? (days === "0" ? "今日暂无播出的综艺" : `未来 ${days} 天内暂无可播出的综艺`) : "暂无可播出的综艺" }]
