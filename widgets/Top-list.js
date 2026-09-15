@@ -2946,11 +2946,81 @@ async function calendarLoadDrama(params = {}) {
     } catch (e) { return [{ id: "err", type: "text", title: "网络错误" }]; }
 }
 
+// =========================================================================
+// 综艺时刻过滤与常量定义
+// =========================================================================
+const VARIETY_TIME_EXCLUDED_LANGUAGES = ["hi", "th", "ru", "tr", "ta", "te", "pl", "fi", "hu", "nl", "ro", "pt", "ar", "id", "vi", "he", "ms", "tl", "fa", "ur", "uk", "cs", "sv", "da", "no"];
+const VARIETY_TIME_EXCLUDED_COUNTRIES = ["IN", "TH", "RU", "TR", "PL", "FI", "HU", "NL", "RO", "BR", "ID", "PH", "VN", "MY", "DE", "FR", "IT", "ES", "PT", "SE", "NO", "DK", "LB", "SY", "AE", "EG", "SA", "JO", "IQ", "KW", "QA", "OM", "BH", "DZ", "MA", "TN", "AR", "MX", "CO", "PE", "CL"];
+
+const VARIETY_TIME_SPORTS_KEYWORDS = /(?:\bwrestling\b|\bwwe\b|\baew\b|\bnwa\b|\bmlw\b|\bnjpw\b|\bstardom\b|\bseadlin\w*ng\b|\btjpw\b|\bufc\b|\bmma\b|\bbellator\b|\bsmackdown\b|\bwrestlemania\b|\bimpact wrestling\b|\bring of honor\b|摔角|摔跤|格斗|角力|プロレス|スターダム)/i;
+const VARIETY_TIME_TRASH_KEYWORDS = /(?:\bsvengoolie\b|\bdice actors\b|\btivolt\b|\bnadie sabe nada\b|\bkovan viikon\b|\balucina[çc][ãa]o\b|\bmegaszt[aá]r\b|\bbeste zangers\b|\bthe missing piece\b|\bdimension 20\b|\bcritical role\b|\bactual play\b|\badventuring party\b|\bsmosh\b|\bm\s*countdown\b|\bmusic\s*bank\b|\bmusic\s*core\b|\binkigayo\b|show\s*champion|跑团|打歌|音乐中心|人气歌谣|音乐银行|쇼!?\s*챔피언|电视购物|付费课程|口语流利|零基础直达)/i;
+const VARIETY_TIME_BL_KEYWORDS = /(?:\bboys['\u2019]?\s*love\b|\byaoi\b|\byuri\b|\bbl drama\b|同性恋|耽美|男男|女女|腐剧|双男主)/i;
+
+const VARIETY_TIME_TALENT_KEYWORDS = /(?:\bgot\s*talent\b|\btalent\b|\bthe\s*voice\b|\bvoice\b|\bx[- ]?factor\b|\bidol\b|\bmasked\s*singer\b|\bsing(?:ing|er|s)?\b|\bdanc(?:ing|e|er|ers)\b|\bstrictly\b|\bworld\s*of\s*dance\b|达人秀|达人|好声音|蒙面|歌手|歌唱|合唱|唱歌|歌王|舞蹈|街舞|舞动|舞林|与星共舞|选秀|偶像练习)/i;
+
+function varietyTimeBeijingDate(offsetDays = 0) {
+    const t = new Date(Date.now() + 8 * 3600 * 1000 + offsetDays * 86400000);
+    return `${t.getUTCFullYear()}-${String(t.getUTCMonth() + 1).padStart(2, "0")}-${String(t.getUTCDate()).padStart(2, "0")}`;
+}
+
+function varietyTimeIsExcluded(item, selectedRegion = "") {
+    if (!item || !item.id) return true;
+    if (!item.poster_path) return true;
+
+    const countries = Array.isArray(item.origin_country) ? item.origin_country : [];
+    const country = countries[0] || "";
+    const lang = String(item.original_language || "");
+    const titleText = `${item.name || ""} ${item.original_name || ""}`;
+    const genres = Array.isArray(item.genre_ids) ? item.genre_ids : (item.genres ? item.genres.map(g => g.id) : []);
+
+    const isCN = country === "CN" || lang === "zh";
+    const isKR = country === "KR" || lang === "ko";
+    const isJP = country === "JP" || lang === "ja";
+    const isExplicitJP = selectedRegion.toLowerCase() === "jp";
+
+    // 1. 纪录片一律拦截
+    if (genres.indexOf(99) >= 0) return true;
+
+    // 2. 日本产地规则：单独选择日本综艺时不排除，其他区域（如 global/us 等）若混入则拦截
+    if (isJP && !isExplicitJP) return true;
+
+    // 3. 小语种与低质产地拦截
+    if (VARIETY_TIME_EXCLUDED_COUNTRIES.indexOf(country) >= 0 && (!isJP || !isExplicitJP)) return true;
+    if (VARIETY_TIME_EXCLUDED_LANGUAGES.indexOf(lang) >= 0 && (!isJP || !isExplicitJP)) return true;
+
+    // 4. 体育摔角、垃圾关键词、BL 题材拦截
+    if (VARIETY_TIME_SPORTS_KEYWORDS.test(titleText)) return true;
+    if (VARIETY_TIME_TRASH_KEYWORDS.test(titleText)) return true;
+    if (VARIETY_TIME_BL_KEYWORDS.test(titleText)) return true;
+
+    // 5. 新闻类拦截
+    if (!isCN && genres.indexOf(10763) >= 0) return true;
+
+    // 6. 国外真人秀拦截逻辑：仅放行选秀竞技（唱歌/舞蹈/达人秀），韩综和显式选择的日综保留
+    const isReality = genres.indexOf(10764) >= 0;
+    const isTalent = VARIETY_TIME_TALENT_KEYWORDS.test(titleText);
+    if (!isCN && isReality && !isKR && !isExplicitJP && !isTalent) return true;
+
+    // 7. 纯脱口秀拦截（非真人秀的纯脱口秀）
+    if (!isCN && genres.indexOf(10767) >= 0 && genres.indexOf(10764) < 0) return true;
+
+    // 8. 零票且低热度的海外杂项拦截
+    if (!isCN) {
+        const votes = Number(item.vote_count) || 0;
+        const pop = Number(item.popularity) || 0;
+        if (votes <= 0 && pop < 10) return true;
+    }
+
+    return false;
+}
+
 async function calendarLoadVariety(params = {}) {
-    const mode = params.mode || "today";
+    const mode = params.mode || params.variety_mode || "today";
     const region = params.sort_by || "cn";
+    const page = Math.max(1, parseInt(params.page) || 1);
     const clientId = CALENDAR_TRAKT_ID;
-    if (mode === "trending") return await calendarFetchVariety(region, null); 
+
+    if (mode === "trending") return await calendarFetchVariety(region, null, page); 
 
     const dateStr = calendarGetSafeDate(mode); 
     const countryParam = region === "global" ? "" : region; 
@@ -2964,16 +3034,20 @@ async function calendarLoadVariety(params = {}) {
 
         if (Array.isArray(data) && data.length > 0) {
             const promises = data.map(async (item) => {
-                if (!item.show.ids.tmdb) return null;
-                return await calendarFetchDetail(item.show.ids.tmdb, item);
+                if (!item.show || !item.show.ids || !item.show.ids.tmdb) return null;
+                return await calendarFetchDetail(item.show.ids.tmdb, item, dateStr, region);
             });
-            return (await Promise.all(promises)).filter(Boolean);
+            const results = (await Promise.all(promises)).filter(Boolean);
+            if (results.length > 0) {
+                const start = (page - 1) * 20;
+                return results.slice(start, start + 20);
+            }
         }
     } catch (e) {
         console.error("Trakt Request Failed:", e.message);
     }
 
-    return await calendarFetchVariety(region, dateStr);
+    return await calendarFetchVariety(region, dateStr, page);
 }
 
 // =========================================================================
@@ -2981,26 +3055,21 @@ async function calendarLoadVariety(params = {}) {
 // =========================================================================
 
 function calendarCalculateDates(mode) {
-    const today = new Date();
-    const toStr = (d) => d.toISOString().split('T')[0];
-    if (mode === "update_today") return { start: toStr(today), end: toStr(today) };
+    const todayStr = varietyTimeBeijingDate(0);
+    if (mode === "update_today") return { start: todayStr, end: todayStr };
     if (mode === "premiere_tomorrow") {
-        const tmr = new Date(today); tmr.setDate(today.getDate() + 1); return { start: toStr(tmr), end: toStr(tmr) };
+        const tmrStr = varietyTimeBeijingDate(1);
+        return { start: tmrStr, end: tmrStr };
     }
     if (mode === "premiere_week") {
-        const start = new Date(today); start.setDate(today.getDate() + 1);
-        const end = new Date(today); end.setDate(today.getDate() + 7);
-        return { start: toStr(start), end: toStr(end) };
+        return { start: varietyTimeBeijingDate(1), end: varietyTimeBeijingDate(7) };
     }
-    const start = new Date(today); start.setDate(today.getDate() + 1);
-    const end = new Date(today); end.setDate(today.getDate() + 30);
-    return { start: toStr(start), end: toStr(end) };
+    return { start: varietyTimeBeijingDate(1), end: varietyTimeBeijingDate(30) };
 }
 
 function calendarGetSafeDate(mode) {
-    const d = new Date();
-    if (mode === "tomorrow") d.setDate(d.getDate() + 1);
-    return d.toISOString().split('T')[0];
+    if (mode === "tomorrow") return varietyTimeBeijingDate(1);
+    return varietyTimeBeijingDate(0);
 }
 
 function calendarGetWeekdayName(id) {
@@ -3008,35 +3077,47 @@ function calendarGetWeekdayName(id) {
     return map[id] || "";
 }
 
-async function calendarFetchVariety(region, dateStr) {
+async function calendarFetchVariety(region, dateStr, page = 1) {
     const queryParams = {
         language: "zh-CN",
         sort_by: "popularity.desc", 
-        page: 1,
+        page: page,
         with_genres: "10764|10767", 
         include_null_first_air_dates: false,
         timezone: "Asia/Shanghai" 
     };
-    if (region !== "global") queryParams.with_origin_country = region.toUpperCase();
+
+    if (region !== "global") {
+        queryParams.with_origin_country = region.toUpperCase();
+    } else {
+        // 全球热门：限制主流产地，避免混入希伯来/挪威等小语种冷门
+        queryParams.with_origin_country = "US|KR|GB|CA|AU|TW|HK|SG|NZ|IE";
+    }
+
     if (dateStr) {
         queryParams["air_date.gte"] = dateStr;
         queryParams["air_date.lte"] = dateStr;
     } else {
-        queryParams.sort_by = "first_air_date.desc";
+        queryParams.sort_by = "popularity.desc";
+        // 近期热播：看近期有播出的活跃节目（近30天~未来30天）
+        queryParams["air_date.gte"] = varietyTimeBeijingDate(-30);
+        queryParams["air_date.lte"] = varietyTimeBeijingDate(30);
     }
 
     try {
         const res = await Widget.tmdb.get("/discover/tv", { params: queryParams });
         const data = res || {};
-        if (!data.results) return [];
+        if (!data.results || !Array.isArray(data.results)) return [];
 
-        return data.results.map(item => {
-            const fullDate = item.first_air_date || dateStr || "";
-            const yearStr = fullDate.substring(0, 4);
+        const filtered = data.results.filter(item => !varietyTimeIsExcluded(item, region));
+
+        return filtered.map(item => {
+            const cardDate = dateStr || item.first_air_date || "";
+            const yearStr = cardDate ? cardDate.substring(0, 4) : "";
             const genreText = calendarGetGenreText(item.genre_ids) || "综艺";
             const shortDate = dateStr ? dateStr.substring(5).replace("-", "/") : "";
             
-            const displaySubtitle = shortDate ? `${shortDate} ${genreText}` : `近期热播 ${genreText}`;
+            const displaySubtitle = shortDate ? `${shortDate} ${genreText}` : `近期热播 · ${genreText}`;
 
             return calendarBuildItem({
                 id: item.id, tmdbId: item.id, type: "tv",
@@ -3045,36 +3126,40 @@ async function calendarFetchVariety(region, dateStr) {
                 subTitle: displaySubtitle, 
                 desc: item.overview,
                 year: yearStr,
-                releaseDate: fullDate
+                releaseDate: cardDate
             });
         });
     } catch (e) { return []; }
 }
 
-async function calendarFetchDetail(tmdbId, traktItem) {
+async function calendarFetchDetail(tmdbId, traktItem, fallbackDate = "", selectedRegion = "") {
     try {
         const d = await Widget.tmdb.get(`/tv/${tmdbId}`, { params: { language: "zh-CN" } });
         if (!d) return null;
         
-        const fullDate = d.first_air_date || traktItem.first_aired?.substring(0, 10) || "";
-        const yearStr = fullDate.substring(0, 4);
+        // 校验是否属于被过滤项
+        if (varietyTimeIsExcluded(d, selectedRegion)) return null;
+
+        const ep = traktItem && traktItem.episode ? traktItem.episode : {};
+        // 优先使用当集播出日期或 fallbackDate (当天查询日期)，不再使用首播年份
+        const cardDate = (traktItem && traktItem.first_aired ? traktItem.first_aired.substring(0, 10) : "") || fallbackDate || d.first_air_date || "";
+        const yearStr = cardDate ? cardDate.substring(0, 4) : "";
         
-        const ep = traktItem.episode;
-        const s = String(ep.season).padStart(2,'0');
-        const e = String(ep.number).padStart(2,'0');
-        const genreText = calendarGetGenreText(d.genres?.map(g=>g.id)) || "综艺";
+        const s = String(ep.season || 1).padStart(2, '0');
+        const e = String(ep.number || 1).padStart(2, '0');
+        const genreText = calendarGetGenreText(d.genres?.map(g => g.id)) || "综艺";
         
-        const displaySubtitle = `S${s}-E${e} ${genreText}`;
+        const displaySubtitle = ep.season !== undefined && ep.number !== undefined ? `S${s}-E${e} ${genreText}` : genreText;
 
         return calendarBuildItem({
             id: d.id, tmdbId: d.id, type: "tv",
-            title: d.name || traktItem.show.title,
+            title: d.name || (traktItem && traktItem.show && traktItem.show.title) || "",
             poster: d.poster_path, backdrop: d.backdrop_path,
             rating: d.vote_average?.toFixed(1),
             subTitle: displaySubtitle,
             desc: d.overview,
             year: yearStr,
-            releaseDate: fullDate
+            releaseDate: cardDate
         });
     } catch (e) { return null; }
 }
