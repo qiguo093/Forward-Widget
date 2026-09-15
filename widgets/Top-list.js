@@ -2980,7 +2980,7 @@ function varietyTimeIsExcluded(item, selectedRegion = "") {
     const titleText = `${item.name || ""} ${item.original_name || ""}`;
     const genres = Array.isArray(item.genre_ids) ? item.genre_ids : (item.genres ? item.genres.map(g => g.id) : []);
 
-    const isCN = country === "CN" || lang === "zh";
+    const isCN = country === "CN" || country === "TW" || country === "HK" || lang === "zh";
     const isKR = country === "KR" || lang === "ko";
     const isJP = country === "JP" || lang === "ja";
     const isExplicitJP = selectedRegion.toLowerCase() === "jp";
@@ -3023,13 +3023,21 @@ function varietyTimeIsExcluded(item, selectedRegion = "") {
 
 async function varietyTimeFetchDetail(tmdbId) {
     if (tmdbId in VarietyTimeDetailCache) return VarietyTimeDetailCache[tmdbId];
+    // 失败必须重试：详情请求偶发抖动时若直接返回 null，该节目会被当作"无排期"丢弃，
+    // 而结果随即被宿主缓存住，导致下拉也刷不回来。
     let d = null;
-    try {
-        d = await Widget.tmdb.get(`/tv/${tmdbId}`, { params: { language: "zh-CN" } });
-    } catch (e) {
-        d = null;
+    for (let attempt = 0; attempt < 3 && !d; attempt++) {
+        if (attempt > 0) {
+            await new Promise(r => setTimeout(r, 300 * attempt));
+        }
+        try {
+            d = await Widget.tmdb.get(`/tv/${tmdbId}`, { params: { language: "zh-CN" } });
+        } catch (e) {
+            d = null;
+        }
     }
-    VarietyTimeDetailCache[tmdbId] = d;
+    // 只缓存成功结果；失败不进缓存，下次刷新还能重新尝试
+    if (d) VarietyTimeDetailCache[tmdbId] = d;
     return d;
 }
 
@@ -3121,8 +3129,8 @@ async function calendarLoadVariety(params = {}) {
         return res;
     }
 
-    // 海外/国际走 Trakt（若有），国内及 Trakt 未覆盖的走 TMDB 真实分集解析
-    const isDomestic = region === "cn" || region.includes("国") || region.includes("中");
+    // 华语/国内及 Trakt 未覆盖的地区走 TMDB 真实分集解析
+    const isDomestic = region === "cn" || region === "tw" || region === "hk" || region.includes("国") || region.includes("中") || region.includes("台");
 
     if (!isDomestic) {
         const countryParam = region === "global" ? "" : region;

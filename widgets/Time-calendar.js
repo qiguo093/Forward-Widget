@@ -3409,13 +3409,21 @@ function varietyInvalidateDataset(key) {
 
 async function varietyFetchDetail(tmdbId) {
     if (tmdbId in VarietyDetailCache) return VarietyDetailCache[tmdbId];
+    // 失败必须重试：详情请求偶发抖动时若直接返回 null，该节目会被当作"无排期"丢弃，
+    // 而结果随即被宿主缓存住，导致下拉也刷不回来。
     let d = null;
-    try {
-        d = await Widget.tmdb.get(`/tv/${tmdbId}`, { params: { language: "zh-CN" } });
-    } catch (e) {
-        d = null;
+    for (let attempt = 0; attempt < 3 && !d; attempt++) {
+        if (attempt > 0) {
+            await new Promise(r => setTimeout(r, 300 * attempt));
+        }
+        try {
+            d = await Widget.tmdb.get(`/tv/${tmdbId}`, { params: { language: "zh-CN" } });
+        } catch (e) {
+            d = null;
+        }
     }
-    VarietyDetailCache[tmdbId] = d;
+    // 只缓存成功结果；失败不进缓存，下次刷新还能重新尝试
+    if (d) VarietyDetailCache[tmdbId] = d;
     return d;
 }
 
