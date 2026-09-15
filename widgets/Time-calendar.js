@@ -3181,7 +3181,10 @@ const VARIETY_EXCLUDED_LANGUAGES = ["hi", "th", "ru", "tr", "ta", "te", "pl", "f
 // 职业摔角 / 格斗（只比对标题，避免误杀讲体育故事的节目）
 const VARIETY_SPORTS_KEYWORDS = /(?:\bwrestling\b|\bwwe\b|\baew\b|\bnwa\b|\bmlw\b|\bnjpw\b|\bstardom\b|\bseadlin\w*ng\b|\btjpw\b|\bufc\b|\bmma\b|\bbellator\b|\bsmackdown\b|\bwrestlemania\b|\bimpact wrestling\b|\bring of honor\b|摔角|摔跤|格斗|角力|プロレス|スターダム)/i;
 
-const VARIETY_TRASH_KEYWORDS = /(?:\bsvengoolie\b|\bdice actors\b|\btivolt\b|\bnadie sabe nada\b|\bkovan viikon\b|\balucina[çc][ãa]o\b|\bmegaszt[aá]r\b|\bbeste zangers\b|\bthe missing piece\b|\bdimension 20\b|\bcritical role\b|\bactual play\b|\badventuring party\b|\bsmosh\b|跑团|电视购物|付费课程|口语流利|零基础直达)/i;
+const VARIETY_TRASH_KEYWORDS = /(?:\bsvengoolie\b|\bdice actors\b|\btivolt\b|\bnadie sabe nada\b|\bkovan viikon\b|\balucina[çc][ãa]o\b|\bmegaszt[aá]r\b|\bbeste zangers\b|\bthe missing piece\b|\bdimension 20\b|\bcritical role\b|\bactual play\b|\badventuring party\b|\bsmosh\b|\bm\s*countdown\b|\bmusic\s*bank\b|\bmusic\s*core\b|\binkigayo\b|show\s*champion|跑团|打歌|音乐中心|人气歌谣|音乐银行|쇼!?\s*챔피언|电视购物|付费课程|口语流利|零基础直达)/i;
+
+// 韩/日/台/港综艺单独把质量关（见 varietyIsExcluded）
+const VARIETY_ASIAN_COUNTRIES = ["KR", "JP", "TW", "HK", "SG"];
 
 const VARIETY_BL_KEYWORDS = /(?:\bboys['\u2019]?\s*love\b|\byaoi\b|\byuri\b|\bbl drama\b|同性恋|耽美|男男|女女|腐剧|双男主)/i;
 
@@ -3205,10 +3208,14 @@ function calendarGetFutureDateStr(days) {
 
 // -------------------------------------------------------------------------
 // 垃圾过滤
-// 国外综艺整体保留真人秀：真人秀（10764）不再因为「缺少中文简介」「同时带纪录片
-// 标签」「票数偏低」而被丢弃 —— TMDB 对海外真人秀大量缺 zh-CN 简介，若按普通条目
-// 处理会把 Strictly Come Dancing / The Challenge / Big Brother 这类整批误杀。
-// 仍然一律排除：摔角格斗与体育、新闻、非真人秀的脱口秀、小语种产地、无海报。
+// 国外综艺整体保留真人秀：真人秀（10764）不再因为「缺少中文简介」「票数偏低」
+// 而被丢弃 —— TMDB 对海外真人秀大量缺 zh-CN 简介，若按普通条目处理会把
+// Strictly Come Dancing / The Challenge / Big Brother 这类整批误杀。
+// 纪录片一律拦截（用户明确不看纪录片）：不论产地、不论是否同时带真人秀标签，
+// 只要 genre 含 99 就排除 —— 执法实录（On Patrol / 执法仪 / Police Interceptors）、
+// 探秘纪实（Paranormal Caught on Camera）、生活纪实（House Hunters / L'épicerie）
+// 这类「真人秀 + 纪录片」混合标签的也一并拦掉。
+// 其余仍然一律排除：摔角格斗与体育、新闻、非真人秀的脱口秀、小语种产地、无海报。
 // -------------------------------------------------------------------------
 function varietyIsExcluded(item) {
     if (!item || !item.id) return true;
@@ -3224,6 +3231,7 @@ function varietyIsExcluded(item) {
     // 国外真人秀放宽（国产综艺仍有充足中文简介，保持原口径）
     const relaxReality = !isCN && isReality;
 
+    if (genres.indexOf(99) >= 0) return true;                          // 纪录片：一律拦截
     if (VARIETY_EXCLUDED_COUNTRIES.indexOf(country) >= 0) return true;
     if (VARIETY_EXCLUDED_LANGUAGES.indexOf(lang) >= 0) return true;
     if (VARIETY_SPORTS_KEYWORDS.test(titleText)) return true;
@@ -3237,10 +3245,15 @@ function varietyIsExcluded(item) {
         const votes = Number(item.vote_count) || 0;
         const pop = Number(item.popularity) || 0;
         if (votes <= 0 && pop < 10) return true;                        // 零票零热度海外杂项
-        if (!isReality) {
-            if (genres.indexOf(99) >= 0) return true;                   // 纪录片
-            if (genres.indexOf(10767) >= 0) return true;                // 非真人秀的脱口秀
-        }
+        if (!isReality && genres.indexOf(10767) >= 0) return true;      // 非真人秀的脱口秀
+    }
+
+    // 韩/日/台/港综艺：没有中文简介时要求有一定口碑或热度，
+    // 避免 YouTube 自制小节目、打歌节目混进「正经韩综」。
+    if (VARIETY_ASIAN_COUNTRIES.indexOf(country) >= 0 && String(item.overview || "").trim().length < 8) {
+        const v = Number(item.vote_count) || 0;
+        const p = Number(item.popularity) || 0;
+        if (v < 10 && p < 20) return true;
     }
     return false;
 }
@@ -3307,7 +3320,24 @@ async function varietyGetCandidates(region, listType, days) {
     let osList = [];
     const jobs = [];
     if (region === "cn" || region === "all") jobs.push(varietyCollectPool("CN", listType, days).then(r => { cnList = r; }));
-    if (region === "global" || region === "all") jobs.push(varietyCollectPool(VARIETY_MAIN_COUNTRIES, listType, days).then(r => { osList = r; }));
+    if (region === "global" || region === "all") {
+        // 合并查询按热度排序，韩综热度普遍偏低（如《只要有空》pop 9、《姐姐家的产地直送》
+        // pop 5）会被挤到后面页而截断。韩日单独再扫一遍补齐 —— KR 仅 2 页、JP 仅 1 页，
+        // 成本很低，却能保证正经韩综不漏。
+        jobs.push((async () => {
+            const merged = await varietyCollectPool(VARIETY_MAIN_COUNTRIES, listType, days);
+            const extra = await Promise.all([
+                varietyCollectPool("KR", listType, days),
+                varietyCollectPool("JP", listType, days)
+            ]);
+            const seen = {};
+            const out = [];
+            merged.concat(extra[0], extra[1]).forEach(x => {
+                if (x && x.id && !seen[x.id]) { seen[x.id] = 1; out.push(x); }
+            });
+            osList = out;
+        })());
+    }
     await Promise.all(jobs);
 
     let list;
@@ -3370,7 +3400,9 @@ function varietyBuildCard(detail, ep, listType, sortDate) {
         description: `📅 播出时间: ${dateStr}\n${detail.overview || "暂无简介"}`,
         rating: parseFloat(ratingNum),
         year: String(dateStr).substring(0, 4),
-        releaseDate: dateStr
+        releaseDate: dateStr,
+        // 内部字段：按产地轮转交错排序用（不参与展示）
+        _country: (Array.isArray(detail.origin_country) && detail.origin_country[0]) || ""
     };
 }
 
@@ -3395,6 +3427,44 @@ async function varietyResolveOne(cand, listType, todayStr, endStr) {
     return varietyBuildCard(detail, ep, listType, sortDate);
 }
 
+// 同一天里按产地轮转交错，且亚洲产地（韩/日/台/港）排在欧美之前 ——
+// 否则单日欧美真人秀体量占优时，韩综会被整片压到列表底部看不见。
+function varietyCountryRank(c) {
+    const order = ["CN", "KR", "JP", "TW", "HK", "SG", "NZ", "IE", "AU", "CA", "GB", "US"];
+    const i = order.indexOf(c);
+    return i < 0 ? 99 : i;
+}
+
+function varietyInterleaveByRegion(items) {
+    const dates = [];
+    const byDate = {};
+    items.forEach(it => {
+        const d = it.releaseDate || "";
+        if (!byDate[d]) { byDate[d] = []; dates.push(d); }
+        byDate[d].push(it);
+    });
+    const out = [];
+    dates.forEach(d => {
+        const buckets = {};
+        const order = [];
+        byDate[d].forEach(it => {
+            const c = it._country || "??";
+            if (!buckets[c]) { buckets[c] = []; order.push(c); }
+            buckets[c].push(it);
+        });
+        order.sort((a, b) => varietyCountryRank(a) - varietyCountryRank(b));
+        let more = true;
+        while (more) {
+            more = false;
+            order.forEach(c => {
+                const b = buckets[c];
+                if (b.length) { out.push(b.shift()); more = true; }
+            });
+        }
+    });
+    return out;
+}
+
 // -------------------------------------------------------------------------
 // 主入口：追新榜 / 热度榜
 // -------------------------------------------------------------------------
@@ -3414,16 +3484,19 @@ async function varietyResolveDataset(region, listType, days, cands) {
         rows.forEach(r => { if (r) items.push(r); });
     }
 
-    // 追新榜按播出日期升序（同日保持人气序）；热度榜保持服务端人气序
+    // 追新榜按播出日期升序，同日按产地轮转交错（韩综才不会被欧美真人秀压到底部）；
+    // 热度榜保持服务端人气序。
+    let ordered = items;
     if (listType === "calendar") {
         items.sort((a, b) => {
             if (a.releaseDate === b.releaseDate) return 0;
             return a.releaseDate > b.releaseDate ? 1 : -1;
         });
+        ordered = varietyInterleaveByRegion(items);
     }
 
-    VarietyResolvedCache[key] = items;
-    return items;
+    VarietyResolvedCache[key] = ordered;
+    return ordered;
 }
 
 async function calendarLoadVarietyUltimate(params = {}) {
