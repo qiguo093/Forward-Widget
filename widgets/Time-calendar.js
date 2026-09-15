@@ -2507,6 +2507,8 @@ const DramaCnDayCache = {};      // dateStr → 国产剧当日条目
 // 产地：印度/泰国/俄罗斯/土耳其/波兰/芬兰/匈牙利/荷兰/罗马尼亚/巴西 + 阿拉伯语区
 // 题材关键词：同性恋/BL/GL/耽美；职业摔角/体育竞技
 const DRAMA_EXCLUDED_GENRE_IDS = [99, 10751, 10763, 10764, 10766, 10767];
+// 动画(16)/儿童(10762)：无论哪个产地都排除 —— 动漫有独立的「动漫周更」模块
+const DRAMA_ANIMATION_GENRE_IDS = [16, 10762];
 // 服务端只排除"任何地区都不要"的题材，家庭(10751)交给客户端判断，
 // 否则《兰香如故》这类被 TMDB 标了家庭标签的国产剧会被服务端参数提前枪毙。
 const DRAMA_SERVER_EXCLUDED_GENRE_IDS = [99, 10763, 10764, 10766, 10767];
@@ -2514,8 +2516,8 @@ const DRAMA_EXCLUDED_COUNTRIES = ["IN", "TH", "RU", "TR", "PL", "FI", "HU", "NL"
 const DRAMA_EXCLUDED_LANGUAGES = ["hi", "th", "ru", "tr", "ta", "te", "pl", "fi", "hu", "nl", "ro", "pt", "ar"];
 // Trakt 的题材是小写短横线形式，与 TMDB 数字 id 一一对应
 const DRAMA_EXCLUDED_TRAKT_GENRES = ["reality", "news", "talk-show", "documentary", "soap", "family", "game-show", "award-show", "sports"];
-// 动画/国创有独立的「动漫周更」模块，这里不再重复收录，避免番剧刷屏
-const DRAMA_ANIME_GENRES = ["anime", "donghua"];
+// 动画/国创/欧美动画一律不收 —— 动漫有独立的「动漫周更」模块，这里只留真人剧
+const DRAMA_ANIME_GENRES = ["anime", "donghua", "animation"];
 const DRAMA_BL_KEYWORDS = /(?:\bgay\b|\blgbtq?\b|\blesbian\b|\bhomosexual\b|\bsame[- ]sex\b|\bqueer\b|\bboys['’]?\s*love\b|\byaoi\b|\byuri\b|同性恋|耽美|男男|女女|同志|腐剧|双男主|恋上他|爱上他|美少年之恋|绑架我的人)/i;
 const DRAMA_SPORTS_KEYWORDS = /(?:\bwrestling\b|\bpro[- ]wrestling\b|\baew\b|\bwwe\b|\bnwa\b|\bmlw\b|\bstardom\b|\bseadlin[n]?ng\b|\btjpw\b|\bufc\b|\bmma\b|\braw\b|\bsmackdown\b|\bcollision\b|\bdynamite\b|\bpowerrr\b|\bbaseball\b|\bfootball\b|\bbasketball\b|プロレス|女子プロレス|摔角|摔跤|格斗|角力|スターダム)/i;
 const DRAMA_TRASH_KEYWORDS = /(?:\bsvengoolie\b|\bdice actors\b|\btivolt\b|\bnadie sabe nada\b|\bkovan viikon\b|\balucina[çc][ãa]o\b|\bmegaszt[aá]r\b|\bbeste zangers\b|\bthe missing piece\b|请记住我的名字|绑架我的人)/i;
@@ -2524,6 +2526,8 @@ const DRAMA_TRASH_KEYWORDS = /(?:\bsvengoolie\b|\bdice actors\b|\btivolt\b|\bnad
 function dramaIsExcludedTmdbItem(item) {
     const genres = Array.isArray(item.genre_ids) ? item.genre_ids.map(Number) : [];
     if (genres.length === 0) return true;
+    // 动画(16)/儿童(10762) 一律不进「剧集追更」—— 该看「动漫周更」，避免番剧刷屏
+    if (genres.some(id => DRAMA_ANIMATION_GENRE_IDS.includes(id))) return true;
     const countries = (item.origin_country || []).map(c => String(c).toUpperCase());
     const isChinese = countries.some(c => ["CN", "HK", "TW"].includes(c)) || item.original_language === "zh";
     if (genres.some(id => DRAMA_EXCLUDED_GENRE_IDS.includes(id))) {
@@ -2642,8 +2646,8 @@ async function dramaSearchTmdbForShow(show) {
     return best;
 }
 
-// 只保留"剧集"类，排除真人秀/新闻/脱口秀/纪录片/体育等（TVmaze 自带 type，比题材更准）
-const DRAMA_TVMAZE_KEEP_TYPES = ["Scripted", "Animation"];
+// 只保留真人剧集；TVmaze 的 Animation 类型（国创动画）归「动漫周更」管
+const DRAMA_TVMAZE_KEEP_TYPES = ["Scripted"];
 
 async function dramaCollectChineseEntries(dateStr) {
     if (dateStr in DramaCnDayCache) return DramaCnDayCache[dateStr];
@@ -2668,6 +2672,9 @@ async function dramaCollectChineseEntries(dateStr) {
         const text = `${show.name || ""} ${show.original_name || ""}`;
         if (DRAMA_BL_KEYWORDS.test(text) || DRAMA_SPORTS_KEYWORDS.test(text)) continue;
         if (!tmdb) continue;   // 匹配不到 TMDB 就无法打开详情页，跳过
+        // 兜底：TVmaze 把部分国创动画归到了 Scripted，用 TMDB 的题材再筛一遍
+        const tmdbGenres = Array.isArray(tmdb.genre_ids) ? tmdb.genre_ids.map(Number) : [];
+        if (tmdbGenres.some(id => DRAMA_ANIMATION_GENRE_IDS.includes(id))) continue;
         entries.push({
             source: "tvmaze", tmdbId: tmdb.id, key: String(tmdb.id),
             title: tmdb.name || show.name || "",
@@ -2879,9 +2886,9 @@ async function calendarLoadDrama(params = {}) {
         const pKey = `${mode}|${region}|${dates.start}|${page}`;
         if (DramaPremiereCache[pKey]) return DramaPremiereCache[pKey];
         const res = await Widget.tmdb.get("/discover/tv", { params: queryParams });
-        const results = ((res && res.results) || []).filter(item =>
-            region !== "Global" || !dramaIsExcludedTmdbItem(item)
-        );
+        // 排除规则对所有地区都要生效（此前只在"全球聚合"下过滤，
+        // 导致切到中国/美国等地区时动画会漏进来）
+        const results = ((res && res.results) || []).filter(item => !dramaIsExcludedTmdbItem(item));
         if (results.length === 0) return page === 1 ? [{ id: "empty", type: "text", title: "暂无更新" }] : [];
         const built = results.map(item => {
             const fullDate = item.first_air_date || "";
