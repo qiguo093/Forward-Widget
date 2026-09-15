@@ -2297,60 +2297,67 @@ function calendarBuildItem({ id, tmdbId, type, title, poster, backdrop, rating, 
     };
 }
 
-async function calendarFetchTraktChineseAnime(updateDate, dayName) {
-    try {
-        const url = `https://api.trakt.tv/calendars/all/shows/${updateDate}/1?genres=donghua&countries=cn`;
-        const res = await Widget.http.get(url, {
-            headers: {
-                "Content-Type": "application/json",
-                "trakt-api-version": "2",
-                "trakt-api-key": CALENDAR_TRAKT_ID,
-                "User-Agent": TRAKT_REQUEST_UA
-            }
-        });
-        const rows = Array.isArray(res.data) ? res.data : [];
-        const items = await Promise.all(rows.map(async row => {
-            const show = row.show || {};
-            const episode = row.episode || {};
-            const tmdbId = show.ids && show.ids.tmdb;
-            if (!tmdbId) return null;
-            try {
-                const detail = await Widget.tmdb.get(`/tv/${tmdbId}`, { params: { language: "zh-CN" } });
-                if (!detail) return null;
-                const season = Number(episode.season || 0);
-                const number = Number(episode.number || 0);
-                const episodeLabel = season || number ? ` · 第${season}季第${number}集` : "";
-                return calendarBuildItem({
-                    id: tmdbId,
-                    tmdbId,
-                    type: "tv",
-                    title: detail.name || show.title,
-                    poster: detail.poster_path,
-                    backdrop: detail.backdrop_path,
-                    rating: detail.vote_average?.toFixed(1) || "0.0",
-                    subTitle: `${updateDate} ${dayName} 国漫 · 今日更新${episodeLabel}`,
-                    desc: detail.overview || `Trakt 今日更新${episodeLabel}`,
-                    year: updateDate.substring(0, 4),
-                    releaseDate: updateDate
-                });
-            } catch (e) { return null; }
-        }));
-        return items.filter(Boolean);
-    } catch (e) {
-        console.error("[calendar] Trakt 国漫更新获取失败:", e.message || e);
-        return [];
+// ⚠️ 国漫**不再使用 Trakt** 作为数据源（2026-09-16 移除）。
+// Trakt 的日历按 UTC 切「一天」，而腾讯/B站系国漫多为北京时间深夜或凌晨更新：
+// 实测《仙逆》S1E159 北京时间 9/20（周日）播出，Trakt 却把它算在 9/19（周六），
+// 于是这部剧会「从周六的列表里冒出来」，而 TMDB/详情页都写周日。
+// 国漫的排期判定统一交给 TMDB 分集表（与 App 内详情页同一口径），见下方校验逻辑。
+
+// 在 TMDB 的**分集表**里找目标日的分集 —— 这是与 TMDB 详情页完全一致的口径。
+// 为什么不直接用 next_episode_to_air：该字段会滞后（某集播完仍长期挂在 next 上），
+// 拿它当硬判据会让未来日期整批国漫消失；为什么不能只信 discover 的 air_date：
+// 它与 show 级字段偶尔互相打架（《完美世界》曾出现 show 级写周三、分集表写周四）。
+// 返回 { episode, label } 命中；{ miss: true } 表示查到了但目标日确实没有分集。
+async function animeCnFindEpisodeOnDate(detail, updateDate) {
+    const last = detail.last_episode_to_air || {};
+    const next = detail.next_episode_to_air || {};
+    if (next.air_date === updateDate) return { episode: next };
+    if (last.air_date === updateDate) return { episode: last };
+
+    // show 级字段没命中 → 回查分集表（只查最相关的 1~2 季，避免请求爆炸）
+    const seasons = (detail.seasons || [])
+        .filter(s => Number(s.episode_count) > 0)
+        .sort((a, b) => String(a.air_date || "").localeCompare(String(b.air_date || "")));
+    if (!seasons.length) return { episode: null };
+    let idx = -1;
+    for (let i = 0; i < seasons.length; i++) {
+        if (String(seasons[i].air_date || "") <= updateDate) idx = i;
     }
+    const probe = [];
+    if (idx >= 0) probe.push(seasons[idx]);
+    else probe.push(seasons[0]);
+    if (idx > 0) probe.push(seasons[idx - 1]);   // 跨季边界兜底
+
+    let reached = false;
+    for (const s of probe) {
+        try {
+            const se = await Widget.tmdb.get(`/tv/${detail.id}/season/${s.season_number}`, { params: { language: "zh-CN" } });
+            reached = true;
+            const ep = (se && Array.isArray(se.episodes) ? se.episodes : []).find(e => e.air_date === updateDate);
+            if (ep) return { episode: ep };
+        } catch (e) {
+            console.error(`[calendar] 国漫分集表获取失败 tmdb=${detail.id} S${s.season_number}:`, e.message || e);
+        }
+    }
+    return reached ? { episode: null, miss: true } : { episode: null };
+}
+
+function animeCnEpisodeLabel(ep) {
+    if (!ep) return "";
+    const seasonNo = Number(ep.season_number || 1);
+    const epNo = Number(ep.episode_number || 0);
+    if (seasonNo > 1) return ` · 第${seasonNo}季第${epNo}集`;
+    return epNo ? ` · 第${epNo}集` : "";
 }
 
 // =========================================================================
-// TMDB 国漫兜底：补上 B站国创 / Bangumi / Trakt 三源都覆盖不到的
-// 腾讯视频、优酷等平台独播国漫（如《遮天》《武神主宰》《炼气十万年》）。
+// TMDB 国漫兜底：补上 B站国创 / Bangumi 两源都覆盖不到的腾讯视频、优酷等
+// 平台独播国漫（如《遮天》《武神主宰》《炼气十万年》）。
 //
-// 判据说明：
-//   · 主判据 = discover 的 air_date 过滤（TMDB 按分集表精确匹配"这一天有没有分集"）
-//   · detail 请求只用来补集号 / 评分 / 简介，并做儿童向二次过滤；
-//     切勿把 next_episode_to_air 当硬判据 —— 它有滞后（某集播完仍长期挂在 next 上），
-//     拿它做"必须等于目标日"会让整批国漫从未来日期直接消失。
+// 日期口径（唯一判据）：
+//   discover(air_date) 粗筛 → 逐条用 TMDB **分集表**确认目标日确有分集
+//   （先看 show 级 next/last 快路径，没命中再回查分集表）。
+//   分集表明确没有 → 丢弃；网络失败 → 软命中保留，避免抖动丢数据。
 // =========================================================================
 const AnimeCnTmdbCache = {};   // updateDate → items（仅缓存成功结果）
 
@@ -2416,26 +2423,13 @@ async function calendarFetchTmdbCnAnime(updateDate, dayName) {
                 const genreIds = (detail.genres || []).map(g => g.id);
                 if (genreIds.includes(10762)) return null;
 
-                // ⚠️ 这里**不能**把 next/last 当成硬性判据：
-                // TMDB 的 next_episode_to_air 存在滞后（某集播完后仍长期挂在 next 上），
-                // 用它做"必须等于目标日"的校验，会让未来日期（以及部分当天）整批国漫消失。
-                // 真正的判据是 discover 的 air_date 过滤本身 —— 它按分集表精确匹配目标日，
-                // 这也是 TMDB 里最本质的"今天有没有更新"信息。next/last 只用来取集号。
-                const last = detail.last_episode_to_air || {};
-                const next = detail.next_episode_to_air || {};
-                const isNext = next.air_date === updateDate;
-                const isLast = last.air_date === updateDate;
-
-                let epLabel = "";
-                if (isNext || isLast) {
-                    const ep = isNext ? next : last;
-                    const seasonNo = Number(ep.season_number || 1);
-                    const epNo = Number(ep.episode_number || 0);
-                    epLabel = seasonNo > 1
-                        ? ` · 第${seasonNo}季第${epNo}集`
-                        : (epNo ? ` · 第${epNo}集` : "");
-                }
-                return withPop(buildFrom(detail, epLabel));
+                // 日期口径：以 TMDB **分集表**为唯一判据（与 App 内 TMDB 详情页一致）。
+                // show 级 next/last 只当快路径；两者都没命中才回查分集表；
+                // 分集表明确没有该日分集 → 丢弃（宁少勿滥，避免《仙逆》这类
+                // 周日播出的剧被 Trakt 的 UTC 口径塞进周六列表）。
+                const hit = await animeCnFindEpisodeOnDate(detail, updateDate);
+                if (hit.miss) return null;
+                return withPop(buildFrom(detail, animeCnEpisodeLabel(hit.episode)));
             }));
             part.forEach(x => { if (x && x.item) collected.push(x); });
         }
@@ -2489,10 +2483,9 @@ async function calendarLoadAnime(params = {}) {
     const updateDate = [updateDateObj.getFullYear(), String(updateDateObj.getMonth() + 1).padStart(2, "0"), String(updateDateObj.getDate()).padStart(2, "0")].join("-");
 
     try {
-        const [bgmRes, biliRes, traktItems, tmdbCnItems] = await Promise.all([
+        const [bgmRes, biliRes, tmdbCnItems] = await Promise.all([
             Widget.http.get("https://api.bgm.tv/calendar").catch(() => ({ data: [] })),
             Widget.http.get("https://api.bilibili.com/pgc/web/timeline?types=4").catch(() => ({ data: {} })),
-            calendarFetchTraktChineseAnime(updateDate, dayName),
             calendarFetchTmdbCnAnime(updateDate, dayName)
         ]);
 
@@ -2598,8 +2591,7 @@ async function calendarLoadAnime(params = {}) {
         const uniqueBiliItems = [];
         biliItems.forEach(item => dedupeAdd(item, uniqueBiliItems));
 
-        const uniqueTraktItems = [];
-        traktItems.forEach(item => dedupeAdd(item, uniqueTraktItems));
+        const uniqueTraktItems = [];   // 国漫已不再使用 Trakt（UTC 日界会错一天），保留空数组以最小化改动
 
         const uniqueTmdbCnItems = [];
         tmdbCnItems.forEach(item => dedupeAdd(item, uniqueTmdbCnItems));
