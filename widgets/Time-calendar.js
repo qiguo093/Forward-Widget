@@ -128,7 +128,7 @@ var WidgetMetadata = {
             params: [
                 { name: "sort_by", title: "综艺筛选", type: "enumeration", value: "all", enumOptions: [ { title: "全部地区", value: "all" }, { title: "国内综艺", value: "cn" }, { title: "国外综艺", value: "global" } ] },
                 { name: "list_type", title: "榜单类型", type: "enumeration", value: "calendar", enumOptions: [ { title: "追新榜", value: "calendar" }, { title: "热度榜", value: "hot" } ] },
-                { name: "days", title: "预告范围", type: "enumeration", value: "14", belongTo: { paramName: "list_type", value: ["calendar"] }, enumOptions: [ { title: "未来 7 天", value: "7" }, { title: "未来 14 天", value: "14" }, { title: "未来 30 天", value: "30" } ] },
+                { name: "days", title: "预告范围", type: "enumeration", value: "14", belongTo: { paramName: "list_type", value: ["calendar"] }, enumOptions: [ { title: "今日更新", value: "0" }, { title: "未来 7 天", value: "7" }, { title: "未来 14 天", value: "14" }, { title: "未来 30 天", value: "30" } ] },
                 { name: "page", title: "页码", type: "page" }
             ]
         }
@@ -3159,9 +3159,16 @@ async function loadStandaloneVarietyAggregate(params = {}) {
 // =========================================================================
 
 const VARIETY_PAGE_SIZE = 20;
-const VARIETY_MAIN_COUNTRIES = "US|KR|JP|GB|CA|AU|TW|HK|SG|NZ|IE";
+// 注意：日本（JP）已按用户要求整体屏蔽，见 VARIETY_EXCLUDED_COUNTRIES。
+const VARIETY_MAIN_COUNTRIES = "US|KR|GB|CA|AU|TW|HK|SG|NZ|IE";
 const VARIETY_MAX_RESOLVE = 160;
 const VARIETY_RESOLVE_CONCURRENCY = 24;
+
+// 扫描页数接受 0（今日更新）
+function varietyDays(v) {
+    const n = parseInt(v, 10);
+    return (isFinite(n) && n >= 0) ? n : 14;
+}
 
 // 扫描页数随预览范围自适应：范围越长，需要翻的页越多。
 // 8 页会把 160 条候选全部拉回来，其中相当一部分在详情校验后会被丢弃（discover 的
@@ -3174,7 +3181,7 @@ function varietyScanPages(days) {
 }
 
 // 低质 / 小语种产地（与剧集追更口径保持一致，作为白名单之外的兜底防线）
-const VARIETY_EXCLUDED_COUNTRIES = ["IN", "TH", "RU", "TR", "PL", "FI", "HU", "NL", "RO", "BR", "ID", "PH", "VN", "MY", "DE", "FR", "IT", "ES", "PT", "SE", "NO", "DK", "LB", "SY", "AE", "EG", "SA", "JO", "IQ", "KW", "QA", "OM", "BH", "DZ", "MA", "TN", "AR", "MX", "CO", "PE", "CL"];
+const VARIETY_EXCLUDED_COUNTRIES = ["JP", "IN", "TH", "RU", "TR", "PL", "FI", "HU", "NL", "RO", "BR", "ID", "PH", "VN", "MY", "DE", "FR", "IT", "ES", "PT", "SE", "NO", "DK", "LB", "SY", "AE", "EG", "SA", "JO", "IQ", "KW", "QA", "OM", "BH", "DZ", "MA", "TN", "AR", "MX", "CO", "PE", "CL"];
 
 const VARIETY_EXCLUDED_LANGUAGES = ["hi", "th", "ru", "tr", "ta", "te", "pl", "fi", "hu", "nl", "ro", "pt", "ar", "id", "vi", "he", "ms", "tl", "fa", "ur", "uk", "cs", "sv", "da", "no"];
 
@@ -3185,6 +3192,11 @@ const VARIETY_TRASH_KEYWORDS = /(?:\bsvengoolie\b|\bdice actors\b|\btivolt\b|\bn
 
 // 韩/日/台/港综艺单独把质量关（见 varietyIsExcluded）
 const VARIETY_ASIAN_COUNTRIES = ["KR", "JP", "TW", "HK", "SG"];
+
+// 国外真人秀一律屏蔽（用户明确：这类内容垃圾太多），仅放行「唱歌 / 舞蹈 / 达人秀」
+// 这类正经选秀竞技节目（The Voice、与星共舞、Got Talent、Strictly Come Dancing…）。
+// 韩综单独保留（用户要求加入，见下方 isKR 分支）。
+const VARIETY_TALENT_KEYWORDS = /(?:\bgot\s*talent\b|\btalent\b|\bthe\s*voice\b|\bvoice\b|\bx[- ]?factor\b|\bidol\b|\bmasked\s*singer\b|\bsing(?:ing|er|s)?\b|\bdanc(?:ing|e|er|ers)\b|\bstrictly\b|\bworld\s*of\s*dance\b|达人秀|达人|好声音|蒙面|歌手|歌唱|合唱|唱歌|歌王|舞蹈|街舞|舞动|舞林|与星共舞|选秀|偶像练习)/i;
 
 const VARIETY_BL_KEYWORDS = /(?:\bboys['\u2019]?\s*love\b|\byaoi\b|\byuri\b|\bbl drama\b|同性恋|耽美|男男|女女|腐剧|双男主)/i;
 
@@ -3208,13 +3220,10 @@ function calendarGetFutureDateStr(days) {
 
 // -------------------------------------------------------------------------
 // 垃圾过滤
-// 国外综艺整体保留真人秀：真人秀（10764）不再因为「缺少中文简介」「票数偏低」
-// 而被丢弃 —— TMDB 对海外真人秀大量缺 zh-CN 简介，若按普通条目处理会把
-// Strictly Come Dancing / The Challenge / Big Brother 这类整批误杀。
-// 纪录片一律拦截（用户明确不看纪录片）：不论产地、不论是否同时带真人秀标签，
-// 只要 genre 含 99 就排除 —— 执法实录（On Patrol / 执法仪 / Police Interceptors）、
-// 探秘纪实（Paranormal Caught on Camera）、生活纪实（House Hunters / L'épicerie）
-// 这类「真人秀 + 纪录片」混合标签的也一并拦掉。
+// 国外真人秀一律屏蔽（用户明确要求：这类内容垃圾太多），仅放行「唱歌 / 舞蹈 /
+// 达人秀」类选秀竞技；韩综单独保留。国产综艺口径不变。
+// 纪录片一律拦截：不论产地、不论是否同时带真人秀标签，只要 genre 含 99 就排除。
+// 日本（JP）整体屏蔽。
 // 其余仍然一律排除：摔角格斗与体育、新闻、非真人秀的脱口秀、小语种产地、无海报。
 // -------------------------------------------------------------------------
 function varietyIsExcluded(item) {
@@ -3227,9 +3236,13 @@ function varietyIsExcluded(item) {
     const titleText = `${item.name || ""} ${item.original_name || ""}`;
     const genres = Array.isArray(item.genre_ids) ? item.genre_ids : [];
     const isCN = country === "CN" || lang === "zh";
+    const isKR = country === "KR" || lang === "ko";
     const isReality = genres.indexOf(10764) >= 0;
-    // 国外真人秀放宽（国产综艺仍有充足中文简介，保持原口径）
-    const relaxReality = !isCN && isReality;
+    const isTalent = VARIETY_TALENT_KEYWORDS.test(titleText);
+    // 国外真人秀一律屏蔽；仅放行唱歌/舞蹈/达人秀类选秀竞技，韩综单独保留。
+    if (!isCN && isReality && !isKR && !isTalent) return true;
+    // 放宽「要求中文简介」仅对仍有资格进入列表的条目生效
+    const relaxReality = !isCN && isReality && (isKR || isTalent);
 
     if (genres.indexOf(99) >= 0) return true;                          // 纪录片：一律拦截
     if (VARIETY_EXCLUDED_COUNTRIES.indexOf(country) >= 0) return true;
@@ -3272,8 +3285,10 @@ async function varietyFetchDiscoverPage(country, listType, days, page) {
     };
     if (country) params.with_origin_country = country;
     if (listType === "calendar") {
+        const dNum = parseInt(days, 10);
+        const dVal = (isFinite(dNum) && dNum >= 0) ? dNum : 14;
         params["air_date.gte"] = varietyBeijingDate(0);
-        params["air_date.lte"] = varietyBeijingDate(parseInt(days) || 14);
+        params["air_date.lte"] = varietyBeijingDate(dVal);
     } else {
         params["air_date.gte"] = varietyBeijingDate(-7);
         params["air_date.lte"] = varietyBeijingDate(60);
@@ -3322,17 +3337,14 @@ async function varietyGetCandidates(region, listType, days) {
     if (region === "cn" || region === "all") jobs.push(varietyCollectPool("CN", listType, days).then(r => { cnList = r; }));
     if (region === "global" || region === "all") {
         // 合并查询按热度排序，韩综热度普遍偏低（如《只要有空》pop 9、《姐姐家的产地直送》
-        // pop 5）会被挤到后面页而截断。韩日单独再扫一遍补齐 —— KR 仅 2 页、JP 仅 1 页，
-        // 成本很低，却能保证正经韩综不漏。
+        // pop 5）会被挤到后面页而截断。韩国单独再扫一遍补齐 —— KR 仅 2 页，成本很低，
+        // 却能保证正经韩综不漏。（日本已整体屏蔽，不再补扫。）
         jobs.push((async () => {
             const merged = await varietyCollectPool(VARIETY_MAIN_COUNTRIES, listType, days);
-            const extra = await Promise.all([
-                varietyCollectPool("KR", listType, days),
-                varietyCollectPool("JP", listType, days)
-            ]);
+            const krExtra = await varietyCollectPool("KR", listType, days);
             const seen = {};
             const out = [];
-            merged.concat(extra[0], extra[1]).forEach(x => {
+            merged.concat(krExtra).forEach(x => {
                 if (x && x.id && !seen[x.id]) { seen[x.id] = 1; out.push(x); }
             });
             osList = out;
