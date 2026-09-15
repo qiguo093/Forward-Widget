@@ -2960,6 +2960,22 @@ const VARIETY_TIME_TRASH_KEYWORDS = /(?:\bsvengoolie\b|\bdice actors\b|\btivolt\
 const VARIETY_TIME_BL_KEYWORDS = /(?:\bboys['\u2019]?\s*love\b|\byaoi\b|\byuri\b|\bbl drama\b|同性恋|耽美|男男|女女|腐剧|双男主)/i;
 const VARIETY_TIME_TALENT_KEYWORDS = /(?:\bgot\s*talent\b|\btalent\b|\bthe\s*voice\b|\bvoice\b|\bx[- ]?factor\b|\bidol\b|\bmasked\s*singer\b|\bsing(?:ing|er|s)?\b|\bdanc(?:ing|e|er|ers)\b|\bstrictly\b|\bworld\s*of\s*dance\b|达人秀|达人|好声音|蒙面|歌手|歌唱|合唱|唱歌|歌王|舞蹈|街舞|舞动|舞林|与星共舞|选秀|偶像练习)/i;
 
+// 「精选白名单」：少数公认高质量、但不属于「选秀竞技」的海外真人秀
+// （纪实/改造/生活类），单独放行，绕过下面「国外真人秀仅放行选秀竞技」那一条。
+// 命中本规则**只跳过那一条**，其余规则照旧生效 —— 纪录片(99)、摔角体育、
+// BL、新闻、零票低热度等仍然会拦。
+// 需要增删节目就在这个正则里加「中文名 | 原名」即可。
+const VARIETY_TIME_PREMIUM_ALLOW = /(?:\bqueer\s*eye\b|粉雄救兵|\bclarkson'?s?\s*farm\b|克拉克森的农场)/i;
+
+// 「精选置顶」：白名单里的节目热度往往很低（粉雄救兵 pop 9、克拉克森的农场 pop 15），
+// 在按人气排序的候选池里根本排不进来 —— 光放行过滤规则它们依然看不见。
+// 所以这里按 TMDB id 直接点名取回并置顶，不再依赖人气排名。
+// country 用于判断该节目属于哪个频道（欧美 = US|GB / 全球 = 多国白名单）。
+const VARIETY_TIME_TRENDING_PINNED = [
+    { id: 76922, country: "US" },    // 粉雄救兵 (Queer Eye)
+    { id: 117648, country: "GB" },   // 克拉克森的农场 (Clarkson's Farm)
+];
+
 const VARIETY_TIME_CACHE_TTL_MS = 5 * 60 * 1000;
 const VarietyTimeDetailCache = {};
 const VarietyTimeSeasonCache = {};
@@ -3008,10 +3024,12 @@ function varietyTimeIsExcluded(item, selectedRegion = "") {
     // 5. 新闻类拦截
     if (!isCN && genres.indexOf(10763) >= 0) return true;
 
-    // 6. 国外真人秀拦截逻辑：仅放行选秀竞技（唱歌/舞蹈/达人秀），韩综和显式选择的日综保留
+    // 6. 国外真人秀拦截逻辑：仅放行选秀竞技（唱歌/舞蹈/达人秀），韩综和显式选择的日综保留。
+    //    精选白名单里的纪实/改造类节目（粉雄救兵、克拉克森的农场等）也放行。
     const isReality = genres.indexOf(10764) >= 0;
     const isTalent = VARIETY_TIME_TALENT_KEYWORDS.test(titleText);
-    if (!isCN && isReality && !isKR && !isExplicitJP && !isTalent) return true;
+    const isPremium = VARIETY_TIME_PREMIUM_ALLOW.test(titleText);
+    if (!isCN && isReality && !isKR && !isExplicitJP && !isTalent && !isPremium) return true;
 
     // 7. 纯脱口秀拦截（非真人秀的纯脱口秀）
     if (!isCN && genres.indexOf(10767) >= 0 && genres.indexOf(10764) < 0) return true;
@@ -3358,6 +3376,13 @@ async function varietyTimeTrendingResolve(region) {
 
     const st = { cards: [] };
     const seen = {};
+    // ① 精选置顶：按 id 点名取回（与 discover 并行发出，不拖慢首屏）
+    for (const card of await varietyTimeTrendingPinned(region)) {
+        if (seen[card.id]) continue;
+        seen[card.id] = 1;
+        st.cards.push(card);
+    }
+    // ② 人气榜候选
     rows.forEach(item => {
         if (!item || !item.id || seen[item.id]) return;
         seen[item.id] = 1;
@@ -3367,6 +3392,26 @@ async function varietyTimeTrendingResolve(region) {
     });
     VarietyTimeTrendingDataset[region] = st;
     return st;
+}
+
+// 取回「精选置顶」节目（按 id 直查，各 1 次请求）。
+// 只取属于当前频道的（欧美 = US|GB；全球 = 多国白名单），并按同样的过滤规则复核。
+async function varietyTimeTrendingPinned(region) {
+    const cc = varietyTimeRegionCountry(region);
+    const allowed = String(cc).split("|");
+    const targets = VARIETY_TIME_TRENDING_PINNED.filter(p => allowed.indexOf(p.country) >= 0);
+    if (!targets.length) return [];
+    const results = await Promise.all(targets.map(p =>
+        varietyTimeHttpGet(`/tv/${p.id}`, { language: "zh-CN" })
+    ));
+    const out = [];
+    results.forEach(d => {
+        if (!d || !d.id) return;
+        if (varietyTimeIsExcluded(d, region)) return;
+        const card = varietyTimeBuildTrendingCard(d);
+        if (card) out.push(card);
+    });
+    return out;
 }
 
 // 用 discover 原生字段直出卡片（零详情请求），排版与「综艺追更 → 热度榜」保持一致
@@ -3393,6 +3438,16 @@ function varietyTimeBuildTrendingCard(item) {
     };
 }
 
+// 各频道对应的 discover 产地查询。
+// ⚠️「欧美综艺」的 value 是 "us"，原先直接 toUpperCase() 当成 US —— 但标签写的是
+// 「欧美」，只查美国会把英国节目整批漏掉（实测《克拉克森的农场》是 GB 节目，
+// 在「欧美」频道里永远不出现，只在「全球热门」里能看到）。这里补上 GB。
+function varietyTimeRegionCountry(region) {
+    if (region === "global") return VARIETY_TIME_DISCOVER_COUNTRIES;
+    if (region === "us") return "US|GB";
+    return region.toUpperCase();
+}
+
 // 综艺时刻 discover 查询参数（候选池用；真实分集日期另由 varietyTimeResolveTmdbCandidate 严格比对）
 function varietyTimeDiscoverParams(region, dateStr, p) {
     const q = {
@@ -3403,8 +3458,7 @@ function varietyTimeDiscoverParams(region, dateStr, p) {
         include_null_first_air_dates: false,
         timezone: "Asia/Shanghai"
     };
-    if (region !== "global") q.with_origin_country = region.toUpperCase();
-    else q.with_origin_country = VARIETY_TIME_DISCOVER_COUNTRIES;
+    q.with_origin_country = varietyTimeRegionCountry(region);
     if (dateStr) {
         q["air_date.gte"] = varietyTimeBeijingDate(-1);
         q["air_date.lte"] = varietyTimeBeijingDate(7);
