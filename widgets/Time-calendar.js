@@ -2636,10 +2636,17 @@ function dramaCollectTraktEntries(rows, dateStr) {
         if (dateStr && dramaTraktAirDate(row) !== dateStr) continue;
         const genres = (show.genres || []).map(g => String(g).toLowerCase());
         if (genres.length === 0) continue;
-        if (genres.some(g => DRAMA_EXCLUDED_TRAKT_GENRES.includes(g))) continue;
-        if (genres.some(g => DRAMA_ANIME_GENRES.includes(g))) continue;
         const country = String(show.country || "").toLowerCase();
         const lang = String(show.language || "").toLowerCase();
+        const isChinese = ["cn", "hk", "tw"].includes(country) || lang === "zh";
+        // 家庭(family) 对国产剧放行 —— 与 TMDB 路径的规则保持一致，
+        // 否则《兰香如故》这类被标了家庭标签的国产剧会被误杀；其余题材任何地区都排。
+        const blockedGenres = genres.filter(g => DRAMA_EXCLUDED_TRAKT_GENRES.includes(g));
+        if (blockedGenres.length) {
+            const onlyFamily = blockedGenres.every(g => g === "family");
+            if (!(isChinese && onlyFamily)) continue;
+        }
+        if (genres.some(g => DRAMA_ANIME_GENRES.includes(g))) continue;
         if (DRAMA_EXCLUDED_COUNTRIES.includes(country.toUpperCase())) continue;
         if (DRAMA_EXCLUDED_LANGUAGES.includes(lang)) continue;
         const text = `${show.title || ""} ${show.original_title || ""} ${show.overview || ""}`;
