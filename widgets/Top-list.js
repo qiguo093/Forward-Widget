@@ -299,7 +299,6 @@ var WidgetMetadata = {
                 {"name": "欧乐_m5_wd", "title": "关键词", "type": "input", "value": "", "belongTo": {"paramName": "欧乐_section", "value": ["5"]}},
                 {"name": "欧乐_m5_pg", "title": "页码", "type": "page", "value": "1", "belongTo": {"paramName": "欧乐_section", "value": ["5"]}},
                 {"name": "骨朵_category", "title": "榜单分类", "type": "enumeration", "value": "剧集", "enumOptions": [{"title": "陆剧", "value": "剧集"}, {"title": "国漫", "value": "动漫"}, {"title": "综艺", "value": "综艺"}, {"title": "电影", "value": "电影"}], "belongTo": {"paramName": "vod_list", "value": ["骨朵"]}},
-                { name: "page", title: "页码", type: "page" }
             ]
         },
 
