@@ -410,8 +410,8 @@ var WidgetMetadata = {
 
         // ---------------- 大栏目 5：影剧流行风向（独立入口，右上角独立榜单菜单） ----------------
         { title: "TMDB热门趋势", functionName: "loadTmdbTrendEntry", type: "video", cacheDuration: 43200, params: [
-            { name: "tmdb_mode", title: "模式", type: "enumeration", value: "trend", enumOptions: [ { title: "热门趋势", value: "trend" }, { title: "电影热榜", value: "movie_hot" }, { title: "剧集热榜", value: "tv_hot" }, { title: "电影筛选", value: "movie" }, { title: "剧集筛选", value: "tv" }, { title: "全部", value: "all_hot" } ] },
-            { name: "sort_by", title: "地区", type: "enumeration", value: "", enumOptions: [{ title: "全部地区", value: "" }, { title: "中国", value: "CN" }, { title: "美国", value: "US" }, { title: "韩国", value: "KR" }, { title: "日本", value: "JP" }, { title: "英国", value: "GB" }, { title: "中国香港", value: "HK" }, { title: "中国台湾", value: "TW" }, { title: "泰国", value: "TH" }, { title: "意大利", value: "IT" }, { title: "德国", value: "DE" }, { title: "西班牙", value: "ES" }, { title: "俄罗斯", value: "RU" }, { title: "瑞典", value: "SE" }, { title: "巴西", value: "BR" }, { title: "丹麦", value: "DK" }, { title: "印度", value: "IN" }, { title: "加拿大", value: "CA" }, { title: "爱尔兰", value: "IE" }, { title: "澳大利亚", value: "AU" }] },
+            { name: "tmdb_mode", title: "模式", type: "enumeration", value: "trend", enumOptions: [ { title: "热门趋势", value: "trend" }, { title: "今日趋势", value: "trend_day" }, { title: "本周趋势", value: "trend_week" }, { title: "电影热榜", value: "movie_hot" }, { title: "剧集热榜", value: "tv_hot" }, { title: "电影筛选", value: "movie" }, { title: "剧集筛选", value: "tv" }, { title: "全部", value: "all_hot" } ] },
+            { name: "sort_by", title: "地区", type: "enumeration", value: "", belongTo: { paramName: "tmdb_mode", value: ["trend", "movie_hot", "tv_hot", "all_hot"] }, enumOptions: [{ title: "全部地区", value: "" }, { title: "中国", value: "CN" }, { title: "美国", value: "US" }, { title: "韩国", value: "KR" }, { title: "日本", value: "JP" }, { title: "英国", value: "GB" }, { title: "中国香港", value: "HK" }, { title: "中国台湾", value: "TW" }, { title: "泰国", value: "TH" }, { title: "意大利", value: "IT" }, { title: "德国", value: "DE" }, { title: "西班牙", value: "ES" }, { title: "俄罗斯", value: "RU" }, { title: "瑞典", value: "SE" }, { title: "巴西", value: "BR" }, { title: "丹麦", value: "DK" }, { title: "印度", value: "IN" }, { title: "加拿大", value: "CA" }, { title: "爱尔兰", value: "IE" }, { title: "澳大利亚", value: "AU" }] },
             { name: "genre", title: "类型", type: "enumeration", value: "", enumOptions: [ { title: "全部", value: "" }, { title: "动作/冒险", value: "28" }, { title: "科幻/奇幻", value: "878" }, { title: "剧情", value: "18" }, { title: "喜剧", value: "35" }, { title: "动画", value: "16" }, { title: "悬疑/犯罪", value: "9648" }, { title: "恐怖/惊悚", value: "27" }, { title: "爱情", value: "10749" } ] },
             { name: "year", title: "年份", type: "input", value: "", description: "例如: 2024" },
             { name: "tmdb_sort", title: "排序", type: "enumeration", value: "popularity.desc", enumOptions: [ { title: "热度最高", value: "popularity.desc" }, { title: "评分最高", value: "vote_average.desc" }, { title: "最新上映", value: "primary_release_date.desc" } ] },
@@ -767,6 +767,9 @@ async function loadTmdbTrendEntry(params = {}) {
     const mode = params.tmdb_mode || "trend";
     const page = params.page || 1;
     // 保留原热门趋势；电影/剧集筛选复用 Lite 的 TMDB discover 能力。
+    // 实时趋势（TMDB trending）：官方 24 小时 / 7 天窗口榜单，不支持地区/类型筛选。
+    if (mode === "trend_day") return await loadTmdbRealtimeTrend({ timeWindow: "day", page });
+    if (mode === "trend_week") return await loadTmdbRealtimeTrend({ timeWindow: "week", page });
     if (mode === "trend") return await loadTmdbHotTrend({ mediaType: "all", region: params.sort_by || "", page });
     // 电影热榜与剧集热榜合并：各取同页数据，按原排行交替展示。
     if (mode === "all_hot") {
@@ -868,6 +871,35 @@ async function routeTrendsHub(params) {
     return [];
 }
 
+async function loadTmdbRealtimeTrend({ timeWindow = "day", page = 1 } = {}) {
+    // TMDB /trending/all/{day|week}：电影与剧集混排，不支持地区/类型/年份参数（传了也会被忽略）。
+    try {
+        const res = await Widget.tmdb.get(`/trending/all/${timeWindow}`, { params: { language: "zh-CN", page: Number(page) || 1 } });
+        const list = (res && res.results) || [];
+        const items = [];
+        list.forEach(item => {
+            if (!item || !item.id || !item.poster_path) return;
+            const mediaType = item.media_type || (item.title ? "movie" : "tv");
+            // trending 偶尔混入人物条目（media_type: person），直接丢弃。
+            if (mediaType !== "movie" && mediaType !== "tv") return;
+            const date = item.release_date || item.first_air_date || "";
+            items.push({
+                id: String(item.id), tmdbId: item.id, type: "tmdb", mediaType: mediaType,
+                title: item.title || item.name, releaseDate: date,
+                year: date.substring(0, 4), rating: item.vote_average || 0,
+                genreTitle: getGlobalGenreText(item.genre_ids),
+                subTitle: timeWindow === "day" ? "TMDB 今日趋势" : "TMDB 本周趋势",
+                description: `${date || "暂无日期"} · ⭐ ${item.vote_average || 0}\n${item.overview || "暂无简介"}`,
+                posterPath: item.poster_path ? `https://image.tmdb.org/t/p/w500${item.poster_path}` : "",
+                backdropPath: item.backdrop_path ? `https://image.tmdb.org/t/p/w780${item.backdrop_path}` : ""
+            });
+        });
+        return items;
+    } catch (error) {
+        console.error("[loadTmdbRealtimeTrend] 请求失败:", error.message || error);
+        return [];
+    }
+}
 async function loadTmdbHotTrend({ mediaType = "all", region = "", page = 1 } = {}) {
     const language = "zh-CN";
     const types = mediaType === "all" ? ["tv", "movie"] : [mediaType];
