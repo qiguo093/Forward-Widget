@@ -273,30 +273,19 @@ var WidgetMetadata = {
             type: "video",
             cacheDuration: 43200,
             params: [
-                { name: "vod_list", title: "选择子列表", type: "enumeration", value: "榜单", enumOptions: [ { title: "聚合实时榜单", value: "榜单" }, { title: "豆瓣片单", value: "豆瓣片单" }, { title: "豆瓣即将上映", value: "豆瓣即将上映" }, { title: "欧乐影视·电影", value: "欧乐影视·电影" }, { title: "欧乐影视·剧集", value: "欧乐影视·剧集" }, { title: "欧乐影视·综艺", value: "欧乐影视·综艺" }, { title: "欧乐影视·动漫", value: "欧乐影视·动漫" }, { title: "欧乐影视·短剧", value: "欧乐影视·短剧" }, { title: "欧乐影视·搜索", value: "欧乐影视·搜索" }, { title: "骨朵热度指数榜", value: "骨朵" } ] },
-                {"name": "榜单_section", "title": "功能分类", "type": "enumeration", "value": "0", "enumOptions": [{"title": "Netflix新片榜", "value": "0"}, {"title": "Disney+新片榜", "value": "1"}, {"title": "Apple TV+新片榜", "value": "2"}, {"title": "HBOmax新片榜", "value": "3"}, {"title": "prime video新片榜", "value": "4"}, {"title": "本周国剧排行榜", "value": "5"}, {"title": "本周美剧排行榜", "value": "6"}, {"title": "本周动漫排行榜", "value": "7"}, {"title": "本周电影排行榜", "value": "8"}, {"title": "本周韩剧排行榜", "value": "9"}, {"title": "本周英剧排行榜", "value": "10"}, {"title": "本周日剧排行榜", "value": "11"}, {"title": "本周泰剧排行榜", "value": "12"}, {"title": "本周综艺排行榜", "value": "13"}, {"title": "本周纪录片排行榜", "value": "14"}], "belongTo": {"paramName": "vod_list", "value": ["榜单"]}},
-                {"name": "豆瓣_m0_list", "title": "选择片单", "type": "enumeration", "value": "1652843", "enumOptions": [{"title": "Time Out影史百大恐怖片", "value": "1652843"}, {"title": "看电影40部最经典恐怖片", "value": "36980"}, {"title": "恐惧感的丧失(309部)", "value": "36280"}, {"title": "难忘的经典惊悚/恐怖片(547部)", "value": "37140418"}, {"title": "7分以上的恐怖/惊悚电影(174部)", "value": "526461"}, {"title": "高分精品恐怖片(280部)", "value": "5916567"}, {"title": "2000后优秀恐怖电影(204部)", "value": "3356598"}, {"title": "被忽略掉的不沉闷恐怖劲片！(77部)", "value": "724565"}, {"title": "Indiewire: 50位导演心中的最佳恐怖片(48部)", "value": "152540212"}, {"title": "稀有难找 underground horror films(466部)", "value": "109801736"}, {"title": "血浆片已阅整理 Gory Horror Film(47部)", "value": "159889980"}, {"title": "女性导演恐怖片(383部)", "value": "124549602"}, {"title": "Body Horror｜身体恐怖电影(155部)", "value": "162107956"}, {"title": "瘆临其境！恐怖伪纪录片(193部)", "value": "161922461"}, {"title": "码住！盘点欧美高分恐怖电影(585部)", "value": "163019144"}, {"title": "怪力乱神！欧美超自然恐怖电影(206部)", "value": "163048555"}, {"title": "审美与创意兼顾的恐怖片(96部)", "value": "159035683"}, {"title": "我看过的恐怖片们(254部)", "value": "148836450"}, {"title": "我的恐怖片之旅(1534部)", "value": "45782339"}, {"title": "码住！2026年恐怖电影大盘点(304部)", "value": "163145526"}, {"title": "⏎ 自定义URL", "value": "custom"}], "belongTo": {"paramName": "vod_list", "value": ["豆瓣片单"]}},
-                {"name": "豆瓣_m0_url", "title": "自定义URL", "type": "input", "description": "填入豆瓣豆列/列表链接", "placeholders": [{"title": "https://www.douban.com/doulist/xxx/", "value": ""}], "belongTo": {"paramName": "vod_list", "value": ["豆瓣片单"]}},
-                {"name": "豆瓣_m0_page", "title": "页码", "type": "page", "belongTo": {"paramName": "vod_list", "value": ["豆瓣片单"]}},
-                {"name": "豆瓣_m1_page", "title": "页码", "type": "page", "belongTo": {"paramName": "vod_list", "value": ["豆瓣即将上映"]}},
-                {"name": "欧乐_m0_area", "title": "地区", "type": "enumeration", "value": "0", "enumOptions": [{"title": "全部", "value": "0"}, {"title": "大陆", "value": "大陆"}, {"title": "香港", "value": "香港"}, {"title": "台湾", "value": "台湾"}, {"title": "美国", "value": "美国"}, {"title": "日本", "value": "日本"}, {"title": "韩国", "value": "韩国"}, {"title": "英国", "value": "英国"}, {"title": "法国", "value": "法国"}, {"title": "德国", "value": "德国"}, {"title": "西班牙", "value": "西班牙"}, {"title": "泰国", "value": "泰国"}, {"title": "印度", "value": "印度"}], "belongTo": {"paramName": "vod_list", "value": ["欧乐影视·电影"]}},
-                {"name": "欧乐_m0_sort_by", "title": "榜单类型", "type": "enumeration", "value": "hot", "enumOptions": [{"title": "热门电影", "value": "hot"}, {"title": "高分电影", "value": "score"}, {"title": "最新电影", "value": "update"}, {"title": "最近添加", "value": "desc"}], "belongTo": {"paramName": "vod_list", "value": ["欧乐影视·电影"]}},
-                {"name": "欧乐_m0_page", "title": "页码", "type": "page", "startPage": 1, "belongTo": {"paramName": "vod_list", "value": ["欧乐影视·电影"]}},
-                {"name": "欧乐_m1_area", "title": "地区", "type": "enumeration", "value": "0", "enumOptions": [{"title": "全部", "value": "0"}, {"title": "大陆", "value": "大陆"}, {"title": "香港", "value": "香港"}, {"title": "台湾", "value": "台湾"}, {"title": "美国", "value": "美国"}, {"title": "日本", "value": "日本"}, {"title": "韩国", "value": "韩国"}, {"title": "英国", "value": "英国"}, {"title": "法国", "value": "法国"}, {"title": "德国", "value": "德国"}, {"title": "西班牙", "value": "西班牙"}, {"title": "泰国", "value": "泰国"}, {"title": "印度", "value": "印度"}], "belongTo": {"paramName": "vod_list", "value": ["欧乐影视·剧集"]}},
-                {"name": "欧乐_m1_sort_by", "title": "榜单类型", "type": "enumeration", "value": "hot", "enumOptions": [{"title": "热门剧集", "value": "hot"}, {"title": "高分剧集", "value": "score"}, {"title": "最新剧集", "value": "update"}, {"title": "最近添加", "value": "desc"}], "belongTo": {"paramName": "vod_list", "value": ["欧乐影视·剧集"]}},
-                {"name": "欧乐_m1_page", "title": "页码", "type": "page", "startPage": 1, "belongTo": {"paramName": "vod_list", "value": ["欧乐影视·剧集"]}},
-                {"name": "欧乐_m2_area", "title": "地区", "type": "enumeration", "value": "0", "enumOptions": [{"title": "全部", "value": "0"}, {"title": "大陆", "value": "大陆"}, {"title": "香港", "value": "香港"}, {"title": "台湾", "value": "台湾"}, {"title": "美国", "value": "美国"}, {"title": "日本", "value": "日本"}, {"title": "韩国", "value": "韩国"}, {"title": "英国", "value": "英国"}, {"title": "法国", "value": "法国"}, {"title": "德国", "value": "德国"}, {"title": "西班牙", "value": "西班牙"}, {"title": "泰国", "value": "泰国"}, {"title": "印度", "value": "印度"}], "belongTo": {"paramName": "vod_list", "value": ["欧乐影视·综艺"]}},
-                {"name": "欧乐_m2_sort_by", "title": "榜单类型", "type": "enumeration", "value": "hot", "enumOptions": [{"title": "热门综艺", "value": "hot"}, {"title": "高分综艺", "value": "score"}, {"title": "最新综艺", "value": "update"}, {"title": "最近添加", "value": "desc"}], "belongTo": {"paramName": "vod_list", "value": ["欧乐影视·综艺"]}},
-                {"name": "欧乐_m2_page", "title": "页码", "type": "page", "startPage": 1, "belongTo": {"paramName": "vod_list", "value": ["欧乐影视·综艺"]}},
-                {"name": "欧乐_m3_area", "title": "地区", "type": "enumeration", "value": "0", "enumOptions": [{"title": "全部", "value": "0"}, {"title": "大陆", "value": "大陆"}, {"title": "香港", "value": "香港"}, {"title": "台湾", "value": "台湾"}, {"title": "美国", "value": "美国"}, {"title": "日本", "value": "日本"}, {"title": "韩国", "value": "韩国"}, {"title": "英国", "value": "英国"}, {"title": "法国", "value": "法国"}, {"title": "德国", "value": "德国"}, {"title": "西班牙", "value": "西班牙"}, {"title": "泰国", "value": "泰国"}, {"title": "印度", "value": "印度"}], "belongTo": {"paramName": "vod_list", "value": ["欧乐影视·动漫"]}},
-                {"name": "欧乐_m3_sort_by", "title": "榜单类型", "type": "enumeration", "value": "hot", "enumOptions": [{"title": "热门动漫", "value": "hot"}, {"title": "高分动漫", "value": "score"}, {"title": "最新动漫", "value": "update"}, {"title": "最近添加", "value": "desc"}], "belongTo": {"paramName": "vod_list", "value": ["欧乐影视·动漫"]}},
-                {"name": "欧乐_m3_page", "title": "页码", "type": "page", "startPage": 1, "belongTo": {"paramName": "vod_list", "value": ["欧乐影视·动漫"]}},
-                {"name": "欧乐_m4_area", "title": "地区", "type": "enumeration", "value": "0", "enumOptions": [{"title": "全部", "value": "0"}, {"title": "大陆", "value": "大陆"}, {"title": "香港", "value": "香港"}, {"title": "台湾", "value": "台湾"}, {"title": "美国", "value": "美国"}, {"title": "日本", "value": "日本"}, {"title": "韩国", "value": "韩国"}, {"title": "英国", "value": "英国"}, {"title": "法国", "value": "法国"}, {"title": "德国", "value": "德国"}, {"title": "西班牙", "value": "西班牙"}, {"title": "泰国", "value": "泰国"}, {"title": "印度", "value": "印度"}], "belongTo": {"paramName": "vod_list", "value": ["欧乐影视·短剧"]}},
-                {"name": "欧乐_m4_sort_by", "title": "榜单类型", "type": "enumeration", "value": "hot", "enumOptions": [{"title": "热门短剧", "value": "hot"}, {"title": "高分短剧", "value": "score"}, {"title": "最新短剧", "value": "update"}, {"title": "最近添加", "value": "desc"}], "belongTo": {"paramName": "vod_list", "value": ["欧乐影视·短剧"]}},
-                {"name": "欧乐_m4_page", "title": "页码", "type": "page", "startPage": 1, "belongTo": {"paramName": "vod_list", "value": ["欧乐影视·短剧"]}},
-                {"name": "欧乐_m5_wd", "title": "关键词", "type": "input", "value": "", "belongTo": {"paramName": "vod_list", "value": ["欧乐影视·搜索"]}},
-                {"name": "欧乐_m5_pg", "title": "页码", "type": "page", "value": "1", "belongTo": {"paramName": "vod_list", "value": ["欧乐影视·搜索"]}},
-                {"name": "骨朵_category", "title": "榜单分类", "type": "enumeration", "value": "剧集", "enumOptions": [{"title": "陆剧", "value": "剧集"}, {"title": "国漫", "value": "动漫"}, {"title": "综艺", "value": "综艺"}, {"title": "电影", "value": "电影"}], "belongTo": {"paramName": "vod_list", "value": ["骨朵"]}},
+                {"name":"vod_list","title":"选择子列表","type":"enumeration","value":"榜单","enumOptions":[{"title":"聚合实时榜单","value":"榜单"},{"title":"豆瓣片单","value":"豆瓣片单"},{"title":"豆瓣即将上映","value":"豆瓣即将上映"},{"title":"欧乐影视","value":"欧乐"},{"title":"欧乐影视·搜索","value":"欧乐搜索"},{"title":"骨朵热度指数榜","value":"骨朵"}]},
+                {"name":"榜单_section","title":"功能分类","type":"enumeration","value":"0","enumOptions":[{"title":"Netflix新片榜","value":"0"},{"title":"Disney+新片榜","value":"1"},{"title":"Apple TV+新片榜","value":"2"},{"title":"HBOmax新片榜","value":"3"},{"title":"prime video新片榜","value":"4"},{"title":"本周国剧排行榜","value":"5"},{"title":"本周美剧排行榜","value":"6"},{"title":"本周动漫排行榜","value":"7"},{"title":"本周电影排行榜","value":"8"},{"title":"本周韩剧排行榜","value":"9"},{"title":"本周英剧排行榜","value":"10"},{"title":"本周日剧排行榜","value":"11"},{"title":"本周泰剧排行榜","value":"12"},{"title":"本周综艺排行榜","value":"13"},{"title":"本周纪录片排行榜","value":"14"}],"belongTo":{"paramName":"vod_list","value":["榜单"]}},
+                {"name":"豆瓣_m0_list","title":"选择片单","type":"enumeration","value":"1652843","enumOptions":[{"title":"Time Out影史百大恐怖片","value":"1652843"},{"title":"看电影40部最经典恐怖片","value":"36980"},{"title":"恐惧感的丧失(309部)","value":"36280"},{"title":"难忘的经典惊悚/恐怖片(547部)","value":"37140418"},{"title":"7分以上的恐怖/惊悚电影(174部)","value":"526461"},{"title":"高分精品恐怖片(280部)","value":"5916567"},{"title":"2000后优秀恐怖电影(204部)","value":"3356598"},{"title":"被忽略掉的不沉闷恐怖劲片！(77部)","value":"724565"},{"title":"Indiewire: 50位导演心中的最佳恐怖片(48部)","value":"152540212"},{"title":"稀有难找 underground horror films(466部)","value":"109801736"},{"title":"血浆片已阅整理 Gory Horror Film(47部)","value":"159889980"},{"title":"女性导演恐怖片(383部)","value":"124549602"},{"title":"Body Horror｜身体恐怖电影(155部)","value":"162107956"},{"title":"瘆临其境！恐怖伪纪录片(193部)","value":"161922461"},{"title":"码住！盘点欧美高分恐怖电影(585部)","value":"163019144"},{"title":"怪力乱神！欧美超自然恐怖电影(206部)","value":"163048555"},{"title":"审美与创意兼顾的恐怖片(96部)","value":"159035683"},{"title":"我看过的恐怖片们(254部)","value":"148836450"},{"title":"我的恐怖片之旅(1534部)","value":"45782339"},{"title":"码住！2026年恐怖电影大盘点(304部)","value":"163145526"},{"title":"⏎ 自定义URL","value":"custom"}],"belongTo":{"paramName":"vod_list","value":["豆瓣片单"]}},
+                {"name":"豆瓣_m0_url","title":"自定义URL","type":"input","description":"填入豆瓣豆列/列表链接","placeholders":[{"title":"https://www.douban.com/doulist/xxx/","value":""}],"belongTo":{"paramName":"vod_list","value":["豆瓣片单"]}},
+                {"name":"豆瓣_m0_page","title":"页码","type":"page","belongTo":{"paramName":"vod_list","value":["豆瓣片单"]}},
+                {"name":"豆瓣_m1_page","title":"页码","type":"page","belongTo":{"paramName":"vod_list","value":["豆瓣即将上映"]}},
+                {"name":"欧乐_section","title":"功能分类","type":"enumeration","value":"0","enumOptions":[{"title":"电影","value":"0"},{"title":"剧集","value":"1"},{"title":"综艺","value":"2"},{"title":"动漫","value":"3"},{"title":"短剧","value":"4"}],"belongTo":{"paramName":"vod_list","value":["欧乐"]}},
+                {"name":"欧乐_area","title":"地区","type":"enumeration","value":"0","enumOptions":[{"title":"全部","value":"0"},{"title":"大陆","value":"大陆"},{"title":"香港","value":"香港"},{"title":"台湾","value":"台湾"},{"title":"美国","value":"美国"},{"title":"日本","value":"日本"},{"title":"韩国","value":"韩国"},{"title":"英国","value":"英国"},{"title":"法国","value":"法国"},{"title":"德国","value":"德国"},{"title":"西班牙","value":"西班牙"},{"title":"泰国","value":"泰国"},{"title":"印度","value":"印度"}],"belongTo":{"paramName":"vod_list","value":["欧乐"]}},
+                {"name":"欧乐_sort_by","title":"榜单类型","type":"enumeration","value":"hot","enumOptions":[{"title":"热门榜","value":"hot"},{"title":"高分榜","value":"score"},{"title":"最新","value":"update"},{"title":"最近添加","value":"desc"}],"belongTo":{"paramName":"vod_list","value":["欧乐"]}},
+                {"name":"欧乐_page","title":"页码","type":"page","startPage":1,"belongTo":{"paramName":"vod_list","value":["欧乐"]}},
+                {"name":"欧乐_wd","title":"关键词","type":"input","value":"","belongTo":{"paramName":"vod_list","value":["欧乐搜索"]}},
+                {"name":"欧乐_pg","title":"页码","type":"page","value":"1","belongTo":{"paramName":"vod_list","value":["欧乐搜索"]}},
+                {"name":"骨朵_category","title":"榜单分类","type":"enumeration","value":"剧集","enumOptions":[{"title":"陆剧","value":"剧集"},{"title":"国漫","value":"动漫"},{"title":"综艺","value":"综艺"},{"title":"电影","value":"电影"}],"belongTo":{"paramName":"vod_list","value":["骨朵"]}},
             ]
         },
 
@@ -5756,7 +5745,17 @@ WidgetMetadata = {
 __vod_group_sources.push({handlers:{"searchOle":(typeof searchOle==="function"?searchOle:null),"loadMovieList":(typeof loadMovieList==="function"?loadMovieList:null),"loadTvList":(typeof loadTvList==="function"?loadTvList:null),"loadVarietyList":(typeof loadVarietyList==="function"?loadVarietyList:null),"loadAnimeList":(typeof loadAnimeList==="function"?loadAnimeList:null),"loadShortList":(typeof loadShortList==="function"?loadShortList:null),"loadResource":(typeof loadResource==="function"?loadResource:null),loadDetail:(typeof loadDetail==="function"?loadDetail:null)}});})();
 async function __vod_group_榜单(params = {}) { if(String(params["榜单_section"]||"0")==="0") { const f=__vod_group_sources[0].handlers["getNetflixNew"]; return f ? await f({}) : []; } if(String(params["榜单_section"]||"0")==="1") { const f=__vod_group_sources[0].handlers["getDisneyNew"]; return f ? await f({}) : []; } if(String(params["榜单_section"]||"0")==="2") { const f=__vod_group_sources[0].handlers["getAppleTvNew"]; return f ? await f({}) : []; } if(String(params["榜单_section"]||"0")==="3") { const f=__vod_group_sources[0].handlers["getHboNew"]; return f ? await f({}) : []; } if(String(params["榜单_section"]||"0")==="4") { const f=__vod_group_sources[0].handlers["getPrimeVideoNew"]; return f ? await f({}) : []; } if(String(params["榜单_section"]||"0")==="5") { const f=__vod_group_sources[0].handlers["getWeeklyDomesticDrama"]; return f ? await f({}) : []; } if(String(params["榜单_section"]||"0")==="6") { const f=__vod_group_sources[0].handlers["getWeeklyUSDrama"]; return f ? await f({}) : []; } if(String(params["榜单_section"]||"0")==="7") { const f=__vod_group_sources[0].handlers["getWeeklyAnime"]; return f ? await f({}) : []; } if(String(params["榜单_section"]||"0")==="8") { const f=__vod_group_sources[0].handlers["getWeeklyMovie"]; return f ? await f({}) : []; } if(String(params["榜单_section"]||"0")==="9") { const f=__vod_group_sources[0].handlers["getWeeklyKDrama"]; return f ? await f({}) : []; } if(String(params["榜单_section"]||"0")==="10") { const f=__vod_group_sources[0].handlers["getWeeklyUKDrama"]; return f ? await f({}) : []; } if(String(params["榜单_section"]||"0")==="11") { const f=__vod_group_sources[0].handlers["getWeeklyJDrama"]; return f ? await f({}) : []; } if(String(params["榜单_section"]||"0")==="12") { const f=__vod_group_sources[0].handlers["getWeeklyThaiDrama"]; return f ? await f({}) : []; } if(String(params["榜单_section"]||"0")==="13") { const f=__vod_group_sources[0].handlers["getWeeklyVariety"]; return f ? await f({}) : []; } if(String(params["榜单_section"]||"0")==="14") { const f=__vod_group_sources[0].handlers["getWeeklyDocumentary"]; return f ? await f({}) : []; } return []; }
 async function __vod_group_豆瓣(params = {}) { if(String(params["豆瓣_section"]||"0")==="0") { const f=__vod_group_sources[1].handlers["list"]; return f ? await f({"list": params["豆瓣_m0_list"],"url": params["豆瓣_m0_url"],"page": params["豆瓣_m0_page"]}) : []; } if(String(params["豆瓣_section"]||"0")==="1") { const f=__vod_group_sources[1].handlers["listComingSoon"]; return f ? await f({"page": params["豆瓣_m1_page"]}) : []; } return []; }
-async function __vod_group_欧乐(params = {}) { if(String(params["欧乐_section"]||"0")==="0") { const f=__vod_group_sources[2].handlers["loadMovieList"]; return f ? await f({"area": params["欧乐_m0_area"],"sort_by": params["欧乐_m0_sort_by"],"page": params["欧乐_m0_page"]}) : []; } if(String(params["欧乐_section"]||"0")==="1") { const f=__vod_group_sources[2].handlers["loadTvList"]; return f ? await f({"area": params["欧乐_m1_area"],"sort_by": params["欧乐_m1_sort_by"],"page": params["欧乐_m1_page"]}) : []; } if(String(params["欧乐_section"]||"0")==="2") { const f=__vod_group_sources[2].handlers["loadVarietyList"]; return f ? await f({"area": params["欧乐_m2_area"],"sort_by": params["欧乐_m2_sort_by"],"page": params["欧乐_m2_page"]}) : []; } if(String(params["欧乐_section"]||"0")==="3") { const f=__vod_group_sources[2].handlers["loadAnimeList"]; return f ? await f({"area": params["欧乐_m3_area"],"sort_by": params["欧乐_m3_sort_by"],"page": params["欧乐_m3_page"]}) : []; } if(String(params["欧乐_section"]||"0")==="4") { const f=__vod_group_sources[2].handlers["loadShortList"]; return f ? await f({"area": params["欧乐_m4_area"],"sort_by": params["欧乐_m4_sort_by"],"page": params["欧乐_m4_page"]}) : []; } if(String(params["欧乐_section"]||"0")==="5") { const f=__vod_group_sources[2].handlers["searchOle"]; return f ? await f({"wd": params["欧乐_m5_wd"],"pg": params["欧乐_m5_pg"]}) : []; } return []; }
+async function __vod_group_欧乐(params = {}) {
+    // 功能分类 0-4 各自对应一个底层接口，共用同一组「地区/榜单类型/页码」；
+    // 分类 5（搜索）走关键词接口，由顶层「欧乐影视·搜索」入口注入。
+    const sec = String(params["欧乐_section"] || "0");
+    const FN = { "0": "loadMovieList", "1": "loadTvList", "2": "loadVarietyList", "3": "loadAnimeList", "4": "loadShortList" };
+    const ol = __vod_group_sources[2] && __vod_group_sources[2].handlers;
+    if (!ol) return [];
+    if (sec === "5") { const f = ol["searchOle"]; return f ? await f({ "wd": params["欧乐_wd"], "pg": params["欧乐_pg"] }) : []; }
+    const f = ol[FN[sec] || "loadMovieList"];
+    return f ? await f({ "area": params["欧乐_area"], "sort_by": params["欧乐_sort_by"], "page": params["欧乐_page"] }) : [];
+}
 async function __vod_group_骨朵(params = {}) {
     return await loadGuduoRank({ guduo_category: params["骨朵_category"] || "剧集" });
 }
@@ -5802,29 +5801,27 @@ async function vodMerged_2(params = {}) { const f=VOD_MERGED["__vod_group_欧乐
 async function vodMerged_3(params = {}) { const f=VOD_MERGED["__vod_group_骨朵"]; return f ? await f(params) : []; }
 
 async function loadVodHubMerged(params = {}) {
- // 单级路由：vod_list 直接定位到「分组 + 分组内分类」，不再依赖中间层的二级参数
- // （App 判定 belongTo 时只比对参数的值，不看该参数自身是否被隐藏，
- //   故二级联动会因中间层保留默认值而漏显子参数，这里一律拍平为一级）
+ // 单级路由：所有子参数（含「功能分类」与其选项）都直接挂在 vod_list 上。
+ // 原因：App 判定 belongTo 时只比对被引用参数的值，不看该参数自身是否被隐藏，
+ // 因此两级嵌套必然漏显（隐藏的中间层仍保留上次选中的值）—— 层级折叠为一级。
  const raw = String(params.vod_list || "榜单");
- const alias = { "豆瓣": "豆瓣片单", "欧乐": "欧乐影视·电影" }; // 兼容旧存档值
- const key = alias[raw] || raw;
- const ROUTE = {
-  "榜单": ["__vod_group_榜单", null, null],
-  "豆瓣片单": ["__vod_group_豆瓣", "豆瓣_section", "0"],
-  "豆瓣即将上映": ["__vod_group_豆瓣", "豆瓣_section", "1"],
-  "欧乐影视·电影": ["__vod_group_欧乐", "欧乐_section", "0"],
-  "欧乐影视·剧集": ["__vod_group_欧乐", "欧乐_section", "1"],
-  "欧乐影视·综艺": ["__vod_group_欧乐", "欧乐_section", "2"],
-  "欧乐影视·动漫": ["__vod_group_欧乐", "欧乐_section", "3"],
-  "欧乐影视·短剧": ["__vod_group_欧乐", "欧乐_section", "4"],
-  "欧乐影视·搜索": ["__vod_group_欧乐", "欧乐_section", "5"],
-  "骨朵": ["__vod_group_骨朵", null, null]
- };
- const route = ROUTE[key]; if (!route) return [];
- const fn = VOD_MERGED[route[0]]; if (!fn) return [];
+ const oleOld = { "欧乐影视·电影": "0", "欧乐影视·剧集": "1", "欧乐影视·综艺": "2", "欧乐影视·动漫": "3", "欧乐影视·短剧": "4", "欧乐影视·搜索": "5" };
+ let key = (raw === "豆瓣") ? "豆瓣片单" : ((raw === "欧乐") ? "欧乐" : raw);
+ let oleSec = null;
+ if (oleOld[raw] !== undefined) { oleSec = oleOld[raw]; key = (oleSec === "5") ? "欧乐搜索" : "欧乐"; }   // 兼容旧存档值
+ let group = null, secParam = null, secValue = null;
+ switch (key) {
+  case "榜单": group = "__vod_group_榜单"; secParam = "榜单_section"; secValue = params["榜单_section"] || "0"; break;
+  case "豆瓣片单": group = "__vod_group_豆瓣"; secParam = "豆瓣_section"; secValue = "0"; break;
+  case "豆瓣即将上映": group = "__vod_group_豆瓣"; secParam = "豆瓣_section"; secValue = "1"; break;
+  case "欧乐": group = "__vod_group_欧乐"; secParam = "欧乐_section"; secValue = (oleSec !== null ? oleSec : (params["欧乐_section"] || "0")); break;
+  case "欧乐搜索": group = "__vod_group_欧乐"; secParam = "欧乐_section"; secValue = "5"; break;
+  case "骨朵": group = "__vod_group_骨朵"; break;
+  default: return [];
+ }
+ const fn = VOD_MERGED[group]; if (!fn) return [];
  const p = { ...params };
- if (route[1]) p[route[1]] = route[2];                        // 强制注入分组内分类
- else if (key === "榜单") p["榜单_section"] = params["榜单_section"] || "0";
+ if (secParam) p[secParam] = secValue;
  return await fn(p);
 }
 
