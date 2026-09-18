@@ -74,10 +74,10 @@ var WidgetMetadata = {
     modules: [
         {
             title: "新片追踪",
-            description: "即将上映、正在热映与定档待播",
+            description: "即将上映、正在热映、定档待播与各类追更日历",
             functionName: "loadMonthlyUpcomingStrict",
             type: "video",
-            cacheDuration: 43200,
+            cacheDuration: 7200,
             params: [
                 {
                     name: "upcoming_category",
@@ -88,52 +88,22 @@ var WidgetMetadata = {
                         { title: "即将上映", value: "movie_upcoming" },
                         { title: "正在热映", value: "movie_now_playing" },
                         { title: "定档待播", value: "tv_monthly_upcoming" },
-                        { title: "今日首播", value: "tv_airing_today" }
+                        { title: "剧集追更", value: "drama_schedule" },
+                        { title: "综艺追更", value: "variety_schedule" },
+                        { title: "动漫周更", value: "anime_schedule" }
                     ]
                 },
+                // --- 剧集追更专属参数 ---
+                { name: "sort_by", title: "地区偏好", type: "enumeration", value: "Global", belongTo: { paramName: "upcoming_category", value: ["drama_schedule"] }, enumOptions: [ { title: "全球聚合", value: "Global" }, { title: "美国", value: "US" }, { title: "日本", value: "JP" }, { title: "韩国", value: "KR" }, { title: "中国", value: "CN" }, { title: "英国", value: "GB" } ] },
+                { name: "calendar_mode", title: "时间范围", type: "enumeration", value: "update_today", belongTo: { paramName: "upcoming_category", value: ["drama_schedule"] }, enumOptions: [ { title: "今日更新", value: "update_today" }, { title: "明日首播", value: "premiere_tomorrow" }, { title: "7天内首播", value: "premiere_week" }, { title: "30天内首播", value: "premiere_month" } ] },
+                // --- 综艺追更专属参数 ---
+                { name: "sort_by", title: "综艺筛选", type: "enumeration", value: "all", belongTo: { paramName: "upcoming_category", value: ["variety_schedule"] }, enumOptions: [ { title: "全部地区", value: "all" }, { title: "国内综艺", value: "cn" }, { title: "台湾综艺", value: "tw" }, { title: "国外综艺", value: "global" } ] },
+                { name: "list_type", title: "榜单类型", type: "enumeration", value: "calendar", belongTo: { paramName: "upcoming_category", value: ["variety_schedule"] }, enumOptions: [ { title: "追新榜", value: "calendar" }, { title: "热度榜", value: "hot" } ] },
+                { name: "days", title: "预告范围", type: "enumeration", value: "14", belongTo: { paramName: "upcoming_category", value: ["variety_schedule"] }, enumOptions: [ { title: "今日更新", value: "0" }, { title: "未来 7 天", value: "7" }, { title: "未来 14 天", value: "14" }, { title: "未来 30 天", value: "30" } ] },
+                // --- 动漫周更专属参数 ---
+                { name: "sort_by", title: "选择日期", type: "enumeration", value: "today", belongTo: { paramName: "upcoming_category", value: ["anime_schedule"] }, enumOptions: [ { title: "今天", value: "today" }, { title: "周一", value: "1" }, { title: "周二", value: "2" }, { title: "周三", value: "3" }, { title: "周四", value: "4" }, { title: "周五", value: "5" }, { title: "周六", value: "6" }, { title: "周日", value: "7" } ] },
+                // --- 通用页码 ---
                 { name: "page", title: "页码", type: "page", startPage: 1 }
-            ]
-        },
-        {
-            title: "剧集追更",
-            description: "全球剧集更新与首播日历",
-            functionName: "loadStandaloneDramaCalendar",
-            type: "video",
-            // 宿主结果缓存 2 小时（7200 秒）。注意：宿主缓存命中时脚本不会执行，
-            // 因此不宜设得过长（如 86400），否则志愿者补录当天集数后刷新看不到。
-            // 脚本内部另有内存数据集，翻页/切地区为 0 请求。
-            cacheDuration: 7200,
-            params: [
-                { name: "sort_by", title: "地区偏好", type: "enumeration", value: "Global", enumOptions: [ { title: "全球聚合", value: "Global" }, { title: "美国", value: "US" }, { title: "日本", value: "JP" }, { title: "韩国", value: "KR" }, { title: "中国", value: "CN" }, { title: "英国", value: "GB" } ] },
-                { name: "calendar_mode", title: "时间范围", type: "enumeration", value: "update_today", enumOptions: [ { title: "今日更新", value: "update_today" }, { title: "明日首播", value: "premiere_tomorrow" }, { title: "7天内首播", value: "premiere_week" }, { title: "30天内首播", value: "premiere_month" } ] },
-                { name: "page", title: "页码", type: "page" }
-            ]
-        },
-        {
-            title: "综艺追更",
-            description: "未来综艺排期与热度榜单",
-            functionName: "loadStandaloneVarietyAggregate",
-            type: "video",
-            // 宿主结果缓存 2 小时（7200 秒）。注意：宿主缓存命中时脚本不会执行，
-            // 因此不宜设得过长（如 86400），否则志愿者补录当天集数后刷新看不到。
-            // 脚本内部另有内存数据集，翻页/切地区为 0 请求。
-            cacheDuration: 7200,
-            params: [
-                { name: "sort_by", title: "综艺筛选", type: "enumeration", value: "all", enumOptions: [ { title: "全部地区", value: "all" }, { title: "国内综艺", value: "cn" }, { title: "台湾综艺", value: "tw" }, { title: "国外综艺", value: "global" } ] },
-                { name: "list_type", title: "榜单类型", type: "enumeration", value: "calendar", enumOptions: [ { title: "追新榜", value: "calendar" }, { title: "热度榜", value: "hot" } ] },
-                { name: "days", title: "预告范围", type: "enumeration", value: "14", belongTo: { paramName: "list_type", value: ["calendar"] }, enumOptions: [ { title: "今日更新", value: "0" }, { title: "未来 7 天", value: "7" }, { title: "未来 14 天", value: "14" }, { title: "未来 30 天", value: "30" } ] },
-                { name: "page", title: "页码", type: "page" }
-            ]
-        },
-        {
-            title: "动漫周更",
-            description: "国创与番剧每周更新表",
-            functionName: "loadStandaloneAnimeWeek",
-            type: "video",
-            cacheDuration: 7200,
-            params: [
-                { name: "sort_by", title: "选择日期", type: "enumeration", value: "today", enumOptions: [ { title: "今天", value: "today" }, { title: "周一", value: "1" }, { title: "周二", value: "2" }, { title: "周三", value: "3" }, { title: "周四", value: "4" }, { title: "周五", value: "5" }, { title: "周六", value: "6" }, { title: "周日", value: "7" } ] },
-                { name: "page", title: "页码", type: "page" }
             ]
         }
     ]
@@ -174,6 +144,9 @@ function buildUpcomingItem(item, mediaType) {
 
 async function loadMonthlyUpcomingStrict(params = {}) {
     const category = params.upcoming_category || "movie_upcoming";
+    if (category === "drama_schedule") return await loadStandaloneDramaCalendar(params);
+    if (category === "variety_schedule") return await loadStandaloneVarietyAggregate(params);
+    if (category === "anime_schedule") return await loadStandaloneAnimeWeek(params);
     if (category !== "tv_monthly_upcoming") return await loadUpcomingCenter(params);
     const page = Math.max(1, Number(params.page || 1));
     const now = new Date();
