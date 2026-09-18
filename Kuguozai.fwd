@@ -14,15 +14,6 @@
       "url": "https://raw.githubusercontent.com/qiguo093/Forward-Widget/main/widgets/Top-list.js"
     },
     {
-      "id": "qiguo.calendar.schedule",
-      "title": "追剧日历",
-      "description": "影剧时间表",
-      "author": "𝓚𝓾𝓰𝓾𝓸𝔃𝓪𝓲 ⁷",
-      "version": "1.0.0",
-      "requiredVersion": "0.0.1",
-      "url": "https://github.com/qiguo093/Forward-Widget/raw/refs/heads/main/widgets/Time-calendar.js"
-    },
-    {
       "id": "huangxd.danmu.auto",
       "title": "自动弹幕",
       "description": "自动获取播放链接并从服务器获取弹幕",
