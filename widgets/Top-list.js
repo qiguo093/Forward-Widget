@@ -3363,23 +3363,12 @@ function normalizeDoubanTmdbTitle(title) {
         .replace(/iii/g, "3");
 }
 
-const DoubanTmdbCache = {};
-
 async function searchTmdbForDouban(query, type, year) {
     const cleaned = String(query || "").replace(/第[一二三四五六七八九十\d]+[季章]/g, "").trim();
-    const cacheKey = `${cleaned}|${type}|${year || ""}`;
-    if (cacheKey in DoubanTmdbCache) return DoubanTmdbCache[cacheKey];
-
     try {
-        const res = await Promise.race([
-            Widget.tmdb.get(`/search/${type}`, { params: { query: cleaned, language: "zh-CN" } }),
-            new Promise(resolve => setTimeout(() => resolve(null), 4000))
-        ]);
-        const results = Array.isArray(res && res.results) ? res.results : [];
-        if (!results.length) {
-            DoubanTmdbCache[cacheKey] = null;
-            return null;
-        }
+        const res = await Widget.tmdb.get(`/search/${type}`, { params: { query: cleaned, language: "zh-CN" } });
+        const results = Array.isArray(res.results) ? res.results : [];
+        if (!results.length) return null;
         const wantedTitle = normalizeDoubanTmdbTitle(query);
         const wantedYear = String(year || "");
         const titleMatches = results.filter(item => {
@@ -3389,19 +3378,11 @@ async function searchTmdbForDouban(query, type, year) {
         const yearOf = item => String(item.first_air_date || item.release_date || "").slice(0, 4);
         const exactYearMatches = titleMatches.filter(item => !wantedYear || yearOf(item) === wantedYear);
         const exactYear = exactYearMatches.find(item => item.poster_path) || exactYearMatches[0];
-        let matched = exactYear || (titleMatches.length ? (titleMatches.find(item => item.poster_path) || titleMatches[0]) : null);
-        if (!matched) {
-            const yearMatch = results.find(item => !wantedYear || yearOf(item) === wantedYear);
-            matched = yearMatch || results[0];
-        }
-        // 要求必须有海报
-        if (matched && !matched.poster_path) matched = null;
-        DoubanTmdbCache[cacheKey] = matched;
-        return matched;
-    } catch (e) {
-        DoubanTmdbCache[cacheKey] = null;
-        return null;
-    }
+        if (exactYear) return exactYear;
+        if (titleMatches.length) return titleMatches.find(item => item.poster_path) || titleMatches[0];
+        const yearMatch = results.find(item => !wantedYear || yearOf(item) === wantedYear);
+        return yearMatch || results[0];
+    } catch (e) { return null; }
 }
 
 async function fetchDoubanAndMap(tag, type, page) {
@@ -3424,36 +3405,18 @@ async function fetchDoubanAndMap(tag, type, page) {
         
         const promises = list.map(async item => {
             let finalItem = { 
-                id: `db_${item.id}`, 
-                tmdbId: parseInt(item.id) || 0,
-                type: "tmdb", 
-                mediaType: type, 
-                title: item.title, 
-                subTitle: `豆瓣 ${item.rate || "0.0"}`, 
-                description: `豆瓣 ${item.rate || "0.0"}\n暂无简介`, 
+                id: `db_${item.id}`, type: "tmdb", mediaType: type, 
+                title: item.title, subTitle: `豆瓣 ${item.rate}`, 
+                description: `豆瓣 ${item.rate}\n暂无简介`, 
                 genreTitle: type === "tv" ? "剧集" : "电影",
-                posterPath: item.cover || "",
-                backdropPath: "",
-                rating: parseFloat(item.rate) || 0, 
-                popularity: 0, 
-                voteCount: 0,
-                releaseDate: item.year ? String(item.year) : ""
+                posterPath: item.cover,
+                rating: parseFloat(item.rate) || 0, popularity: 0, voteCount: 0
             };
             const tmdb = await searchTmdbForDouban(item.title, type, item.year);
-            if (tmdb && tmdb.id) {
-                mergeDoubanTmdb(finalItem, tmdb);
-            }
-            // 确保 rating 是有效的数字，绝不为 NaN 或 undefined，防止 Swift 客户端解码崩溃
-            if (typeof finalItem.rating !== "number" || isNaN(finalItem.rating)) finalItem.rating = 0;
-            if (typeof finalItem.popularity !== "number" || isNaN(finalItem.popularity)) finalItem.popularity = 0;
-            if (typeof finalItem.voteCount !== "number" || isNaN(finalItem.voteCount)) finalItem.voteCount = 0;
+            if (tmdb) mergeDoubanTmdb(finalItem, tmdb); 
             return finalItem;
         });
-        const mapped = (await Promise.all(promises)).filter(function(r) {
-            return r && r.posterPath && r.posterPath.length > 0;
-        });
-        if (mapped.length === 0) return page === 1 ? [{ id: "empty", type: "text", title: "暂无数据" }] : [];
-        return mapped;
+        return await Promise.all(promises);
     } catch (e) { 
         return [{ id: "err", type: "text", title: "豆瓣拒绝了请求", description: "网络IP被豆瓣限制，请切换流量(4G/5G)或更换节点。" }]; 
     }
@@ -3960,53 +3923,35 @@ function cleanDoubanTitle(rawTitle) {
 // 🟢 模块逻辑 1：豆瓣 (统一入口)
 // ============================================================================
 
-const DoubanModuleTmdbCache = {};
-
 async function searchTmdb(title, year, apiKey, isTv) {
     if (!title) return null;
-    const cacheKey = `${title}|${year || ""}|${isTv ? "tv" : "movie"}`;
-    if (cacheKey in DoubanModuleTmdbCache) return DoubanModuleTmdbCache[cacheKey];
-
     var url = "https://api.themoviedb.org/3/search/multi?api_key=" + apiKey + "&language=zh-CN&query=" + encodeURIComponent(title);
     try {
-        var res = await Promise.race([
-            Widget.http.get(url),
-            new Promise(function(resolve) { setTimeout(function() { resolve(null); }, 4000); })
-        ]);
-        var data = res && res.data ? safeJsonParse(res.data) : null;
-        if (!data || !data.results || data.results.length === 0) {
-            DoubanModuleTmdbCache[cacheKey] = null;
-            return null;
-        }
+        var res = await Widget.http.get(url);
+        var data = safeJsonParse(res.data);
+        if (!data || !data.results || data.results.length === 0) return null;
         
         var validItems = data.results.filter(function(item) {
-            return (item.media_type === 'movie' || item.media_type === 'tv') && item.poster_path;
+            return item.media_type === 'movie' || item.media_type === 'tv';
         });
-        if (validItems.length === 0) {
-            DoubanModuleTmdbCache[cacheKey] = null;
-            return null;
-        }
+        if (validItems.length === 0) return null;
 
-        var matched = null;
         if (year) {
             var targetYear = parseInt(year);
-            matched = validItems.find(function(item) {
+            var match = validItems.find(function(item) {
                 var d = item.release_date || item.first_air_date || "0000";
                 var y = parseInt(d.substring(0, 4));
                 return Math.abs(y - targetYear) <= 1;
             });
+            if (match) return match;
         }
 
-        if (!matched && isTv) {
-             matched = validItems.find(function(item) { return item.media_type === 'tv'; });
+        if (isTv) {
+             var tvMatch = validItems.find(function(item) { return item.media_type === 'tv'; });
+             if (tvMatch) return tvMatch;
         }
-        var finalMatch = matched || validItems[0];
-        DoubanModuleTmdbCache[cacheKey] = finalMatch;
-        return finalMatch;
-    } catch (e) {
-        DoubanModuleTmdbCache[cacheKey] = null;
-        return null;
-    }
+        return validItems[0];
+    } catch (e) { return null; }
 }
 
 async function loadDoubanModule(params) {
@@ -4043,21 +3988,18 @@ async function loadDoubanModule(params) {
             var tmdbItem = await searchTmdb(cleanTitle, year, apiKey, isTv);
 
             // 🔴 关键改动：如果匹配成功则返回数据，匹配失败则直接丢弃 (返回 null)
-            if (tmdbItem && tmdbItem.poster_path) {
+            if (tmdbItem) {
                 var dateStr = tmdbItem.release_date || tmdbItem.first_air_date || (year + "");
                 var yearStr = dateStr.substring(0, 4);
                 var genreStr = getGenreString(tmdbItem.genre_ids);
                 var finalGenreTitle = genreStr || (isTv ? "剧集" : "电影");
-
-                var parsedRating = parseFloat(rate);
-                if (isNaN(parsedRating)) parsedRating = parseFloat(tmdbItem.vote_average) || 0;
 
                 return {
                     id: String(tmdbItem.id),
                     tmdbId: tmdbItem.id,
                     type: "tmdb",
                     mediaType: tmdbItem.media_type,
-                    title: tmdbItem.title || tmdbItem.name || rawTitle,
+                    title: tmdbItem.title || tmdbItem.name || rawTitle, // 界面显示依然保留原始名或TMDB名
                     
                     genreTitle: finalGenreTitle, 
                     subTitle: dateStr ? `⭐ ${rate} | ${dateStr}` : `⭐ ${rate}`,
@@ -4065,15 +4007,15 @@ async function loadDoubanModule(params) {
                     
                     posterPath: getTmdbImage(tmdbItem.poster_path),
                     backdropPath: getTmdbImage(tmdbItem.backdrop_path),
-                    rating: parsedRating,
-                    popularity: parseFloat(tmdbItem.popularity) || 0,
-                    voteCount: parseInt(tmdbItem.vote_count) || 0,
+                    rating: parseFloat(rate) || tmdbItem.vote_average,
+                    popularity: tmdbItem.popularity || 0,
+                    voteCount: tmdbItem.vote_count || 0,
                     releaseDate: dateStr,
                     year: yearStr
                 };
             }
             
-            return null; // 搜不到 TMDB 或无海报直接丢弃，绝不使用豆瓣防盗链图片导致客户端全灰破损
+            return null; // 搜不到直接抛弃
         });
         
         var results = await Promise.all(promises);
