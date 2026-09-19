@@ -3423,27 +3423,35 @@ async function fetchDoubanAndMap(tag, type, page) {
         if (list.length === 0) return page === 1 ? [{ id: "empty", type: "text", title: "暂无数据" }] : [];
         
         const promises = list.map(async item => {
-            const tmdb = await searchTmdbForDouban(item.title, type, item.year);
-            if (!tmdb || !tmdb.poster_path) return null; // 搜不到 TMDB 或无海报直接丢弃，绝不使用豆瓣防盗链图片
             let finalItem = { 
-                id: String(tmdb.id),
-                tmdbId: tmdb.id,
-                type: "tmdb",
+                id: `db_${item.id}`, 
+                tmdbId: parseInt(item.id) || 0,
+                type: "tmdb", 
                 mediaType: type, 
-                title: tmdb.title || tmdb.name || item.title,
-                subTitle: item.rate ? `豆瓣 ${item.rate}` : "豆瓣高分", 
-                description: `${item.year || ""} · 豆瓣 ${item.rate || ""}\n${tmdb.overview || "暂无简介"}`, 
-                genreTitle: getGlobalGenreText(tmdb.genre_ids) || (type === "tv" ? "剧集" : "电影"),
-                posterPath: `https://image.tmdb.org/t/p/w500${tmdb.poster_path}`,
-                backdropPath: tmdb.backdrop_path ? `https://image.tmdb.org/t/p/w780${tmdb.backdrop_path}` : "",
-                rating: parseFloat(item.rate) || tmdb.vote_average || 0,
-                popularity: tmdb.popularity || 0,
-                voteCount: tmdb.vote_count || 0,
-                releaseDate: tmdb.first_air_date || tmdb.release_date || (item.year || "")
+                title: item.title, 
+                subTitle: `豆瓣 ${item.rate || "0.0"}`, 
+                description: `豆瓣 ${item.rate || "0.0"}\n暂无简介`, 
+                genreTitle: type === "tv" ? "剧集" : "电影",
+                posterPath: item.cover || "",
+                backdropPath: "",
+                rating: parseFloat(item.rate) || 0, 
+                popularity: 0, 
+                voteCount: 0,
+                releaseDate: item.year ? String(item.year) : ""
             };
+            const tmdb = await searchTmdbForDouban(item.title, type, item.year);
+            if (tmdb && tmdb.id) {
+                mergeDoubanTmdb(finalItem, tmdb);
+            }
+            // 确保 rating 是有效的数字，绝不为 NaN 或 undefined，防止 Swift 客户端解码崩溃
+            if (typeof finalItem.rating !== "number" || isNaN(finalItem.rating)) finalItem.rating = 0;
+            if (typeof finalItem.popularity !== "number" || isNaN(finalItem.popularity)) finalItem.popularity = 0;
+            if (typeof finalItem.voteCount !== "number" || isNaN(finalItem.voteCount)) finalItem.voteCount = 0;
             return finalItem;
         });
-        const mapped = (await Promise.all(promises)).filter(Boolean);
+        const mapped = (await Promise.all(promises)).filter(function(r) {
+            return r && r.posterPath && r.posterPath.length > 0;
+        });
         if (mapped.length === 0) return page === 1 ? [{ id: "empty", type: "text", title: "暂无数据" }] : [];
         return mapped;
     } catch (e) { 
@@ -4041,12 +4049,15 @@ async function loadDoubanModule(params) {
                 var genreStr = getGenreString(tmdbItem.genre_ids);
                 var finalGenreTitle = genreStr || (isTv ? "剧集" : "电影");
 
+                var parsedRating = parseFloat(rate);
+                if (isNaN(parsedRating)) parsedRating = parseFloat(tmdbItem.vote_average) || 0;
+
                 return {
                     id: String(tmdbItem.id),
                     tmdbId: tmdbItem.id,
                     type: "tmdb",
                     mediaType: tmdbItem.media_type,
-                    title: tmdbItem.title || tmdbItem.name || rawTitle, // 界面显示依然保留原始名或TMDB名
+                    title: tmdbItem.title || tmdbItem.name || rawTitle,
                     
                     genreTitle: finalGenreTitle, 
                     subTitle: dateStr ? `⭐ ${rate} | ${dateStr}` : `⭐ ${rate}`,
@@ -4054,9 +4065,9 @@ async function loadDoubanModule(params) {
                     
                     posterPath: getTmdbImage(tmdbItem.poster_path),
                     backdropPath: getTmdbImage(tmdbItem.backdrop_path),
-                    rating: parseFloat(rate) || tmdbItem.vote_average,
-                    popularity: tmdbItem.popularity || 0,
-                    voteCount: tmdbItem.vote_count || 0,
+                    rating: parsedRating,
+                    popularity: parseFloat(tmdbItem.popularity) || 0,
+                    voteCount: parseInt(tmdbItem.vote_count) || 0,
                     releaseDate: dateStr,
                     year: yearStr
                 };
