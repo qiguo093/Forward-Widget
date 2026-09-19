@@ -885,55 +885,12 @@ async function loadStandaloneAnimeWeek(params = {}) {
 // 使三者在 1 小时内来回切换都是 0 请求秒开。
 // key 必须包含**一切影响结果的维度**：频道/地区/日期/页码。
 // 尤其不能漏掉日期 —— 漏了会在跨零点时把昨天的列表当成今天返回。
-const WEEKLY_STORE_TTL_MS = 60 * 60 * 1000;
-
-async function weeklyStoreGet(key) {
-    try {
-        if (!Widget.storage || !Widget.storage.get) return null;
-        const raw = await Widget.storage.get(key);
-        if (!raw) return null;
-        const obj = typeof raw === "string" ? JSON.parse(raw) : raw;
-        if (!obj || !Array.isArray(obj.items) || !obj.items.length) return null;
-        // 过期即视为未命中，等联网刷新
-        if (Date.now() - Number(obj.ts || 0) >= WEEKLY_STORE_TTL_MS) return null;
-        return obj.items;
-    } catch (e) { return null; }
-}
-
-async function weeklyStoreSet(key, items) {
-    try {
-        if (!Widget.storage || !Widget.storage.set) return;
-        if (!Array.isArray(items) || !items.length) return;
-        // 不缓存错误/空态提示卡，否则一旦抓取失败会把"加载失败"固化一小时
-        if (items.some(it => it && it.type === "text")) return;
-        await Widget.storage.set(key, JSON.stringify({ ts: Date.now(), items }));
-    } catch (e) { /* 存储失败不影响正常返回 */ }
-}
-
 async function loadStandaloneDramaCalendar(params = {}) {
-    const mode = params.calendar_mode || "update_today";
-    const region = params.sort_by || "Global";
-    const page = Math.max(1, Number(params.page) || 1);
-    // 日期入 key：跨零点后不会把昨天的排期当成今天
-    const key = `drama_week_v1|${mode}|${region}|${page}|${varietyBeijingDate(0)}`;
-    const cached = await weeklyStoreGet(key);
-    if (cached) return cached;
-    const items = await calendarLoadDrama({ mode, sort_by: region, page });
-    await weeklyStoreSet(key, items);
-    return items;
+    return await calendarLoadDrama({ mode: params.calendar_mode || "update_today", sort_by: params.sort_by || "Global", page: params.page });
 }
 
 async function loadStandaloneVarietyAggregate(params = {}) {
-    const listType = params.list_type || "calendar";
-    const days = String(params.days ?? "14");
-    const region = params.sort_by || "all";
-    const page = Math.max(1, Number(params.page) || 1);
-    const key = `variety_week_v1|${listType}|${region}|${days}|${page}|${varietyBeijingDate(0)}`;
-    const cached = await weeklyStoreGet(key);
-    if (cached) return cached;
-    const items = await calendarLoadVarietyUltimate({ listType, days, region, page });
-    await weeklyStoreSet(key, items);
-    return items;
+    return await calendarLoadVarietyUltimate({ listType: params.list_type || "calendar", days: params.days || "14", region: params.sort_by || "all", page: params.page });
 }
 
 // =========================================================================
