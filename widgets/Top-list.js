@@ -871,42 +871,16 @@ function isChineseAnimeByName(originalName) {
 // 例如《BLEACH 千年血战篇 -祸进谭》的条目被标成 zh，实为日番。
 // 所以残条一律返回 null，让调用方退回名称启发式判定。
 
-// -------------------------------------------------------------------------
-// 三个追更频道的入口
-// -------------------------------------------------------------------------
-// 【关键】三个频道的筛选参数必须错开命名（综艺 variety_sort_by / 动漫 anime_sort_by，
-// 剧集保留 sort_by）。原因是 App 的参数表以**参数名**为键：同一个模块里出现多个
-// 同名的 `sort_by` 时会发生覆盖，只有第一个（剧集的）真正生效，后两个选了不生效。
-// 这与本文件里「电影榜单」的 general_sort / yearly_sort / genre_sort 是同一套做法。
-// 各入口另做合法性校验：App 切换频道时可能残留上一频道的值（例如把剧集的 "Global"
-// 带到动漫的星期参数上），非法值一律回落到本频道默认，避免空列表。
-
 async function loadStandaloneAnimeWeek(params = {}) {
-    const valid = ["today", "1", "2", "3", "4", "5", "6", "7"];
-    const raw = String(params.sort_by || "");
-    return await calendarLoadAnime({ sort_by: valid.includes(raw) ? raw : "today", page: params.page });
+    return await calendarLoadAnime({ sort_by: params.sort_by || "today", page: params.page });
 }
 
-// -------------------------------------------------------------------------
-// 追更频道入口（剧集追更 / 综艺追更 / 动漫周更）
-// -------------------------------------------------------------------------
-// 为什么这样写：内存缓存（DramaTodayCache / VarietyResolvedCache 等）是模块级变量，
-// 而 App 在**切换模块参数时会重新执行整个 widget 脚本**，内存缓存随之清零 ——
-// 用户切个地区再切回来就得重新联网，看到"空白 + 转圈"。动漫周更早已用
-// animeStoreGet/Set 落盘解决，其余两频道靠各自入口内的数据集缓存兜住。
-// 各入口对 sort_by 做合法性回落：App 切换频道时可能残留上一频道的值
-// （例如把剧集的 "Global" 带到动漫的星期参数上），非法值一律回到本频道默认。
-
 async function loadStandaloneDramaCalendar(params = {}) {
-    const valid = ["Global", "US", "JP", "KR", "CN", "GB"];
-    const raw = String(params.sort_by || "");
-    return await calendarLoadDrama({ mode: params.calendar_mode || "update_today", sort_by: valid.includes(raw) ? raw : "Global", page: params.page });
+    return await calendarLoadDrama({ mode: params.calendar_mode || "update_today", sort_by: params.sort_by || "Global", page: params.page });
 }
 
 async function loadStandaloneVarietyAggregate(params = {}) {
-    const valid = ["all", "cn", "tw", "global"];
-    const raw = String(params.sort_by || "");
-    return await calendarLoadVarietyUltimate({ listType: params.list_type || "calendar", days: params.days || "14", region: valid.includes(raw) ? raw : "all", page: params.page });
+    return await calendarLoadVarietyUltimate({ listType: params.list_type || "calendar", days: params.days || "14", region: params.sort_by || "all", page: params.page });
 }
 
 // =========================================================================
