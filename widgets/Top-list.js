@@ -3363,12 +3363,25 @@ function normalizeDoubanTmdbTitle(title) {
         .replace(/iii/g, "3");
 }
 
+const DoubanTmdbCache = {};
+
 async function searchTmdbForDouban(query, type, year) {
     const cleaned = String(query || "").replace(/第[一二三四五六七八九十\d]+[季章]/g, "").trim();
+    const cacheKey = `${cleaned}|${type}|${year || ""}`;
+    if (cacheKey in DoubanTmdbCache) return DoubanTmdbCache[cacheKey];
+
     try {
-        const res = await Widget.tmdb.get(`/search/${type}`, { params: { query: cleaned, language: "zh-CN" } });
-        const results = Array.isArray(res.results) ? res.results : [];
-        if (!results.length) return null;
+        const fetchPromise = Widget.tmdb.get(`/search/${type}`, { params: { query: cleaned, language: "zh-CN" } });
+        // 800ms 超时熔断：搜得快就用 TMDB 高清海报，搜得慢直接熔断退回豆瓣原生，绝不拖卡列表加载
+        const res = await Promise.race([
+            fetchPromise,
+            new Promise(r => setTimeout(() => r(null), 800))
+        ]);
+        const results = Array.isArray(res && res.results) ? res.results : [];
+        if (!results.length) {
+            DoubanTmdbCache[cacheKey] = null;
+            return null;
+        }
         const wantedTitle = normalizeDoubanTmdbTitle(query);
         const wantedYear = String(year || "");
         const titleMatches = results.filter(item => {
@@ -3378,11 +3391,17 @@ async function searchTmdbForDouban(query, type, year) {
         const yearOf = item => String(item.first_air_date || item.release_date || "").slice(0, 4);
         const exactYearMatches = titleMatches.filter(item => !wantedYear || yearOf(item) === wantedYear);
         const exactYear = exactYearMatches.find(item => item.poster_path) || exactYearMatches[0];
-        if (exactYear) return exactYear;
-        if (titleMatches.length) return titleMatches.find(item => item.poster_path) || titleMatches[0];
-        const yearMatch = results.find(item => !wantedYear || yearOf(item) === wantedYear);
-        return yearMatch || results[0];
-    } catch (e) { return null; }
+        let matched = exactYear || (titleMatches.length ? (titleMatches.find(item => item.poster_path) || titleMatches[0]) : null);
+        if (!matched) {
+            const yearMatch = results.find(item => !wantedYear || yearOf(item) === wantedYear);
+            matched = yearMatch || results[0];
+        }
+        DoubanTmdbCache[cacheKey] = matched;
+        return matched;
+    } catch (e) {
+        DoubanTmdbCache[cacheKey] = null;
+        return null;
+    }
 }
 
 async function fetchDoubanAndMap(tag, type, page) {
@@ -3923,35 +3942,55 @@ function cleanDoubanTitle(rawTitle) {
 // 🟢 模块逻辑 1：豆瓣 (统一入口)
 // ============================================================================
 
+const DoubanModuleTmdbCache = {};
+
 async function searchTmdb(title, year, apiKey, isTv) {
     if (!title) return null;
+    const cacheKey = `${title}|${year || ""}|${isTv ? "tv" : "movie"}`;
+    if (cacheKey in DoubanModuleTmdbCache) return DoubanModuleTmdbCache[cacheKey];
+
     var url = "https://api.themoviedb.org/3/search/multi?api_key=" + apiKey + "&language=zh-CN&query=" + encodeURIComponent(title);
     try {
-        var res = await Widget.http.get(url);
-        var data = safeJsonParse(res.data);
-        if (!data || !data.results || data.results.length === 0) return null;
+        var fetchPromise = Widget.http.get(url);
+        // 800ms 超时熔断：一旦 TMDB 没能快速响应，立刻熔断，用豆瓣原卡片直出
+        var res = await Promise.race([
+            fetchPromise,
+            new Promise(function(r) { setTimeout(function() { r(null); }, 800); })
+        ]);
+        var data = res && res.data ? safeJsonParse(res.data) : null;
+        if (!data || !data.results || data.results.length === 0) {
+            DoubanModuleTmdbCache[cacheKey] = null;
+            return null;
+        }
         
         var validItems = data.results.filter(function(item) {
             return item.media_type === 'movie' || item.media_type === 'tv';
         });
-        if (validItems.length === 0) return null;
+        if (validItems.length === 0) {
+            DoubanModuleTmdbCache[cacheKey] = null;
+            return null;
+        }
 
+        var matched = null;
         if (year) {
             var targetYear = parseInt(year);
-            var match = validItems.find(function(item) {
+            matched = validItems.find(function(item) {
                 var d = item.release_date || item.first_air_date || "0000";
                 var y = parseInt(d.substring(0, 4));
                 return Math.abs(y - targetYear) <= 1;
             });
-            if (match) return match;
         }
 
-        if (isTv) {
-             var tvMatch = validItems.find(function(item) { return item.media_type === 'tv'; });
-             if (tvMatch) return tvMatch;
+        if (!matched && isTv) {
+             matched = validItems.find(function(item) { return item.media_type === 'tv'; });
         }
-        return validItems[0];
-    } catch (e) { return null; }
+        var finalMatch = matched || validItems[0];
+        DoubanModuleTmdbCache[cacheKey] = finalMatch;
+        return finalMatch;
+    } catch (e) {
+        DoubanModuleTmdbCache[cacheKey] = null;
+        return null;
+    }
 }
 
 async function loadDoubanModule(params) {
@@ -4015,7 +4054,25 @@ async function loadDoubanModule(params) {
                 };
             }
             
-            return null; // 搜不到直接抛弃
+            // TMDB 匹配失败或 800ms 超时熔断时，退回使用豆瓣原生卡片（封面、评分、标题直出，秒开不丢数据）
+            var rawCover = (item.cover && item.cover.url) || item.cover || "";
+            return {
+                id: `db_${item.id || rawTitle}`,
+                tmdbId: 0,
+                type: "tmdb",
+                mediaType: isTv ? "tv" : "movie",
+                title: rawTitle,
+                genreTitle: isTv ? "剧集" : "电影",
+                subTitle: year ? `⭐ ${rate} | ${year}` : `⭐ ${rate}`,
+                description: sub ? `⭐ ${rate} · ${sub}` : `⭐ ${rate}`,
+                posterPath: rawCover,
+                backdropPath: "",
+                rating: parseFloat(rate) || 0,
+                popularity: 0,
+                voteCount: 0,
+                releaseDate: String(year || ""),
+                year: String(year || "")
+            };
         });
         
         var results = await Promise.all(promises);
