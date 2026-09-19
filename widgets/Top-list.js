@@ -3365,6 +3365,18 @@ function normalizeDoubanTmdbTitle(title) {
 
 const DoubanTmdbCache = {};
 
+function fixDoubanRefererImage(url) {
+    if (!url || typeof url !== "string") return "";
+    // TMDB 海报直接返回
+    if (url.includes("tmdb.org")) return url;
+    // 豆瓣防盗链图片：iOS/App 客户端直接请求 doubanio.com 会触发 403 导致图标破损显示灰色地球。
+    // 使用稳定无防盗链代理镜像转译格式，确保客户端任何环境均能渲染出封皮图片。
+    if (url.includes("doubanio.com")) {
+        return "https://images.weserv.nl/?url=" + encodeURIComponent(url);
+    }
+    return url;
+}
+
 async function searchTmdbForDouban(query, type, year) {
     const cleaned = String(query || "").replace(/第[一二三四五六七八九十\d]+[季章]/g, "").trim();
     const cacheKey = `${cleaned}|${type}|${year || ""}`;
@@ -3372,10 +3384,10 @@ async function searchTmdbForDouban(query, type, year) {
 
     try {
         const fetchPromise = Widget.tmdb.get(`/search/${type}`, { params: { query: cleaned, language: "zh-CN" } });
-        // 800ms 超时熔断：搜得快就用 TMDB 高清海报，搜得慢直接熔断退回豆瓣原生，绝不拖卡列表加载
+        // 允许充足搜索时间（3000ms），优先匹配 TMDB 标准高清无防盗链海报
         const res = await Promise.race([
             fetchPromise,
-            new Promise(r => setTimeout(() => r(null), 800))
+            new Promise(r => setTimeout(() => r(null), 3000))
         ]);
         const results = Array.isArray(res && res.results) ? res.results : [];
         if (!results.length) {
@@ -3428,7 +3440,7 @@ async function fetchDoubanAndMap(tag, type, page) {
                 title: item.title, subTitle: `豆瓣 ${item.rate}`, 
                 description: `豆瓣 ${item.rate}\n暂无简介`, 
                 genreTitle: type === "tv" ? "剧集" : "电影",
-                posterPath: item.cover,
+                posterPath: fixDoubanRefererImage(item.cover),
                 rating: parseFloat(item.rate) || 0, popularity: 0, voteCount: 0
             };
             const tmdb = await searchTmdbForDouban(item.title, type, item.year);
@@ -3952,10 +3964,10 @@ async function searchTmdb(title, year, apiKey, isTv) {
     var url = "https://api.themoviedb.org/3/search/multi?api_key=" + apiKey + "&language=zh-CN&query=" + encodeURIComponent(title);
     try {
         var fetchPromise = Widget.http.get(url);
-        // 800ms 超时熔断：一旦 TMDB 没能快速响应，立刻熔断，用豆瓣原卡片直出
+        // 3000ms 宽限超时：确保 TMDB 有充足时间响应并替换无防盗链标准的 TMDB 海报
         var res = await Promise.race([
             fetchPromise,
-            new Promise(function(r) { setTimeout(function() { r(null); }, 800); })
+            new Promise(function(r) { setTimeout(function() { r(null); }, 3000); })
         ]);
         var data = res && res.data ? safeJsonParse(res.data) : null;
         if (!data || !data.results || data.results.length === 0) {
@@ -4054,7 +4066,7 @@ async function loadDoubanModule(params) {
                 };
             }
             
-            // TMDB 匹配失败或 800ms 超时熔断时，退回使用豆瓣原生卡片（封面、评分、标题直出，秒开不丢数据）
+            // TMDB 匹配失败或超时熔断时，退回使用豆瓣原生卡片（修复防盗链，封面、评分、标题直出）
             var rawCover = (item.cover && item.cover.url) || item.cover || "";
             return {
                 id: `db_${item.id || rawTitle}`,
@@ -4065,7 +4077,7 @@ async function loadDoubanModule(params) {
                 genreTitle: isTv ? "剧集" : "电影",
                 subTitle: year ? `⭐ ${rate} | ${year}` : `⭐ ${rate}`,
                 description: sub ? `⭐ ${rate} · ${sub}` : `⭐ ${rate}`,
-                posterPath: rawCover,
+                posterPath: fixDoubanRefererImage(rawCover),
                 backdropPath: "",
                 rating: parseFloat(rate) || 0,
                 popularity: 0,
