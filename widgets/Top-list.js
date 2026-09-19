@@ -3365,29 +3365,15 @@ function normalizeDoubanTmdbTitle(title) {
 
 const DoubanTmdbCache = {};
 
-function fixDoubanRefererImage(url) {
-    if (!url || typeof url !== "string") return "";
-    // TMDB 海报直接返回
-    if (url.includes("tmdb.org")) return url;
-    // 豆瓣防盗链图片：iOS/App 客户端直接请求 doubanio.com 会触发 403 导致图标破损显示灰色地球。
-    // 使用稳定无防盗链代理镜像转译格式，确保客户端任何环境均能渲染出封皮图片。
-    if (url.includes("doubanio.com")) {
-        return "https://images.weserv.nl/?url=" + encodeURIComponent(url);
-    }
-    return url;
-}
-
 async function searchTmdbForDouban(query, type, year) {
     const cleaned = String(query || "").replace(/第[一二三四五六七八九十\d]+[季章]/g, "").trim();
     const cacheKey = `${cleaned}|${type}|${year || ""}`;
     if (cacheKey in DoubanTmdbCache) return DoubanTmdbCache[cacheKey];
 
     try {
-        const fetchPromise = Widget.tmdb.get(`/search/${type}`, { params: { query: cleaned, language: "zh-CN" } });
-        // 允许充足搜索时间（3000ms），优先匹配 TMDB 标准高清无防盗链海报
         const res = await Promise.race([
-            fetchPromise,
-            new Promise(r => setTimeout(() => r(null), 3000))
+            Widget.tmdb.get(`/search/${type}`, { params: { query: cleaned, language: "zh-CN" } }),
+            new Promise(resolve => setTimeout(() => resolve(null), 4000))
         ]);
         const results = Array.isArray(res && res.results) ? res.results : [];
         if (!results.length) {
@@ -3408,6 +3394,8 @@ async function searchTmdbForDouban(query, type, year) {
             const yearMatch = results.find(item => !wantedYear || yearOf(item) === wantedYear);
             matched = yearMatch || results[0];
         }
+        // 要求必须有海报
+        if (matched && !matched.poster_path) matched = null;
         DoubanTmdbCache[cacheKey] = matched;
         return matched;
     } catch (e) {
@@ -3435,19 +3423,29 @@ async function fetchDoubanAndMap(tag, type, page) {
         if (list.length === 0) return page === 1 ? [{ id: "empty", type: "text", title: "暂无数据" }] : [];
         
         const promises = list.map(async item => {
-            let finalItem = { 
-                id: `db_${item.id}`, type: "tmdb", mediaType: type, 
-                title: item.title, subTitle: `豆瓣 ${item.rate}`, 
-                description: `豆瓣 ${item.rate}\n暂无简介`, 
-                genreTitle: type === "tv" ? "剧集" : "电影",
-                posterPath: fixDoubanRefererImage(item.cover),
-                rating: parseFloat(item.rate) || 0, popularity: 0, voteCount: 0
-            };
             const tmdb = await searchTmdbForDouban(item.title, type, item.year);
-            if (tmdb) mergeDoubanTmdb(finalItem, tmdb); 
+            if (!tmdb || !tmdb.poster_path) return null; // 搜不到 TMDB 或无海报直接丢弃，绝不使用豆瓣防盗链图片
+            let finalItem = { 
+                id: String(tmdb.id),
+                tmdbId: tmdb.id,
+                type: "tmdb",
+                mediaType: type, 
+                title: tmdb.title || tmdb.name || item.title,
+                subTitle: item.rate ? `豆瓣 ${item.rate}` : "豆瓣高分", 
+                description: `${item.year || ""} · 豆瓣 ${item.rate || ""}\n${tmdb.overview || "暂无简介"}`, 
+                genreTitle: getGlobalGenreText(tmdb.genre_ids) || (type === "tv" ? "剧集" : "电影"),
+                posterPath: `https://image.tmdb.org/t/p/w500${tmdb.poster_path}`,
+                backdropPath: tmdb.backdrop_path ? `https://image.tmdb.org/t/p/w780${tmdb.backdrop_path}` : "",
+                rating: parseFloat(item.rate) || tmdb.vote_average || 0,
+                popularity: tmdb.popularity || 0,
+                voteCount: tmdb.vote_count || 0,
+                releaseDate: tmdb.first_air_date || tmdb.release_date || (item.year || "")
+            };
             return finalItem;
         });
-        return await Promise.all(promises);
+        const mapped = (await Promise.all(promises)).filter(Boolean);
+        if (mapped.length === 0) return page === 1 ? [{ id: "empty", type: "text", title: "暂无数据" }] : [];
+        return mapped;
     } catch (e) { 
         return [{ id: "err", type: "text", title: "豆瓣拒绝了请求", description: "网络IP被豆瓣限制，请切换流量(4G/5G)或更换节点。" }]; 
     }
@@ -3963,11 +3961,9 @@ async function searchTmdb(title, year, apiKey, isTv) {
 
     var url = "https://api.themoviedb.org/3/search/multi?api_key=" + apiKey + "&language=zh-CN&query=" + encodeURIComponent(title);
     try {
-        var fetchPromise = Widget.http.get(url);
-        // 3000ms 宽限超时：确保 TMDB 有充足时间响应并替换无防盗链标准的 TMDB 海报
         var res = await Promise.race([
-            fetchPromise,
-            new Promise(function(r) { setTimeout(function() { r(null); }, 3000); })
+            Widget.http.get(url),
+            new Promise(function(resolve) { setTimeout(function() { resolve(null); }, 4000); })
         ]);
         var data = res && res.data ? safeJsonParse(res.data) : null;
         if (!data || !data.results || data.results.length === 0) {
@@ -3976,7 +3972,7 @@ async function searchTmdb(title, year, apiKey, isTv) {
         }
         
         var validItems = data.results.filter(function(item) {
-            return item.media_type === 'movie' || item.media_type === 'tv';
+            return (item.media_type === 'movie' || item.media_type === 'tv') && item.poster_path;
         });
         if (validItems.length === 0) {
             DoubanModuleTmdbCache[cacheKey] = null;
@@ -4039,7 +4035,7 @@ async function loadDoubanModule(params) {
             var tmdbItem = await searchTmdb(cleanTitle, year, apiKey, isTv);
 
             // 🔴 关键改动：如果匹配成功则返回数据，匹配失败则直接丢弃 (返回 null)
-            if (tmdbItem) {
+            if (tmdbItem && tmdbItem.poster_path) {
                 var dateStr = tmdbItem.release_date || tmdbItem.first_air_date || (year + "");
                 var yearStr = dateStr.substring(0, 4);
                 var genreStr = getGenreString(tmdbItem.genre_ids);
@@ -4066,25 +4062,7 @@ async function loadDoubanModule(params) {
                 };
             }
             
-            // TMDB 匹配失败或超时熔断时，退回使用豆瓣原生卡片（修复防盗链，封面、评分、标题直出）
-            var rawCover = (item.cover && item.cover.url) || item.cover || "";
-            return {
-                id: `db_${item.id || rawTitle}`,
-                tmdbId: 0,
-                type: "tmdb",
-                mediaType: isTv ? "tv" : "movie",
-                title: rawTitle,
-                genreTitle: isTv ? "剧集" : "电影",
-                subTitle: year ? `⭐ ${rate} | ${year}` : `⭐ ${rate}`,
-                description: sub ? `⭐ ${rate} · ${sub}` : `⭐ ${rate}`,
-                posterPath: fixDoubanRefererImage(rawCover),
-                backdropPath: "",
-                rating: parseFloat(rate) || 0,
-                popularity: 0,
-                voteCount: 0,
-                releaseDate: String(year || ""),
-                year: String(year || "")
-            };
+            return null; // 搜不到 TMDB 或无海报直接丢弃，绝不使用豆瓣防盗链图片导致客户端全灰破损
         });
         
         var results = await Promise.all(promises);
