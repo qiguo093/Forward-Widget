@@ -872,7 +872,7 @@ function isChineseAnimeByName(originalName) {
 // 所以残条一律返回 null，让调用方退回名称启发式判定。
 
 async function loadStandaloneAnimeWeek(params = {}) {
-    return await calendarLoadAnime({ sort_by: params.sort_by || "today", page: params.page });
+    return await calendarLoadAnime({ sort_by: params.anime_sort_by || params.sort_by || "today", page: params.page });
 }
 
 // -------------------------------------------------------------------------
@@ -886,11 +886,11 @@ async function loadStandaloneAnimeWeek(params = {}) {
 // key 必须包含**一切影响结果的维度**：频道/地区/日期/页码。
 // 尤其不能漏掉日期 —— 漏了会在跨零点时把昨天的列表当成今天返回。
 async function loadStandaloneDramaCalendar(params = {}) {
-    return await calendarLoadDrama({ mode: params.calendar_mode || "update_today", sort_by: params.sort_by || "Global", page: params.page });
+    return await calendarLoadDrama({ mode: params.calendar_mode || "update_today", sort_by: params.drama_sort_by || params.sort_by || "Global", page: params.page });
 }
 
 async function loadStandaloneVarietyAggregate(params = {}) {
-    return await calendarLoadVarietyUltimate({ listType: params.list_type || "calendar", days: params.days || "14", region: params.sort_by || "all", page: params.page });
+    return await calendarLoadVarietyUltimate({ listType: params.list_type || "calendar", days: params.days || "14", region: params.variety_sort_by || params.sort_by || "all", page: params.page });
 }
 
 // =========================================================================
@@ -2300,14 +2300,14 @@ var WidgetMetadata = {
                             ]
                         },
                         // --- 剧集追更专属参数 ---
-                        { name: "sort_by", title: "地区偏好", type: "enumeration", value: "Global", belongTo: { paramName: "upcoming_category", value: ["drama_schedule"] }, enumOptions: [ { title: "全球聚合", value: "Global" }, { title: "美国", value: "US" }, { title: "日本", value: "JP" }, { title: "韩国", value: "KR" }, { title: "中国", value: "CN" }, { title: "英国", value: "GB" } ] },
+                        { name: "drama_sort_by", title: "地区偏好", type: "enumeration", value: "Global", belongTo: { paramName: "upcoming_category", value: ["drama_schedule"] }, enumOptions: [ { title: "全球聚合", value: "Global" }, { title: "美国", value: "US" }, { title: "日本", value: "JP" }, { title: "韩国", value: "KR" }, { title: "中国", value: "CN" }, { title: "英国", value: "GB" } ] },
                         { name: "calendar_mode", title: "时间范围", type: "enumeration", value: "update_today", belongTo: { paramName: "upcoming_category", value: ["drama_schedule"] }, enumOptions: [ { title: "今日更新", value: "update_today" }, { title: "明日首播", value: "premiere_tomorrow" }, { title: "7天内首播", value: "premiere_week" }, { title: "30天内首播", value: "premiere_month" } ] },
                         // --- 综艺追更专属参数 ---
-                        { name: "sort_by", title: "综艺筛选", type: "enumeration", value: "all", belongTo: { paramName: "upcoming_category", value: ["variety_schedule"] }, enumOptions: [ { title: "全部地区", value: "all" }, { title: "国内综艺", value: "cn" }, { title: "台湾综艺", value: "tw" }, { title: "国外综艺", value: "global" } ] },
+                        { name: "variety_sort_by", title: "综艺筛选", type: "enumeration", value: "all", belongTo: { paramName: "upcoming_category", value: ["variety_schedule"] }, enumOptions: [ { title: "全部地区", value: "all" }, { title: "国内综艺", value: "cn" }, { title: "台湾综艺", value: "tw" }, { title: "国外综艺", value: "global" } ] },
                         { name: "list_type", title: "榜单类型", type: "enumeration", value: "calendar", belongTo: { paramName: "upcoming_category", value: ["variety_schedule"] }, enumOptions: [ { title: "追新榜", value: "calendar" }, { title: "热度榜", value: "hot" } ] },
                         { name: "days", title: "预告范围", type: "enumeration", value: "14", belongTo: { paramName: "upcoming_category", value: ["variety_schedule"] }, enumOptions: [ { title: "今日更新", value: "0" }, { title: "未来 7 天", value: "7" }, { title: "未来 14 天", value: "14" }, { title: "未来 30 天", value: "30" } ] },
                         // --- 动漫周更专属参数 ---
-                        { name: "sort_by", title: "选择日期", type: "enumeration", value: "today", belongTo: { paramName: "upcoming_category", value: ["anime_schedule"] }, enumOptions: [ { title: "今天", value: "today" }, { title: "周一", value: "1" }, { title: "周二", value: "2" }, { title: "周三", value: "3" }, { title: "周四", value: "4" }, { title: "周五", value: "5" }, { title: "周六", value: "6" }, { title: "周日", value: "7" } ] },
+                        { name: "anime_sort_by", title: "选择日期", type: "enumeration", value: "today", belongTo: { paramName: "upcoming_category", value: ["anime_schedule"] }, enumOptions: [ { title: "今天", value: "today" }, { title: "周一", value: "1" }, { title: "周二", value: "2" }, { title: "周三", value: "3" }, { title: "周四", value: "4" }, { title: "周五", value: "5" }, { title: "周六", value: "6" }, { title: "周日", value: "7" } ] },
                         // --- 通用页码 ---
                         { name: "page", title: "页码", type: "page", startPage: 1 }
                     ]
