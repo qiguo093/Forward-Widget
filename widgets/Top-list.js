@@ -2112,37 +2112,16 @@ async function loadMonthlyUpcomingStrict(params = {}) {
             }
             return seasonCandidates;
         })();
-        // 兜底补查任务：与下面两个主任务并行开跑（原先串行在其后，白白多等一次往返）。
-        const featuredSeasonQueries = ["Slow Horses", "幸福伽菜子的快乐杀手生活"];
-        const featuredTask = (async () => {
-            const results = await Promise.all(featuredSeasonQueries.map(async query => {
-                try {
-                    const search = await Widget.tmdb.get("/search/tv", { params: { language: "zh-CN", query } });
-                    const item = (search.results || [])[0];
-                    if (!item) return null;
-                    const detail = await Widget.tmdb.get(`/tv/${item.id}`, { params: { language: "zh-CN" } });
-                    if (isBlockedOrigin(item, detail)) return null;
-                    if (isExcludedUpcomingItem(item, detail)) return null;
-                    const season = (detail.seasons || []).find(s => s.season_number > 1 && s.air_date && s.air_date >= start && s.air_date <= end);
-                    if (!season) return null;
-                    return { ...item, _seasonNumber: season.season_number, _seasonAirDate: season.air_date, _seasonTitle: detail.name || item.name };
-                } catch (e) { return null; }
-            }));
-            return results.filter(Boolean);
-        })();
-
         const [keywordCheckedItems, seasonCandidates] = await Promise.all([keywordCheckTask, seasonScanTask]);
         items.length = 0;
         keywordCheckedItems.filter(Boolean).forEach(item => items.push(item));
 
-        // 兜底补查：已确认的本月重点新季，防止日后 discover 页数变化或热度排序波动把它们挤出扫描范围。
-        // （当前 12 页全量扫描下这段已不产生额外条目，保留作为低频保险，代价约 2~4 次请求。）
-        // 原先这段串行排在两个主任务之后，白白多等一次搜索+详情的往返；
-        // 改为在启动主任务时就用 featuredTask 并行开跑（用的是同一组 start/end，无依赖）。
-        const featuredResults = await featuredTask;
-        featuredResults.filter(Boolean).forEach(item => {
-            if (!seasonCandidates.some(candidate => candidate.id === item.id)) seasonCandidates.push(item);
-        });
+        // 兜底补查（原 featuredSeasonQueries = ["Slow Horses", "幸福伽菜子的快乐杀手生活"]）已移除。
+        // 移除理由：这段硬编码保险的窗口是「本日 ~ 本月末」，而这两部在 2026-09-16 / 09-17 已开播，
+        // 均早于窗口起点，`season.air_date >= start` 恒不成立 → 必定产出 0 条，纯属白花 4 次请求。
+        // 另外这种「发现一部漏了就加一条查询」的补丁本身不可扩展（节目首播日一过就自动失效），
+        // 新季覆盖应由上方 12 页全量扫描承担。若日后确需临时保底，直接搜该剧的 TMDB id 补进
+        // seasonCandidates 更可靠，不要再复活这段关键词搜索。
         const merged = [];
         const mergedIds = new Set();
         seasonCandidates.forEach(item => {
