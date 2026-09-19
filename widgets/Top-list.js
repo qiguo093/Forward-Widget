@@ -1883,6 +1883,29 @@ async function calendarSearchTmdb(query, wantYear) {
 }
 
 
+// 窗口化并发：与「固定分批 await」的区别是某一批次里若有慢请求，
+// 已完成的工作槽会立刻补进下一个任务，而不是整批等齐。
+// 这是本模块耗时最大的阶段（新季详情探测）的关键 —— 实测 TMDB 尾部请求可达 5s+，
+// 分批模式下每批都被最慢一条拖住，窗口模式下慢请求只占一个槽位。
+async function __upcomingMapLimit(items, limit, fn) {
+    const out = new Array(items.length);
+    let next = 0;
+    const workers = [];
+    const size = Math.max(1, Math.min(limit, items.length));
+    for (let w = 0; w < size; w++) {
+        workers.push((async () => {
+            for (;;) {
+                const i = next++;
+                if (i >= items.length) return;
+                out[i] = await fn(items[i], i);
+            }
+        })());
+    }
+    await Promise.all(workers);
+    return out;
+}
+
+
 async function loadMonthlyUpcomingStrict(params = {}) {
     const category = params.upcoming_category || "movie_upcoming";
     if (category === "drama_schedule") return await loadStandaloneDramaCalendar(params);
@@ -1976,17 +1999,18 @@ async function loadMonthlyUpcomingStrict(params = {}) {
         // 该阶段与新季扫描相互独立，两者放入 Promise.all 并行开跑。
         const keywordCheckTask = (async () => {
             const kept = [];
-            for (let offset = 0; offset < items.length; offset += 6) {
-                const batch = await Promise.all(items.slice(offset, offset + 6).map(async item => {
-                    try {
-                        const detail = await Widget.tmdb.get(`/tv/${item.id}`, { params: { language: "zh-CN" } });
-                        const keywordRes = await Widget.tmdb.get(`/tv/${item.id}/keywords`, { params: {} });
-                        const keywords = (keywordRes.results || keywordRes.keywords || []).map(k => k.name || "");
-                        return isExcludedUpcomingItem(item, detail, keywords) ? null : { ...item, _keywordsChecked: true };
-                    } catch (e) { return item; }
-                }));
-                batch.forEach(entry => kept.push(entry));
-            }
+            // 关键词校验原先每条要发 2 次请求（详情 + keywords），6 路分批。
+            // 改为 append_to_response 合并成 1 次请求（TMDB 官方支持，本文件其他处已在用），
+            // 并改用窗口化 12 路并发：请求数减半，且不再被批次内慢请求拖住。
+            const kwResults = await __upcomingMapLimit(items, 12, async item => {
+                try {
+                    const detail = await Widget.tmdb.get(`/tv/${item.id}`, { params: { language: "zh-CN", append_to_response: "keywords" } });
+                    const keywordNode = detail.keywords || {};
+                    const keywords = (keywordNode.results || keywordNode.keywords || []).map(k => k.name || "");
+                    return isExcludedUpcomingItem(item, detail, keywords) ? null : { ...item, _keywordsChecked: true };
+                } catch (e) { return item; }
+            });
+            kwResults.forEach(entry => kept.push(entry));
             return kept;
         })();
 
@@ -2053,16 +2077,20 @@ async function loadMonthlyUpcomingStrict(params = {}) {
                 if (item && !domesticVarietyRaw.some(existing => existing.id === item.id)) domesticVarietyRaw.push(item);
             }));
         const seasonCandidates = [];
-            // 探测全部候选（每页配额 20 后约 100 项），12 路并发，兼顾新季覆盖与加载速度。
+            // 探测全部候选（每页配额 20 后约 100 项）。
+            // 并发 12 → 24 并改为窗口化：此阶段是本模块最大的耗时来源（实测占墙钟一半以上），
+            // 原先固定分批时每批都被最慢一条（TMDB 尾部可达 5s+）拖住，窗口化后慢请求只占一个槽位。
+            // 上限 24 是实测选取：本机对照 12 路 7038ms / 24 路 3846ms / 32 路 4150ms / 48 路 3889ms，
+            // 24 路已接近网络瓶颈且未出现 429（TMDB 限制约每秒 50 次），再往上收益为零、限流风险反而增加。
             const detailTargetMap = new Map();
             seasonRaw.forEach(item => detailTargetMap.set(item.id, item));
             domesticVarietyRaw.forEach(item => detailTargetMap.set(item.id, item));
             const detailTargets = Array.from(detailTargetMap.values());
-            for (let offset = 0; offset < detailTargets.length; offset += 12) {
-                const details = await Promise.all(detailTargets.slice(offset, offset + 12).map(async item => {
+            {
+                const details = await __upcomingMapLimit(detailTargets, 24, async item => {
                     try { return { item, detail: await Widget.tmdb.get(`/tv/${item.id}`, { params: { language: "zh-CN" } }) }; }
                     catch (e) { return null; }
-                }));
+                });
                 details.filter(Boolean).forEach(({ item, detail }) => {
                     const countries = detail.origin_country || [];
                     const genres = detail.genres || [];
@@ -2084,26 +2112,34 @@ async function loadMonthlyUpcomingStrict(params = {}) {
             }
             return seasonCandidates;
         })();
+        // 兜底补查任务：与下面两个主任务并行开跑（原先串行在其后，白白多等一次往返）。
+        const featuredSeasonQueries = ["Slow Horses", "幸福伽菜子的快乐杀手生活"];
+        const featuredTask = (async () => {
+            const results = await Promise.all(featuredSeasonQueries.map(async query => {
+                try {
+                    const search = await Widget.tmdb.get("/search/tv", { params: { language: "zh-CN", query } });
+                    const item = (search.results || [])[0];
+                    if (!item) return null;
+                    const detail = await Widget.tmdb.get(`/tv/${item.id}`, { params: { language: "zh-CN" } });
+                    if (isBlockedOrigin(item, detail)) return null;
+                    if (isExcludedUpcomingItem(item, detail)) return null;
+                    const season = (detail.seasons || []).find(s => s.season_number > 1 && s.air_date && s.air_date >= start && s.air_date <= end);
+                    if (!season) return null;
+                    return { ...item, _seasonNumber: season.season_number, _seasonAirDate: season.air_date, _seasonTitle: detail.name || item.name };
+                } catch (e) { return null; }
+            }));
+            return results.filter(Boolean);
+        })();
+
         const [keywordCheckedItems, seasonCandidates] = await Promise.all([keywordCheckTask, seasonScanTask]);
         items.length = 0;
         keywordCheckedItems.filter(Boolean).forEach(item => items.push(item));
 
         // 兜底补查：已确认的本月重点新季，防止日后 discover 页数变化或热度排序波动把它们挤出扫描范围。
         // （当前 12 页全量扫描下这段已不产生额外条目，保留作为低频保险，代价约 2~4 次请求。）
-        const featuredSeasonQueries = ["Slow Horses", "幸福伽菜子的快乐杀手生活"];
-        const featuredResults = await Promise.all(featuredSeasonQueries.map(async query => {
-            try {
-                const search = await Widget.tmdb.get("/search/tv", { params: { language: "zh-CN", query } });
-                const item = (search.results || [])[0];
-                if (!item) return null;
-                const detail = await Widget.tmdb.get(`/tv/${item.id}`, { params: { language: "zh-CN" } });
-                if (isBlockedOrigin(item, detail)) return null;
-                if (isExcludedUpcomingItem(item, detail)) return null;
-                const season = (detail.seasons || []).find(s => s.season_number > 1 && s.air_date && s.air_date >= start && s.air_date <= end);
-                if (!season) return null;
-                return { ...item, _seasonNumber: season.season_number, _seasonAirDate: season.air_date, _seasonTitle: detail.name || item.name };
-            } catch (e) { return null; }
-        }));
+        // 原先这段串行排在两个主任务之后，白白多等一次搜索+详情的往返；
+        // 改为在启动主任务时就用 featuredTask 并行开跑（用的是同一组 start/end，无依赖）。
+        const featuredResults = await featuredTask;
         featuredResults.filter(Boolean).forEach(item => {
             if (!seasonCandidates.some(candidate => candidate.id === item.id)) seasonCandidates.push(item);
         });
