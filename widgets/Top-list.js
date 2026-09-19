@@ -229,6 +229,59 @@ const VarietyResolvedCache = {};
 
 const VarietySeasonCache = {};
 
+// -------------------------------------------------------------------------
+// 综艺追更的持久缓存（跨「App 切换参数」秒开）
+// -------------------------------------------------------------------------
+// 为什么必须有这一层：内存缓存（VarietyResolvedCache / VarietyDetailCache 等）
+// 是模块级变量，而 App 在**切换模块参数时会重新执行整个 widget 脚本**，
+// 内存缓存全部清零 —— 用户切个地区再切回来就得整轮重新联网。
+// 实测「全部地区」重载后仍要 34 次请求 / 19 秒，正是缺了这一层。
+//
+// ⚠️ 但缓存必须**双向安全**，否则会重演 2026-09-19 的事故：
+//   当时只拦了「文本态提示卡」，没拦「部分失败但依然返回了若干张卡」的情况。
+//   Trakt 一挂，国外部分整块消失、只剩 TMDB 的国内/台湾 15 张卡，看着正常，
+//   于是被当成有效结果固化 1 小时 —— 用户怎么切参数都拿不回新鲜数据。
+//   实测复现：注入 Trakt 失败 → 写盘 → 恢复后重查仍返回那 15 张（hit=true）。
+//
+// 现在的规则（只靠写入端一道防线就够了）：
+//   ① 写入前必须确认本次抓取**没有任何请求失败**（varietyFetchDegraded）；
+//   ② 文本态提示卡（加载失败/暂无排期）与空数组一律不写；
+//   ③ 缓存前缀升到 v2 —— 历史遗留的残缺记录永远不会被读到。
+// 这样「全成功」才会进缓存；故障期间结果不完整 → 不写盘 → 下次（以及更早存下
+// 的那条完好记录过期后）必然重新联网，恢复后立刻可见新数据。
+// 注意别在读取端加「降级就不读缓存」的判断：本次是否会降级要等抓取结束才知道，
+// 入口处恒为未知，那样的守卫是死代码（曾写过一版，被 scenario E 测出来）。
+const VARIETY_STORE_TTL_MS = 60 * 60 * 1000;
+const VARIETY_STORE_PREFIX = "variety_week_v2";
+
+// 本次抓取是否出现过失败（重试耗尽 / Trakt 报错）。
+// 它在每次入口调用开始时重置，调用结束后由入口读取。
+let varietyFetchDegraded = false;
+
+async function varietyStoreGet(key) {
+    try {
+        if (!Widget.storage || !Widget.storage.get) return null;
+        const raw = await Widget.storage.get(key);
+        if (!raw) return null;
+        const obj = typeof raw === "string" ? JSON.parse(raw) : raw;
+        if (!obj || !Array.isArray(obj.items) || !obj.items.length) return null;
+        if (Date.now() - Number(obj.ts || 0) >= VARIETY_STORE_TTL_MS) return null;   // 过期，等联网刷新
+        return obj.items;
+    } catch (e) { return null; }
+}
+
+async function varietyStoreSet(key, items, degraded) {
+    try {
+        if (!Widget.storage || !Widget.storage.set) return;
+        // ① 抓取过程中有请求失败 → 结果不完整，绝不写盘
+        if (degraded) return;
+        if (!Array.isArray(items) || !items.length) return;
+        // ② 不缓存错误/空态提示卡，否则一次超时会把「加载失败」固化一小时
+        if (items.some(it => it && it.type === "text")) return;
+        await Widget.storage.set(key, JSON.stringify({ ts: Date.now(), items }));
+    } catch (e) { /* 存储失败不影响正常返回 */ }
+}
+
 // ---------- 抓取与渲染函数 ----------
 function animeCnEpisodeLabel(ep) {
     if (!ep) return "";
@@ -880,7 +933,28 @@ async function loadStandaloneDramaCalendar(params = {}) {
 }
 
 async function loadStandaloneVarietyAggregate(params = {}) {
-    return await calendarLoadVarietyUltimate({ listType: params.list_type || "calendar", days: params.days || "14", region: params.variety_region || params.sort_by || "all", page: params.page });
+    const listType = params.list_type || "calendar";
+    const days = String(params.days ?? "14");
+    const region = params.variety_region || params.sort_by || "all";
+    const page = Math.max(1, Number(params.page) || 1);
+
+    // 每次入口调用都重置降级标记，避免上一次调用的状态污染这一次
+    varietyFetchDegraded = false;
+
+    // key 必须包含**一切影响结果的维度**：榜单类型/地区/天数/页码/日期。
+    // 日期尤其不能漏 —— 漏了会在跨零点时把昨天的列表当成今天返回。
+    const key = `${VARIETY_STORE_PREFIX}|${listType}|${region}|${days}|${page}|${varietyBeijingDate(0)}`;
+
+    // 直接读缓存。这里**不做**「抓取降级就不读缓存」的判定 —— 本次调用是否会降级
+    // 要等抓取结束才知道，此刻恒为未知，写了也是死代码。
+    // 真正的防线在写入端：脏数据根本不会进缓存（见 varietyStoreSet），
+    // 且前缀已升到 v2，历史遗留的残缺记录再也不会被读到。
+    const cached = await varietyStoreGet(key);
+    if (cached) return cached;
+
+    const items = await calendarLoadVarietyUltimate({ listType, days, region, page });
+    await varietyStoreSet(key, items, varietyFetchDegraded);
+    return items;
 }
 
 // =========================================================================
@@ -1111,9 +1185,13 @@ async function varietyFetchTraktCalendar(days) {
     try {
         const res = await Widget.http.get(url, { headers });
         const rows = (res && res.data) || [];
-        return Array.isArray(rows) ? rows : [];
+        if (!Array.isArray(rows)) { varietyFetchDegraded = true; return []; }
+        return rows;
     } catch (e) {
-        return [];   // 失败即空，调用方可回退到 TMDB 路径
+        // Trakt 挂掉时调用方会回退到 TMDB，但**国外那一大块排期会静默消失**
+        // （只剩国内/台湾的几张卡，看着完全正常）—— 必须标记为降级，禁止写缓存
+        varietyFetchDegraded = true;
+        return [];
     }
 }
 
@@ -1281,6 +1359,9 @@ async function varietyHttpGet(api, params, tries = 3) {
             /* 继续重试 */
         }
     }
+    // 重试耗尽仍无结果：这是一次真实的数据缺口，标记出来让入口拒绝写缓存
+    // （否则候选池会静默少一批节目，看着正常却已被固化）
+    varietyFetchDegraded = true;
     return null;
 }
 
