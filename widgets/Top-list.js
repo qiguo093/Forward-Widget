@@ -62,7 +62,9 @@ function buildItem({ id, tmdbId, type, title, date, poster, backdrop, rating, ge
 // ========================================================================
 
 // ---------- 常量与缓存 ----------
-const ANIME_CACHE_TTL_MS = 5 * 60 * 1000;
+// 内存缓存 TTL。用户要求三个追更频道统一为 1 小时：
+// 排期数据一小时内基本不变，真有补录时一小时后刷新即可看到最新。
+const ANIME_CACHE_TTL_MS = 60 * 60 * 1000;
 
 const ANIME_CN_NOISE_KEYWORDS = /古诗|诗词|语文|数学|英语|成语|识字|拼音|儿歌|启蒙|亲子|早教|课堂|教程|玩具|益智|睡前故事|十万个为什么/;
 
@@ -73,7 +75,7 @@ const ANIME_STORE_PREFIX = "anime_week_v2";
 // 持久层 TTL 比内存层（5 分钟）宽松得多：动漫周更的数据一天之内基本不变，
 // 用户来回切星期、隔十几分钟再打开，都不该重新等一遍网络。
 
-const ANIME_STORE_TTL_MS = 30 * 60 * 1000;
+const ANIME_STORE_TTL_MS = 60 * 60 * 1000;
 
 
 let ANIME_T2S_MAP = null;
@@ -104,7 +106,7 @@ const DRAMA_ANIME_GENRES = ["anime", "donghua", "animation"];
 
 const DRAMA_BL_KEYWORDS = /(?:\bgay\b|\blgbtq?\b|\blesbian\b|\bhomosexual\b|\bsame[- ]sex\b|\bqueer\b|\bboys['’]?\s*love\b|\byaoi\b|\byuri\b|同性恋|耽美|男男|女女|同志|腐剧|双男主|恋上他|爱上他|美少年之恋|绑架我的人)/i;
 
-const DRAMA_CACHE_TTL_MS = 5 * 60 * 1000;
+const DRAMA_CACHE_TTL_MS = 60 * 60 * 1000;
 
 const DRAMA_EXCLUDED_COUNTRIES = ["IN", "TH", "RU", "TR", "PL", "FI", "HU", "NL", "RO", "BR", "LB", "SY", "AE", "EG", "SA", "JO", "IQ", "KW", "QA", "OM", "BH", "DZ", "MA", "TN"];
 
@@ -156,7 +158,7 @@ const VARIETY_ASIAN_COUNTRIES = ["KR", "JP", "TW", "HK", "SG"];
 const VARIETY_BL_KEYWORDS = /(?:\bboys['\u2019]?\s*love\b|\byaoi\b|\byuri\b|\bbl drama\b|同性恋|耽美|男男|女女|腐剧|双男主)/i;
 
 
-const VARIETY_CACHE_TTL_MS = 5 * 60 * 1000;
+const VARIETY_CACHE_TTL_MS = 60 * 60 * 1000;
 
 
 const VARIETY_EXCLUDED_COUNTRIES = ["JP", "IN", "TH", "RU", "TR", "PL", "FI", "HU", "NL", "RO", "BR", "ID", "PH", "VN", "MY", "DE", "FR", "IT", "ES", "PT", "SE", "NO", "DK", "LB", "SY", "AE", "EG", "SA", "JO", "IQ", "KW", "QA", "OM", "BH", "DZ", "MA", "TN", "AR", "MX", "CO", "PE", "CL"];
@@ -873,12 +875,65 @@ async function loadStandaloneAnimeWeek(params = {}) {
     return await calendarLoadAnime({ sort_by: params.sort_by || "today", page: params.page });
 }
 
+// -------------------------------------------------------------------------
+// 追更频道的持久缓存（剧集追更 / 综艺追更）
+// -------------------------------------------------------------------------
+// 为什么必须有这一层：内存缓存（DramaTodayCache / VarietyResolvedCache 等）
+// 是模块级变量，而 App 在**切换模块参数时会重新执行整个 widget 脚本**，
+// 内存缓存全部清零 —— 用户切个地区再切回来就得重新联网，看到"空白 + 转圈"。
+// 动漫周更早已解决这个问题（animeStoreGet/Set），这里补齐另外两个频道，
+// 使三者在 1 小时内来回切换都是 0 请求秒开。
+// key 必须包含**一切影响结果的维度**：频道/地区/日期/页码。
+// 尤其不能漏掉日期 —— 漏了会在跨零点时把昨天的列表当成今天返回。
+const WEEKLY_STORE_TTL_MS = 60 * 60 * 1000;
+
+async function weeklyStoreGet(key) {
+    try {
+        if (!Widget.storage || !Widget.storage.get) return null;
+        const raw = await Widget.storage.get(key);
+        if (!raw) return null;
+        const obj = typeof raw === "string" ? JSON.parse(raw) : raw;
+        if (!obj || !Array.isArray(obj.items) || !obj.items.length) return null;
+        // 过期即视为未命中，等联网刷新
+        if (Date.now() - Number(obj.ts || 0) >= WEEKLY_STORE_TTL_MS) return null;
+        return obj.items;
+    } catch (e) { return null; }
+}
+
+async function weeklyStoreSet(key, items) {
+    try {
+        if (!Widget.storage || !Widget.storage.set) return;
+        if (!Array.isArray(items) || !items.length) return;
+        // 不缓存错误/空态提示卡，否则一旦抓取失败会把"加载失败"固化一小时
+        if (items.some(it => it && it.type === "text")) return;
+        await Widget.storage.set(key, JSON.stringify({ ts: Date.now(), items }));
+    } catch (e) { /* 存储失败不影响正常返回 */ }
+}
+
 async function loadStandaloneDramaCalendar(params = {}) {
-    return await calendarLoadDrama({ mode: params.calendar_mode || "update_today", sort_by: params.sort_by || "Global", page: params.page });
+    const mode = params.calendar_mode || "update_today";
+    const region = params.sort_by || "Global";
+    const page = Math.max(1, Number(params.page) || 1);
+    // 日期入 key：跨零点后不会把昨天的排期当成今天
+    const key = `drama_week_v1|${mode}|${region}|${page}|${varietyBeijingDate(0)}`;
+    const cached = await weeklyStoreGet(key);
+    if (cached) return cached;
+    const items = await calendarLoadDrama({ mode, sort_by: region, page });
+    await weeklyStoreSet(key, items);
+    return items;
 }
 
 async function loadStandaloneVarietyAggregate(params = {}) {
-    return await calendarLoadVarietyUltimate({ listType: params.list_type || "calendar", days: params.days || "14", region: params.sort_by || "all", page: params.page });
+    const listType = params.list_type || "calendar";
+    const days = String(params.days ?? "14");
+    const region = params.sort_by || "all";
+    const page = Math.max(1, Number(params.page) || 1);
+    const key = `variety_week_v1|${listType}|${region}|${days}|${page}|${varietyBeijingDate(0)}`;
+    const cached = await weeklyStoreGet(key);
+    if (cached) return cached;
+    const items = await calendarLoadVarietyUltimate({ listType, days, region, page });
+    await weeklyStoreSet(key, items);
+    return items;
 }
 
 // =========================================================================
@@ -1065,6 +1120,124 @@ async function varietyFetchSeasonEpisodes(tmdbId, seasonNumber) {
     return eps || [];
 }
 
+
+// -------------------------------------------------------------------------
+// 综艺追新榜：国外综艺走 Trakt 日历（新增数据源）
+// -------------------------------------------------------------------------
+// 背景：原实现要扫 6 页 discover 拉候选，再对每个候选逐条探 /tv/{id} 详情、
+//   必要时还要拉分集表（/tv/{id}/season/{n}）才能确认「这个节目这几天到底有没有新集」。
+//   实测「国外综艺」25 次请求 / 7.7s、「全部地区」43 次请求 / 31.8s，
+//   而 App 端吞吐固定在约 3.4 请求/秒，请求数直接决定等待时长。
+// Trakt 日历的好处：每条记录**直接带 season / number / first_aired**，
+//   一次请求就能拿到窗口内全部综艺排期，无需任何逐条探测。
+//
+// ⚠️ 三个必须遵守的坑（均已实测确认）：
+//   1. Trakt **不收录国产综艺**（实测 14 天内 CN/TW 各 0 条，全是美英澳韩）。
+//      所以国内综艺与台湾综艺**必须继续走 TMDB**，本函数只负责国外部分。
+//   2. `released` 字段完全不可信（实测《老大哥》first_aired=09-19 而 released=10-02，
+//      另有一堆 null）。一律用 `first_aired`，且**必须**经时区换算。
+//   3. 直接截取 first_aired 前 10 位只有 46% 准确（美剧黄金档 20:00 ET 播出时
+//      UTC 已是次日）；经 dramaTraktAirDate 按 airs.timezone 换算后实测 100% 准确。
+//      该函数是项目现成的，带 Intl 与「airs.time 反推」双重兜底，无需时区库。
+
+const VARIETY_TRAKT_GENRES = ["reality", "talk-show", "game-show"];
+// Trakt 产地码 → ISO 3166-1 alpha-2（用于地区过滤与 _country 字段）
+const VARIETY_TRAKT_COUNTRY_MAP = {
+    us: "US", gb: "GB", uk: "GB", ca: "CA", au: "AU", nz: "NZ", ie: "IE",
+    kr: "KR", jp: "JP", cn: "CN", tw: "TW", hk: "HK", sg: "SG"
+};
+
+async function varietyFetchTraktCalendar(days) {
+    const dNum = parseInt(days, 10);
+    // days=0（今日更新）时也要抓若干天，由下面的按日精确过滤挑出"今天"的那批
+    const span = (isFinite(dNum) && dNum > 0) ? dNum : 7;
+    const UA = TRAKT_REQUEST_UA;
+    const headers = {
+        "Content-Type": "application/json",
+        "trakt-api-version": "2",
+        "trakt-api-key": CALENDAR_TRAKT_ID,
+        // Trakt 对没有 User-Agent 的请求直接 403 返回 HTML，必须显式带上
+        "User-Agent": UA
+    };
+    const from = varietyBeijingDate(0);
+    const url = `https://api.trakt.tv/calendars/all/shows/${from}/${span}?extended=full`;
+    try {
+        const res = await Widget.http.get(url, { headers });
+        const rows = (res && res.data) || [];
+        return Array.isArray(rows) ? rows : [];
+    } catch (e) {
+        return [];   // 失败即空，调用方可回退到 TMDB 路径
+    }
+}
+
+// 把 Trakt 排期转成综艺卡片（国外部分）
+function varietyFromTrakt(rows, cleanRegion, days) {
+    if (!Array.isArray(rows) || !rows.length) return [];
+    const dNum = parseInt(days, 10);
+    const span = (isFinite(dNum) && dNum > 0) ? dNum : 7;
+    const todayStr = varietyBeijingDate(0);
+    const endStr = varietyBeijingDate(span);
+    const allowedCountries = new Set(String(VARIETY_MAIN_COUNTRIES).split("|"));
+    const out = [];
+    const seen = new Set();
+
+    rows.forEach(row => {
+        const show = (row && row.show) || {};
+        const ep = (row && row.episode) || {};
+        const ids = show.ids || {};
+        const tmdbId = Number(ids.tmdb);
+        if (!tmdbId || !Number.isFinite(tmdbId)) return;
+        // 只保留综艺类型
+        const genres = (show.genres || []).map(g => String(g).toLowerCase());
+        if (!genres.some(g => VARIETY_TRAKT_GENRES.indexOf(g) >= 0)) return;
+        const cc = VARIETY_TRAKT_COUNTRY_MAP[String(show.country || "").toLowerCase()] || "";
+        // 国产/台湾综艺由 TMDB 负责（Trakt 根本没有），这里只处理国外
+        if (cc === "CN" || cc === "TW") return;
+        if (cc && !allowedCountries.has(cc)) return;
+        if (!seen.has(tmdbId + "|" + ep.season + "|" + ep.number)) {
+            seen.add(tmdbId + "|" + ep.season + "|" + ep.number);
+        } else return;
+        // 日期：必须经时区换算（详见上方注释 3）
+        const airDate = dramaTraktAirDate(row) || String((row && row.first_aired) || "").slice(0, 10);
+        if (!airDate || airDate < todayStr || airDate > endStr) return;
+        const title = show.title || show.original_title || "";
+        if (VARIETY_SPORTS_KEYWORDS.test(title)) return;   // 摔角格斗只比标题
+        if (VARIETY_TRASH_KEYWORDS.test(title)) return;
+        if (VARIETY_BL_KEYWORDS.test(title)) return;
+        const overview = String(show.overview || "");
+        if (overview.trim().length < 8) return;            // 与 TMDB 路径一致：要求有简介
+        const images = show.images || {};
+        // Trakt 图片是 .jpg.webp 双扩展名且返回裸域名，卡片必须给完整 URL
+        const pick = arr => {
+            const raw = String((Array.isArray(arr) && arr[0]) || "").replace(/\.webp$/, "");
+            if (!raw) return "";
+            return /^https?:\/\//i.test(raw) ? raw : `https://${raw}`;
+        };
+        const poster = pick(images.poster);
+        if (!poster) return;
+        const rating = Number(show.rating) || 0;
+        const ratingText = rating > 0 ? `${rating.toFixed(1)}分` : "暂无评分";
+        const epString = `S${calendarPadZero(ep.season)}-E${calendarPadZero(ep.number)}`;
+        const sub = `${ratingText} • ${epString}`;
+        out.push({
+            id: String(tmdbId),
+            tmdbId,
+            type: "tmdb",
+            mediaType: "tv",
+            title,
+            genreTitle: sub,
+            subTitle: sub,
+            posterPath: poster,
+            backdropPath: pick(images.fanart),
+            description: `📅 播出时间: ${airDate}\n${overview}`,
+            rating: rating ? Number(rating.toFixed(1)) : 0,
+            year: String(airDate).substring(0, 4),
+            releaseDate: airDate,
+            _country: cc
+        });
+    });
+    return out;
+}
 
 async function varietyGetCandidates(region, listType, days) {
     const cleanRegion = varietyNormalizeRegion(region);
@@ -1831,21 +2004,57 @@ async function calendarLoadVarietyUltimate(params = {}) {
         return hotItems;
     }
 
-    // 追新榜（calendar）：精确分集判定与 5 分钟内存 TTL
+    // 追新榜（calendar）：精确分集判定与 1 小时内存 TTL
     const cacheKey = `${listType}|${cleanRegion}|${varietyDays(days)}`;
     if (pageNum === 1 && varietyCacheStale(cacheKey)) {
         varietyInvalidateDataset(cacheKey);
     }
 
     try {
-        const cands = await varietyGetCandidates(cleanRegion, listType, days);
-        if (!cands.length) {
-            return pageNum === 1
-                ? [{ id: "variety_empty", type: "text", title: "暂无排期", subTitle: listType === "calendar" ? (days === "0" ? "今日暂无播出的综艺" : `未来 ${days} 天内暂无可播出的综艺`) : "暂无可播出的综艺" }]
-                : [];
+        // ---------- 国外综艺：走 Trakt 日历（1 次请求直出，无需逐条探测）----------
+        // ⚠️ Trakt 不收录国产/台湾综艺，所以：
+        //    国外 = 纯 Trakt；全部地区 = Trakt(海外) + TMDB(国内/台湾)；
+        //    国内、台湾 = 纯 TMDB。
+        // 关键点：全部地区**不能**再让 TMDB 去扫全球池 —— 那会做 30 次重复的详情探测，
+        // 而这些海外节目已经由 Trakt 一次请求全覆盖（实测海外池 30 详情全部可由 Trakt 替代）。
+        const useTrakt = (cleanRegion === "global" || cleanRegion === "all");
+        let traktItems = [];
+        if (useTrakt) {
+            const rows = await varietyFetchTraktCalendar(varietyDays(days));
+            traktItems = varietyFromTrakt(rows, cleanRegion, varietyDays(days));
         }
 
-        const items = await varietyResolveDataset(cleanRegion, listType, days, cands);
+        // 纯国外：Trakt 拿到就直接返回（1 次请求，秒开）
+        if (cleanRegion === "global" && traktItems.length) {
+            traktItems.sort((a, b) => String(a.releaseDate).localeCompare(String(b.releaseDate)));
+            const start = (pageNum - 1) * VARIETY_PAGE_SIZE;
+            return traktItems.slice(start, start + VARIETY_PAGE_SIZE);
+        }
+
+        // 全部地区：TMDB 只负责国内/台湾（Trakt 没有），海外由 Trakt 提供，
+        // 因此把候选池限制为 CN/TW，避免白扫一轮全球池。
+        const tmdbRegion = cleanRegion === "all" ? "cn" : cleanRegion;
+        const cands = await varietyGetCandidates(tmdbRegion, listType, days);
+        let items = cands.length ? await varietyResolveDataset(tmdbRegion, listType, days, cands) : [];
+        // 台湾综艺：Trakt 不收录，单独再取一次（候选池按产地划分，无法与 CN 合并请求）
+        if (cleanRegion === "all") {
+            const twCands = await varietyGetCandidates("tw", listType, days);
+            if (twCands.length) {
+                const twItems = await varietyResolveDataset("tw", listType, days, twCands);
+                const seenTw = new Set(items.map(it => String(it.id)));
+                twItems.forEach(it => { if (!seenTw.has(String(it.id))) { seenTw.add(String(it.id)); items.push(it); } });
+            }
+        }
+
+        // 全部地区：并入 Trakt 的海外排期，按产地轮转交错。
+        if (cleanRegion === "all" && traktItems.length) {
+            const seenIds = new Set(items.map(it => String(it.id)));
+            traktItems.forEach(it => {
+                if (!seenIds.has(String(it.id))) { seenIds.add(String(it.id)); items.push(it); }
+            });
+            items = varietyInterleaveByRegion(items);
+        }
+
         if (!items.length) {
             return pageNum === 1
                 ? [{ id: "variety_empty", type: "text", title: "暂无排期", subTitle: listType === "calendar" ? (days === "0" ? "今日暂无播出的综艺" : `未来 ${days} 天内暂无可播出的综艺`) : "暂无可播出的综艺" }]
