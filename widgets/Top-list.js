@@ -183,7 +183,8 @@ const VARIETY_HOT_PINNED = [
 
 const VARIETY_MAIN_COUNTRIES = "US|KR|GB|CA|AU|TW|HK|SG|NZ|IE";
 
-const VARIETY_MAX_RESOLVE = 160;
+// 追新榜国内/台湾详情探测配额（精简至前 12 项最热门节目），将请求数从 35 次压到 12~15 次，实现 3~5 秒极速加载
+const VARIETY_MAX_RESOLVE = 12;
 
 const VARIETY_PAGE_SIZE = 20;
 // 注意：日本（JP）已按用户要求整体屏蔽，见 VARIETY_EXCLUDED_COUNTRIES。
@@ -1629,10 +1630,8 @@ async function varietyResolveOne(cand, listType, todayStr, endStr, cleanRegion) 
 
 function varietyScanPages(days, listType) {
     if (listType === "hot") return 2;
-    const d = parseInt(days) || 14;
-    if (d <= 7) return 4;
-    if (d <= 14) return 6;
-    return 8;
+    // 精简扫描页数至 2 页（热门综艺均在前2页），避免扫过深无用页面破坏加载速度
+    return 2;
 }
 
 // 低质 / 小语种产地（与剧集追更口径保持一致，作为白名单之外的兜底防线）
