@@ -879,24 +879,29 @@ async function loadStandaloneAnimeWeek(params = {}) {
 }
 
 // -------------------------------------------------------------------------
-// 追更频道的持久缓存（剧集追更 / 综艺追更）
+// 三个追更频道的入口函数
 // -------------------------------------------------------------------------
-// 为什么必须有这一层：内存缓存（DramaTodayCache / VarietyResolvedCache 等）
-// 是模块级变量，而 App 在**切换模块参数时会重新执行整个 widget 脚本**，
-// 内存缓存全部清零 —— 用户切个地区再切回来就得重新联网，看到"空白 + 转圈"。
-// 动漫周更早已解决这个问题（animeStoreGet/Set），这里补齐另外两个频道，
-// 使三者在 1 小时内来回切换都是 0 请求秒开。
-// key 必须包含**一切影响结果的维度**：频道/地区/日期/页码。
-// 尤其不能漏掉日期 —— 漏了会在跨零点时把昨天的列表当成今天返回。
+// 每个频道都是**独立模块**，各自拥有一个名为 `sort_by` 的筛选参数。
+// 这里对 sort_by 做一次合法性回落：App 在切换模块/参数时可能残留上一个模块的
+// 选中值（例如把「选择日期」的 "today" 带到综艺的筛选项里），非法值一律回到默认，
+// 避免把无效参数透传到底层导致空列表。
+
+async function loadStandaloneAnimeWeek(params = {}) {
+    const rawSort = String(params.sort_by || "today");
+    const valid = ["today", "1", "2", "3", "4", "5", "6", "7"];
+    const sort_by = valid.includes(rawSort) ? rawSort : "today";
+    return await calendarLoadAnime({ sort_by, page: params.page });
+}
+
 async function loadStandaloneDramaCalendar(params = {}) {
-    const rawSort = String(params.drama_sort_by || params.sort_by || "Global");
+    const rawSort = String(params.sort_by || "Global");
     const valid = ["Global", "US", "JP", "KR", "CN", "GB"];
     const sort_by = valid.includes(rawSort) ? rawSort : "Global";
     return await calendarLoadDrama({ mode: params.calendar_mode || "update_today", sort_by, page: params.page });
 }
 
 async function loadStandaloneVarietyAggregate(params = {}) {
-    const rawSort = String(params.variety_sort_by || params.sort_by || "all");
+    const rawSort = String(params.sort_by || "all");
     const valid = ["all", "cn", "tw", "global"];
     const sort_by = valid.includes(rawSort) ? rawSort : "all";
     return await calendarLoadVarietyUltimate({ listType: params.list_type || "calendar", days: params.days || "14", region: sort_by, page: params.page });
@@ -2289,7 +2294,7 @@ var WidgetMetadata = {
     modules: [
         {
                     title: "新片追踪",
-                    description: "即将上映、正在热映、定档待播与各类追更日历",
+                    description: "即将上映、正在热映与定档待播",
                     functionName: "loadMonthlyUpcomingStrict",
                     type: "video",
                     cacheDuration: 7200,
@@ -2302,25 +2307,59 @@ var WidgetMetadata = {
                             enumOptions: [
                                 { title: "即将上映", value: "movie_upcoming" },
                                 { title: "正在热映", value: "movie_now_playing" },
-                                { title: "定档待播", value: "tv_monthly_upcoming" },
-                                { title: "剧集追更", value: "drama_schedule" },
-                                { title: "综艺追更", value: "variety_schedule" },
-                                { title: "动漫周更", value: "anime_schedule" }
+                                { title: "定档待播", value: "tv_monthly_upcoming" }
                             ]
                         },
-                        // --- 剧集追更专属参数 ---
-                        { name: "sort_by", title: "地区偏好", type: "enumeration", value: "Global", belongTo: { paramName: "upcoming_category", value: ["drama_schedule"] }, enumOptions: [ { title: "全球聚合", value: "Global" }, { title: "美国", value: "US" }, { title: "日本", value: "JP" }, { title: "韩国", value: "KR" }, { title: "中国", value: "CN" }, { title: "英国", value: "GB" } ] },
-                        { name: "calendar_mode", title: "时间范围", type: "enumeration", value: "update_today", belongTo: { paramName: "upcoming_category", value: ["drama_schedule"] }, enumOptions: [ { title: "今日更新", value: "update_today" }, { title: "明日首播", value: "premiere_tomorrow" }, { title: "7天内首播", value: "premiere_week" }, { title: "30天内首播", value: "premiere_month" } ] },
-                        // --- 综艺追更专属参数 ---
-                        { name: "sort_by", title: "综艺筛选", type: "enumeration", value: "all", belongTo: { paramName: "upcoming_category", value: ["variety_schedule"] }, enumOptions: [ { title: "全部地区", value: "all" }, { title: "国内综艺", value: "cn" }, { title: "台湾综艺", value: "tw" }, { title: "国外综艺", value: "global" } ] },
-                        { name: "list_type", title: "榜单类型", type: "enumeration", value: "calendar", belongTo: { paramName: "upcoming_category", value: ["variety_schedule"] }, enumOptions: [ { title: "追新榜", value: "calendar" }, { title: "热度榜", value: "hot" } ] },
-                        { name: "days", title: "预告范围", type: "enumeration", value: "14", belongTo: { paramName: "upcoming_category", value: ["variety_schedule"] }, enumOptions: [ { title: "今日更新", value: "0" }, { title: "未来 7 天", value: "7" }, { title: "未来 14 天", value: "14" }, { title: "未来 30 天", value: "30" } ] },
-                        // --- 动漫周更专属参数 ---
-                        { name: "sort_by", title: "选择日期", type: "enumeration", value: "today", belongTo: { paramName: "upcoming_category", value: ["anime_schedule"] }, enumOptions: [ { title: "今天", value: "today" }, { title: "周一", value: "1" }, { title: "周二", value: "2" }, { title: "周三", value: "3" }, { title: "周四", value: "4" }, { title: "周五", value: "5" }, { title: "周六", value: "6" }, { title: "周日", value: "7" } ] },
-                        // --- 通用页码 ---
                         { name: "page", title: "页码", type: "page", startPage: 1 }
                     ]
                 },
+        // ---------------------------------------------------------------------
+        // 三个追更频道各自独立成一个模块。
+        // 【重要·框架级】不要把「剧集追更/综艺追更/动漫周更」合并进同一个模块：
+        //   它们各自都需要一个名为 `sort_by` 的筛选参数（App 只把名称为 sort_by 的
+        //   枚举参数提纳为列表右上角的快捷选择菜单）。App 在同一个 params 数组里
+        //   只认第一个重名的 sort_by，合并后会导致「综艺筛选」「选择日期」等
+        //   右上角菜单失效、无法切换。拆成独立模块后每个模块各有一个 sort_by，互不干扰。
+        //   （此处曾于 2026-09-18 合并、2026-09-19 因用户反馈整体拆回。）
+        // ---------------------------------------------------------------------
+        {
+            title: "剧集追更",
+            description: "全球剧集更新与首播日历",
+            functionName: "loadStandaloneDramaCalendar",
+            type: "video",
+            // 宿主结果缓存 2 小时（7200 秒）。注意：宿主缓存命中时脚本不会执行，
+            // 因此不宜设得过长（如 86400），否则志愿者补录当天集数后刷新看不到。
+            cacheDuration: 7200,
+            params: [
+                { name: "sort_by", title: "地区偏好", type: "enumeration", value: "Global", enumOptions: [ { title: "全球聚合", value: "Global" }, { title: "美国", value: "US" }, { title: "日本", value: "JP" }, { title: "韩国", value: "KR" }, { title: "中国", value: "CN" }, { title: "英国", value: "GB" } ] },
+                { name: "calendar_mode", title: "时间范围", type: "enumeration", value: "update_today", enumOptions: [ { title: "今日更新", value: "update_today" }, { title: "明日首播", value: "premiere_tomorrow" }, { title: "7天内首播", value: "premiere_week" }, { title: "30天内首播", value: "premiere_month" } ] },
+                { name: "page", title: "页码", type: "page", startPage: 1 }
+            ]
+        },
+        {
+            title: "综艺追更",
+            description: "综艺更新与排播日历",
+            functionName: "loadStandaloneVarietyAggregate",
+            type: "video",
+            cacheDuration: 7200,
+            params: [
+                { name: "sort_by", title: "综艺筛选", type: "enumeration", value: "all", enumOptions: [ { title: "全部地区", value: "all" }, { title: "国内综艺", value: "cn" }, { title: "台湾综艺", value: "tw" }, { title: "国外综艺", value: "global" } ] },
+                { name: "list_type", title: "榜单类型", type: "enumeration", value: "calendar", enumOptions: [ { title: "追新榜", value: "calendar" }, { title: "热度榜", value: "hot" } ] },
+                { name: "days", title: "预告范围", type: "enumeration", value: "14", enumOptions: [ { title: "今日更新", value: "0" }, { title: "未来 7 天", value: "7" }, { title: "未来 14 天", value: "14" }, { title: "未来 30 天", value: "30" } ] },
+                { name: "page", title: "页码", type: "page", startPage: 1 }
+            ]
+        },
+        {
+            title: "动漫周更",
+            description: "日番与国漫每周更新表",
+            functionName: "loadStandaloneAnimeWeek",
+            type: "video",
+            cacheDuration: 7200,
+            params: [
+                { name: "sort_by", title: "选择日期", type: "enumeration", value: "today", enumOptions: [ { title: "今天", value: "today" }, { title: "周一", value: "1" }, { title: "周二", value: "2" }, { title: "周三", value: "3" }, { title: "周四", value: "4" }, { title: "周五", value: "5" }, { title: "周六", value: "6" }, { title: "周日", value: "7" } ] },
+                { name: "page", title: "页码", type: "page", startPage: 1 }
+            ]
+        },
 
         // 弹幕功能已拆分为独立的“极速弹幕”和“轮询弹幕”组件。
         // ---------------- 综艺时刻 ----------------
