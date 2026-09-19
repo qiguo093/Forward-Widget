@@ -1205,9 +1205,17 @@ function varietyFromTrakt(rows, cleanRegion, days) {
         const airDate = dramaTraktAirDate(row) || String((row && row.first_aired) || "").slice(0, 10);
         if (!airDate || airDate < todayStr || airDate > endStr) return;
         const title = show.title || show.original_title || "";
+        const titleText = `${title} ${show.original_title || ""}`;
         if (VARIETY_SPORTS_KEYWORDS.test(title)) return;   // 摔角格斗只比标题
         if (VARIETY_TRASH_KEYWORDS.test(title)) return;
         if (VARIETY_BL_KEYWORDS.test(title)) return;
+
+        // 国外（非 CN/KR）脱口秀、真人秀过滤：仅放行歌舞/选秀/达人秀（isTalent）与精选白名单（isPremium）
+        const isKR = cc === "KR";
+        const isTalent = VARIETY_TALENT_KEYWORDS.test(titleText) || genres.some(g => g.includes("music"));
+        const isPremium = VARIETY_PREMIUM_ALLOW.test(titleText);
+        if (!isKR && !isTalent && !isPremium) return;
+
         const overview = String(show.overview || "");
         if (overview.trim().length < 8) return;            // 与 TMDB 路径一致：要求有简介
         const images = show.images || {};
