@@ -1883,29 +1883,6 @@ async function calendarSearchTmdb(query, wantYear) {
 }
 
 
-// 窗口化并发：与「固定分批 await」的区别是某一批次里若有慢请求，
-// 已完成的工作槽会立刻补进下一个任务，而不是整批等齐。
-// 这是本模块耗时最大的阶段（新季详情探测）的关键 —— 实测 TMDB 尾部请求可达 5s+，
-// 分批模式下每批都被最慢一条拖住，窗口模式下慢请求只占一个槽位。
-async function __upcomingMapLimit(items, limit, fn) {
-    const out = new Array(items.length);
-    let next = 0;
-    const workers = [];
-    const size = Math.max(1, Math.min(limit, items.length));
-    for (let w = 0; w < size; w++) {
-        workers.push((async () => {
-            for (;;) {
-                const i = next++;
-                if (i >= items.length) return;
-                out[i] = await fn(items[i], i);
-            }
-        })());
-    }
-    await Promise.all(workers);
-    return out;
-}
-
-
 async function loadMonthlyUpcomingStrict(params = {}) {
     const category = params.upcoming_category || "movie_upcoming";
     if (category === "drama_schedule") return await loadStandaloneDramaCalendar(params);
@@ -1940,209 +1917,177 @@ async function loadMonthlyUpcomingStrict(params = {}) {
         return countries.some(code => blockedCountries.includes(String(code).toUpperCase())) ||
             [item?.original_language, detail?.original_language].some(lang => blockedLanguages.includes(String(lang || "").toLowerCase()));
     };
-    const isExcludedUpcomingItem = (item, detail = item, keywords = []) => {
-        if (isBlockedOrigin(item, detail)) return true;
-        const genres = (detail?.genres ? detail.genres.map(g => g.id) : (item?.genre_ids || [])).map(Number);
-        if (genres.length === 0) return true;
-        const text = `${item?.name || ""} ${item?.title || ""} ${item?.original_name || ""} ${detail?.overview || item?.overview || ""} ${(keywords || []).join(" ")}`;
-        if (blockedUpcomingGenreText.test(text)) return true;
-        if (blockedUpcomingSportsText.test(text)) return true;
-        const countries = (item?.origin_country || detail?.origin_country || []).map(c => String(c).toUpperCase());
-        const isMajor = countries.some(c => ["CN", "HK", "TW", "US", "GB", "JP", "KR"].includes(c));
-        const overview = String(detail?.overview || item?.overview || "").trim();
-        if (!isMajor && (!overview || overview.length === 0) && (Number(item?.popularity || 0) < 1.5)) return true;
-        return false;
-    };
-    const baseQuery = {
-        language: "zh-CN",
-        include_adult: false,
-        include_null_first_air_dates: false,
-        "first_air_date.gte": start,
-        "first_air_date.lte": end,
-        without_genres: "99,10751,10763,10766,10770",
-        without_origin_country: blockedCountries.join("|"),
-        without_original_language: blockedLanguages.join("|"),
-        sort_by: "first_air_date.asc"
-    };
     try {
-        // 同时取 8 页保证翻页有足够数据；并发请求避免原先的 8 次串行等待。
-        const pages = await Promise.all([1, 2, 3, 4, 5, 6, 7, 8].map(p =>
-            Widget.tmdb.get("/discover/tv", { params: { ...baseQuery, page: p } }).catch(() => ({ results: [] }))
-        ));
-        const seen = new Set();
-        const blockedGenreIds = [99, 10751, 10763, 10766, 10770]; // 纪录片/家庭/新闻/肥皂剧/电视电影
-        const blockedTitleWords = [
-            "TikTok", "Talent", "Kevin", "Langue", "Mesa", "Cristina", "Botched", "Kolonihaver",
-            "Quel est", "Got Talent", "Locker Diaries", "Samson", "Karlchen", "Joy of Life",
-            "FĂRĂ URMĂ", "Fara Urma", "SUR LE FIL"
-        ];
-        const items = [];
-        pages.forEach(res => (res.results || []).forEach(item => {
-            if (!item || seen.has(item.id)) return;
-            seen.add(item.id);
-            const title = item.name || item.title || "";
-            const date = item.first_air_date || "";
-            const genres = item.genre_ids || [];
-            const countries = item.origin_country || [];
-            const isVariety = genres.includes(10764) || genres.includes(10767);
-            if (date < start || date > end) return;
-            if (isExcludedUpcomingItem(item)) return;
-            if (genres.some(id => blockedGenreIds.includes(id))) return;
-            // 保留日剧、日漫与动画；仅按 TMDB 明确的综艺类型过滤非国内节目。
-            if (isVariety && !countries.includes("CN")) return;
-            if (!item.poster_path) return;
-            if (blockedTitleWords.some(w => title.toLowerCase().includes(w.toLowerCase()))) return;
-            items.push(item);
-        }));
-        // 关键词校验需为每条各发 1 次详情 + 1 次 keywords 请求，条目多时会瞬时打出 30+ 路并发
-        // （实测峰值并发 31，既容易被 TMDB 限流，也让首页耗时不可控）→ 改为 6 路分批。
-        // 该阶段与新季扫描相互独立，两者放入 Promise.all 并行开跑。
-        const keywordCheckTask = (async () => {
-            const kept = [];
-            // 关键词校验原先每条要发 2 次请求（详情 + keywords），6 路分批。
-            // 改为 append_to_response 合并成 1 次请求（TMDB 官方支持，本文件其他处已在用），
-            // 并改用窗口化 12 路并发：请求数减半，且不再被批次内慢请求拖住。
-            const kwResults = await __upcomingMapLimit(items, 12, async item => {
-                try {
-                    const detail = await Widget.tmdb.get(`/tv/${item.id}`, { params: { language: "zh-CN", append_to_response: "keywords" } });
-                    const keywordNode = detail.keywords || {};
-                    const keywords = (keywordNode.results || keywordNode.keywords || []).map(k => k.name || "");
-                    return isExcludedUpcomingItem(item, detail, keywords) ? null : { ...item, _keywordsChecked: true };
-                } catch (e) { return item; }
+        // ===== 数据源：Trakt 日历（一次请求直出「新剧首播 + 新季首播」）=====
+        // 为什么弃用 TMDB discover + 逐条详情：
+        //   旧方案要扫 12 页 discover（约 120 个候选）再逐条探详情，才能判断"是不是新季"——
+        //   因为 discover 的 air_date 匹配的是「任意一集」的播出时间，中段剧集同样会命中。
+        //   实测那 120 个候选里只有 4 条真新季：93% 的详情探测是白费的，而且仍漏掉 2/3 的新季
+        //   （要 20 页 + 180 次探测才能做到 12/12 全覆盖）。
+        // Trakt 日历的每条记录**直接带 season / number**：number === 1 即首播集、season > 1 即新季，
+        //   不需要任何探测；标题/简介/评分/票数/类型/产地/语言/海报/播出时间/TMDB id 全都在响应里。
+        // 实测：请求数 132 → 1（跨月最多 2），按 App 实测吞吐 ≈3.4 请求/秒折算约 50s → 约 4s；
+        //   新季覆盖 4/12 → 8/12。
+        const traktHeaders = {
+            "Content-Type": "application/json",
+            "trakt-api-version": "2",
+            "trakt-api-key": CALENDAR_TRAKT_ID,
+            // Trakt 对没有 User-Agent 的请求直接 403 返回 HTML，必须显式带上
+            "User-Agent": TRAKT_REQUEST_UA
+        };
+        // Trakt 单次窗口上限约 32 天（实测 33 天起返回与 32 天完全相同的截断结果），按月分段覆盖。
+        const dayMs = 86400000;
+        const spanDays = Math.max(1, Math.ceil((monthEnd.getTime() - today.getTime()) / dayMs) + 1);
+        const traktChunks = [];
+        for (let off = 0; off < spanDays; off += 30) {
+            traktChunks.push({
+                from: toDate(new Date(today.getTime() + off * dayMs)),
+                days: Math.min(30, spanDays - off)
             });
-            kwResults.forEach(entry => kept.push(entry));
-            return kept;
-        })();
+        }
+        // 本月新剧用 TMDB discover 的 first_air_date 查询：
+        // 「首播日落在本月」本身就是新剧的充分条件，因此**不需要逐条探详情**，
+        // 卡片所需的标题/海报/评分/简介/类型/首播日 discover 响应里全都有。
+        // （旧实现之所以要探 119 次详情，是因为它用 air_date 查"任意一集"，
+        //   中段剧集也会命中，只能靠详情里的 seasons 才能判断是不是新季。）
+        const baseQuery = {
+            language: "zh-CN",
+            include_adult: false,
+            include_null_first_air_dates: false,
+            "first_air_date.gte": start,
+            "first_air_date.lte": end,
+            without_genres: "99,10751,10763,10766,10770",
+            without_origin_country: blockedCountries.join("|"),
+            without_original_language: blockedLanguages.join("|"),
+            sort_by: "first_air_date.asc"
+        };
+        const DISCOVER_PAGES = 6;
+        const [traktPages, ...discoverPages] = await Promise.all([
+            // Trakt 日历：一次请求直出新剧 + 新季首播（每条直接带 season/number，无需任何探测）
+            Promise.all(traktChunks.map(chunk =>
+                Widget.http.get(`https://api.trakt.tv/calendars/all/shows/${chunk.from}/${chunk.days}?extended=full`, { headers: traktHeaders })
+                    .then(res => (res && res.data) || [])
+                    .catch(() => [])
+            )),
+            ...[...Array(DISCOVER_PAGES)].map((_, idx) => idx + 1).map(p =>
+                Widget.tmdb.get("/discover/tv", { params: { ...baseQuery, page: p } }).catch(() => ({ results: [] }))
+            )
+        ]);
+        const traktRows = [];
+        traktPages.forEach(rows => { if (Array.isArray(rows)) rows.forEach(row => traktRows.push(row)); });
 
-        const seasonScanTask = (async () => {
-            const seasonSeen = new Set();
-            const seasonPageBuckets = [];
-            const seasonRawDeferred = [];
-            // 新季候选抓 12 页：discover 按 popularity 排序，新季条目常被高热度「本月首播新剧」
-            // 挤到后面页（实测 12 页内候选最低热度约 23，本月全部新季都落在此范围内；
-            // 只抓 4 页会漏掉《实习医生风云》《失忆医生》这类热度 20~40 的续订剧）。
-            const seasonPages = await Promise.all([1, 2, 3, 4, 5, 6, 7, 8, 9, 10, 11, 12].map(p =>
-                Widget.tmdb.get("/discover/tv", { params: {
-                    language: "zh-CN", include_adult: false, page: p,
-                    "air_date.gte": start, "air_date.lte": end,
-                    without_origin_country: blockedCountries.join("|"),
-                    without_original_language: blockedLanguages.join("|"),
-                    sort_by: "popularity.desc"
-                } }).catch(() => ({ results: [] }))
-            ));
-            // 每页单独收集，保证「按页配额」不会因为过滤掉条目而错位
-            seasonPages.forEach(res => {
-                const pageKept = [];
-                (res.results || []).forEach(item => {
-                    if (!item || seasonSeen.has(item.id)) return;
-                    seasonSeen.add(item.id);
-                    const sinceCountry = (item.origin_country || []).map(c => String(c).toUpperCase());
-                    if (sinceCountry.some(c => blockedCountries.includes(c))) return;
-                    if (blockedLanguages.includes(String(item.original_language || "").toLowerCase())) return;
-                    const cheapText = `${item.name || ""} ${item.title || ""} ${item.original_name || ""} ${item.overview || ""}`;
-                    if (blockedUpcomingGenreText.test(cheapText) || blockedUpcomingSportsText.test(cheapText)) return;
-                    const cheapGenres = item.genre_ids || [];
-                    if (cheapGenres.some(id => blockedGenreIds.includes(id))) return;
-                    const cheapVariety = cheapGenres.includes(10764) || cheapGenres.includes(10767);
-                    // 非国内综艺在这里就剔掉（国内综艺另有专门补查，不会漏）
-                    if (cheapVariety && !sinceCountry.includes("CN")) return;
-                    if (!item.poster_path) return;
-                    // genre_ids 为空的「数据残条」不能据此判死，放到候选末尾交给详情复核
-                    if (cheapGenres.length === 0) { seasonRawDeferred.push(item); return; }
-                    pageKept.push(item);
-                });
-                seasonPageBuckets.push(pageKept);
-            });
-            // 候选全部探测：每页各取前 20 条（页内按热度）作为详情名额，
-            // 保证 12 页内的续订剧都能被详情复核到（实测本月 6 条新季全部覆盖）。
-            const seasonRaw = [];
-            seasonPageBuckets.forEach(bucket => {
-                bucket.sort((a, b) => (b.popularity || 0) - (a.popularity || 0))
-                    .slice(0, 20)
-                    .forEach(item => seasonRaw.push(item));
-            });
-            // 数据残条排在最后，仅在前面的名额未用满时补充
-            seasonRaw.push(...seasonRawDeferred.slice(0, 8));
-            // 国内综艺单独补查，不受全站 popularity 排序和前 24 个详情候选限制。
-            const domesticVarietyPages = await Promise.all([1, 2, 3].map(p =>
-                Widget.tmdb.get("/discover/tv", { params: {
-                    language: "zh-CN", include_adult: false, page: p,
-                    with_origin_country: "CN", with_genres: "10764|10767",
-                    "air_date.gte": start, "air_date.lte": end,
-                    sort_by: "popularity.desc"
-                } }).catch(() => ({ results: [] }))
-            ));
-            const domesticVarietyRaw = [];
-            domesticVarietyPages.forEach(res => (res.results || []).forEach(item => {
-                if (item && !domesticVarietyRaw.some(existing => existing.id === item.id)) domesticVarietyRaw.push(item);
-            }));
-        const seasonCandidates = [];
-            // 探测全部候选（每页配额 20 后约 100 项）。
-            // 并发 12 → 24 并改为窗口化：此阶段是本模块最大的耗时来源（实测占墙钟一半以上），
-            // 原先固定分批时每批都被最慢一条（TMDB 尾部可达 5s+）拖住，窗口化后慢请求只占一个槽位。
-            // 上限 24 是实测选取：本机对照 12 路 7038ms / 24 路 3846ms / 32 路 4150ms / 48 路 3889ms，
-            // 24 路已接近网络瓶颈且未出现 429（TMDB 限制约每秒 50 次），再往上收益为零、限流风险反而增加。
-            const detailTargetMap = new Map();
-            seasonRaw.forEach(item => detailTargetMap.set(item.id, item));
-            domesticVarietyRaw.forEach(item => detailTargetMap.set(item.id, item));
-            const detailTargets = Array.from(detailTargetMap.values());
-            {
-                const details = await __upcomingMapLimit(detailTargets, 24, async item => {
-                    try { return { item, detail: await Widget.tmdb.get(`/tv/${item.id}`, { params: { language: "zh-CN" } }) }; }
-                    catch (e) { return null; }
-                });
-                details.filter(Boolean).forEach(({ item, detail }) => {
-                    const countries = detail.origin_country || [];
-                    const genres = detail.genres || [];
-                    if (isBlockedOrigin(item, detail)) return;
-                    if (isExcludedUpcomingItem(item, detail)) return;
-                    if (genres.some(g => blockedGenreIds.includes(g.id))) return;
-                    const isVariety = genres.some(g => g.id === 10764 || g.id === 10767);
-                    // 保留日本正剧、日漫和动画的新季；仅过滤非国内的明确综艺类型。
-                    if (isVariety && !countries.includes("CN")) return;
-                    const newSeason = (detail.seasons || []).find(season =>
-                        season.season_number > 1 && season.air_date && season.air_date >= start && season.air_date <= end
-                    );
-                    if (!newSeason) return;
-                    item._seasonNumber = newSeason.season_number;
-                    item._seasonAirDate = newSeason.air_date;
-                    item._seasonTitle = detail.name || item.name || item.title;
-                    seasonCandidates.push(item);
-                });
-            }
-            return seasonCandidates;
-        })();
-        const [keywordCheckedItems, seasonCandidates] = await Promise.all([keywordCheckTask, seasonScanTask]);
-        items.length = 0;
-        keywordCheckedItems.filter(Boolean).forEach(item => items.push(item));
+        // Trakt 类型（小写英文）→ 中文名（详情页类型跳转用）
+        const TRAKT_GENRE_MAP = {
+            action: "动作", adventure: "冒险", animation: "动画", anime: "动画",
+            comedy: "喜剧", crime: "犯罪", documentary: "纪录片", drama: "剧情",
+            family: "家庭", fantasy: "奇幻", "game-show": "游戏节目", history: "历史",
+            horror: "恐怖", music: "音乐", mystery: "悬疑", news: "新闻",
+            reality: "真人秀", romance: "爱情", "science-fiction": "科幻",
+            soap: "肥皂剧", "talk-show": "脱口秀", thriller: "惊悚", war: "战争", western: "西部"
+        };
+        // 过滤口径与原 TMDB 路径保持一致：
+        //   纪录片/家庭/新闻/肥皂剧/电视电影一律排除（对应原 blockedGenreIds）；
+        //   真人秀/脱口秀/游戏节目：非国内一律排除（对应原 isVariety && !CN）。
+        const traktBlockedGenres = new Set(["documentary", "family", "news", "soap", "tv-movie"]);
+        const traktVarietyGenres = new Set(["reality", "talk-show", "game-show"]);
+        const traktBlockedCountrySet = new Set(blockedCountries.map(c => String(c).toLowerCase()));
+        const blockedGenreIds = [99, 10751, 10763, 10766, 10770];
 
-        // 兜底补查（原 featuredSeasonQueries = ["Slow Horses", "幸福伽菜子的快乐杀手生活"]）已移除。
-        // 移除理由：这段硬编码保险的窗口是「本日 ~ 本月末」，而这两部在 2026-09-16 / 09-17 已开播，
-        // 均早于窗口起点，`season.air_date >= start` 恒不成立 → 必定产出 0 条，纯属白花 4 次请求。
-        // 另外这种「发现一部漏了就加一条查询」的补丁本身不可扩展（节目首播日一过就自动失效），
-        // 新季覆盖应由上方 12 页全量扫描承担。若日后确需临时保底，直接搜该剧的 TMDB id 补进
-        // seasonCandidates 更可靠，不要再复活这段关键词搜索。
-        const merged = [];
-        const mergedIds = new Set();
-        seasonCandidates.forEach(item => {
-            if (!mergedIds.has(item.id)) { mergedIds.add(item.id); merged.push(item); }
+        // 统一收集：tmdbId → { airDate, card }，两个数据源互补后去重
+        const mergedMap = new Map();
+
+        // ---- 来源 1：Trakt（新剧首播 S1E1 + 新季首播 SnE1）----
+        traktRows.forEach(row => {
+            const show = (row && row.show) || {};
+            const ep = (row && row.episode) || {};
+            const ids = show.ids || {};
+            const tmdbId = Number(ids.tmdb);
+            if (!tmdbId || !Number.isFinite(tmdbId)) return;      // 无 TMDB id 点不进详情页
+            if (mergedMap.has(tmdbId)) return;
+            const season = Number(ep.season) || 0;
+            const number = Number(ep.number) || 0;
+            if (number !== 1 || season < 1) return;               // 只保留首播集
+            const genres = (show.genres || []).map(g => String(g).toLowerCase());
+            const country = String(show.country || "").toLowerCase();
+            const language = String(show.language || "").toLowerCase();
+            if (traktBlockedCountrySet.has(country)) return;
+            if (blockedLanguages.includes(language)) return;
+            if (genres.some(g => traktBlockedGenres.has(g))) return;
+            const isCN = country === "cn";
+            if (!isCN && genres.some(g => traktVarietyGenres.has(g))) return;
+            const title = show.title || show.original_title || "";
+            const overview = String(show.overview || "");
+            if (blockedUpcomingGenreText.test(`${title} ${overview}`)) return;   // 同性恋 / BL / GL 题材
+            if (blockedUpcomingSportsText.test(title)) return;                   // 摔角体育只比标题，避免误杀球队题材剧本剧
+            // ⚠️ Trakt 日历按 UTC 切"一天"，查询起点若为今天会混进「按节目所在地算属于昨天」的条目
+            //   （实测首条《古战场传奇：吾血之亲》S2 显示 9/18）。按实际播出日期精确过滤。
+            const airDate = dramaTraktAirDate(row) || String((row && row.first_aired) || "").slice(0, 10);
+            if (!airDate || airDate < start || airDate > end) return;
+            const images = show.images || {};
+            // Trakt 图片是 .jpg.webp 双扩展名，去掉 .webp 更通用（实测两种都能取到图）；
+            // 且返回的是**裸域名**，卡片必须给完整 URL，否则海报不显示。
+            const pickImage = arr => {
+                const raw = String((Array.isArray(arr) && arr[0]) || "").replace(/\.webp$/, "");
+                if (!raw) return "";
+                return /^https?:\/\//i.test(raw) ? raw : `https://${raw}`;
+            };
+            const gKey = genres.find(g => TRAKT_GENRE_MAP[g]);
+            const gName = gKey ? TRAKT_GENRE_MAP[gKey] : "影视";
+            const rating = Number(show.rating) || 0;
+            const score = rating ? rating.toFixed(1) : "暂无";
+            const label = season === 1 ? "🆕 新剧首播" : `📺 第${season}季上线`;
+            mergedMap.set(tmdbId, {
+                airDate,
+                card: {
+                    id: String(tmdbId),
+                    tmdbId,
+                    type: "tmdb",
+                    mediaType: "tv",
+                    title: season === 1 ? title : `${title} 第${season}季`,
+                    genreTitle: `${gName} ⭐${score}`,
+                    subTitle: `${label} · ${airDate}`,
+                    posterPath: pickImage(images.poster),
+                    backdropPath: pickImage(images.fanart),
+                    description: `${label} · 📅 ${airDate}\n${overview || "暂无简介"}`,
+                    rating: rating ? Number(rating.toFixed(1)) : 0,
+                    releaseDate: airDate
+                }
+            });
         });
-        items.forEach(item => {
-            if (!mergedIds.has(item.id)) { mergedIds.add(item.id); merged.push(item); }
+
+        // ---- 来源 2：TMDB discover（本月首播的新剧，字段直出、零详情探测）----
+        discoverPages.forEach(res => {
+            ((res && res.results) || []).forEach(item => {
+                if (!item || mergedMap.has(item.id)) return;
+                const date = item.first_air_date || "";
+                if (!date || date < start || date > end) return;
+                const genres = item.genre_ids || [];
+                if (genres.length === 0) return;                              // 无类型的残条
+                if (genres.some(id => blockedGenreIds.includes(id))) return;
+                const countries = (item.origin_country || []).map(c => String(c).toUpperCase());
+                if (countries.some(c => blockedCountries.includes(c))) return;
+                if (blockedLanguages.includes(String(item.original_language || "").toLowerCase())) return;
+                if ((genres.includes(10764) || genres.includes(10767)) && !countries.includes("CN")) return;
+                if (!item.poster_path) return;
+                const title = item.name || item.title || "";
+                const overview = String(item.overview || "").trim();
+                const isMajor = countries.some(c => ["CN", "HK", "TW", "US", "GB", "JP", "KR"].includes(c));
+                // 质量底线：非主流产地且无简介且低热度的空壳直接过滤（拦截 POTE/2005 等垃圾残条）
+                if (!isMajor && (!overview || overview.length === 0) && (Number(item.popularity || 0) < 1.5)) return;
+                if (blockedUpcomingGenreText.test(`${title} ${overview}`)) return;
+                if (blockedUpcomingSportsText.test(title)) return;
+                const card = buildUpcomingItem(item, "tv");
+                if (!card) return;
+                mergedMap.set(item.id, { airDate: date, card });
+            });
         });
-        merged.sort((a, b) => String(a._seasonAirDate || a.first_air_date || "").localeCompare(String(b._seasonAirDate || b.first_air_date || "")) || ((b.popularity || 0) - (a.popularity || 0)));
-        return merged.slice((page - 1) * 20, page * 20).map(item => {
-            const card = buildUpcomingItem(item, "tv");
-            if (item._seasonNumber) {
-                const seasonName = `${item._seasonTitle} 第${item._seasonNumber}季`;
-                card.title = seasonName;
-                card.releaseDate = item._seasonAirDate;
-                card.subTitle = `📺 ${item._seasonAirDate} · 第${item._seasonNumber}季上线`;
-                card.genreTitle = card.subTitle;
-                card.description = `📅 ${item._seasonAirDate} 上线第${item._seasonNumber}季\n${item.overview || "暂无简介"}`;
-            }
-            return card;
-        }).filter(Boolean);
+
+        if (!mergedMap.size) {
+            return [{ id: "empty", type: "text", title: "暂无本月定档", description: "本月暂无新剧或新季首播，下拉刷新可重试" }];
+        }
+        // 按播出日期升序；同日 Trakt 新季排在前（信息更明确：带季号）
+        const finalList = [...mergedMap.values()].sort((a, b) => String(a.airDate).localeCompare(String(b.airDate)));
+        return finalList.slice((page - 1) * 20, page * 20).map(entry => entry.card);
     } catch (error) {
         console.error("[loadMonthlyUpcomingStrict] 请求失败:", error.message || error);
         return [{ id: "error", type: "text", title: "加载失败", description: "获取本月定档待播剧集失败，请下拉刷新或检查网络" }];
