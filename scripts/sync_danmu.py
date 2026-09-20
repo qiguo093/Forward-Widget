@@ -2,13 +2,15 @@
 """
 自动同步上游 Universal 弹幕插件：
 1. 监控 npm registry 上游包（@rexnow/danmu-universal 及原 @forward-widget/danmu-universe，或动态按作者 baranwang 探测）。
-2. 若上游发布了新版本（与仓库本地 .upstream-version 记录不一致）：
+2. 若上游发布了新版本（与仓库本地 widgets/Universal-danmu-version 记录不一致）：
    - 从 unpkg 下载最新构建产物
    - 用大括号配对抽取并移除上游 WidgetMetadata
    - 保留并缝合仓库本地固定的 WidgetMetadata（包含作者 𝓚𝓾𝓰𝓾𝓸𝔃𝓪𝓲 ⁷、版本 1.0.0、本地 id 与 site）
    - 通过 node --check 做语法强校验
-   - 覆盖 widgets/Universal-danmu.js 并更新 .upstream-version
+   - 覆盖 widgets/Universal-danmu.js 并更新 widgets/Universal-danmu-version
 3. 若无更新或校验失败则安全退出，不破坏现有代码。
+
+版本标记文件只记录纯版本号（如 `0.16.1`），比对时也只用版本号。
 """
 import sys
 import json
@@ -19,7 +21,7 @@ from pathlib import Path
 
 REPO_ROOT = Path(__file__).resolve().parent.parent
 TARGET_FILE = REPO_ROOT / "widgets" / "Universal-danmu.js"
-VERSION_FILE = REPO_ROOT / ".upstream-version"
+VERSION_FILE = REPO_ROOT / "widgets" / "Universal-danmu-version"
 
 MAINTAINER = "baranwang"
 CANDIDATE_PACKAGES = [
@@ -81,9 +83,10 @@ def main():
     tag = f"{pkg}@{ver}"
     print(f"📦 上游最新发布: {tag}")
 
-    current_tag = VERSION_FILE.read_text(encoding="utf-8").strip() if VERSION_FILE.exists() else ""
-    if current_tag == tag and TARGET_FILE.exists():
-        print(f"✅ 上游版本未变动（{current_tag}），无需更新")
+    # 版本标记文件只记录纯版本号（如 0.16.1）
+    current_ver = VERSION_FILE.read_text(encoding="utf-8").strip() if VERSION_FILE.exists() else ""
+    if current_ver == ver and TARGET_FILE.exists():
+        print(f"✅ 上游版本未变动（{ver}），无需更新")
         return
 
     print(f"📥 正在获取上游构建产物: {unpkg_url}")
@@ -112,7 +115,7 @@ def main():
         sys.exit(2)
 
     tmp_path.replace(TARGET_FILE)
-    VERSION_FILE.write_text(tag + "\n", encoding="utf-8")
+    VERSION_FILE.write_text(ver + "\n", encoding="utf-8")
     print(f"🎉 成功同步 {tag}，保留本地元数据，语法校验通过！")
 
 if __name__ == "__main__":
