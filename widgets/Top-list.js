@@ -108,12 +108,12 @@ const DRAMA_BL_KEYWORDS = /(?:\bgay\b|\blgbtq?\b|\blesbian\b|\bhomosexual\b|\bsa
 
 const DRAMA_CACHE_TTL_MS = 60 * 60 * 1000;
 
-const DRAMA_EXCLUDED_COUNTRIES = ["IN", "TH", "RU", "TR", "PL", "FI", "HU", "NL", "RO", "BR", "LB", "SY", "AE", "EG", "SA", "JO", "IQ", "KW", "QA", "OM", "BH", "DZ", "MA", "TN"];
+const DRAMA_EXCLUDED_COUNTRIES = ["IN", "TH", "RU", "TR", "PL", "FI", "HU", "NL", "RO", "BR", "IL", "LB", "SY", "AE", "EG", "SA", "JO", "IQ", "KW", "QA", "OM", "BH", "DZ", "MA", "TN"];
 
 const DRAMA_EXCLUDED_GENRE_IDS = [99, 10751, 10763, 10764, 10766, 10767];
 // 动画(16)/儿童(10762)：无论哪个产地都排除 —— 动漫有独立的「动漫周更」模块
 
-const DRAMA_EXCLUDED_LANGUAGES = ["hi", "th", "ru", "tr", "ta", "te", "pl", "fi", "hu", "nl", "ro", "pt", "ar"];
+const DRAMA_EXCLUDED_LANGUAGES = ["hi", "th", "ru", "tr", "ta", "te", "pl", "fi", "hu", "nl", "ro", "pt", "ar", "he"];
 // Trakt 的题材是小写短横线形式，与 TMDB 数字 id 一一对应
 
 const DRAMA_EXCLUDED_TRAKT_GENRES = ["reality", "news", "talk-show", "documentary", "soap", "family", "game-show", "award-show", "sports"];
@@ -2127,8 +2127,8 @@ async function loadMonthlyUpcomingStrict(params = {}) {
     // 屏蔽指定国家/语言，并排除低质小语种杂剧、自制短片与同性恋/BL/摔角等内容。
     // 北欧(NO/SE/DK/IS)多产本地时政讽刺/地方栏目类节目，TMDB 常只标「喜剧」单类型而无简介，
     // 绕过类型与综艺两道过滤（例：挪威 NRK《Nytt på nytt》= 时政幽默，仅 genre 35、overview 为空）。
-    const blockedCountries = ["TH", "IN", "RU", "TR", "RO", "PL", "FI", "HU", "NL", "BR", "NO", "SE", "DK", "IS"];
-    const blockedLanguages = ["th", "hi", "ta", "te", "ru", "tr", "ro", "pl", "fi", "hu", "nl", "pt", "no", "sv", "da", "is"];
+    const blockedCountries = ["TH", "IN", "RU", "TR", "RO", "PL", "FI", "HU", "NL", "BR", "NO", "SE", "DK", "IS", "IL"];
+    const blockedLanguages = ["th", "hi", "ta", "te", "ru", "tr", "ro", "pl", "fi", "hu", "nl", "pt", "no", "sv", "da", "is", "he"];
     const blockedUpcomingGenreText = /(?:\bgay\b|\blgbtq?\b|\blesbian\b|\bhomosexual\b|\bsame[- ]sex\b|\bqueer\b|\bboys['’]?\s*love\b|\bbl\b|\bgl\b|\byaoi\b|\byuri\b|同性恋|耽美|男男|女女|同志|腐剧|双男主|恋上他|爱上他|绑架我的人)/i;
     const blockedUpcomingSportsText = /(?:\bwrestling\b|\bpro[- ]wrestling\b|\baew\b|\bwwe\b|\bnwa\b|\bmlw\b|\bstardom\b|\bseadlin[n]?ng\b|\btjpw\b|\bufc\b|\bmma\b|\braw\b|\bsmackdown\b|\bcollision\b|\bdynamite\b|\bpowerrr\b|\bbaseball\b|\bfootball\b|\bbasketball\b|プロレス|女子プロレス|摔角|摔跤|格斗|角力|スターダム)/i;
     const isBlockedOrigin = (item, detail = item) => {
