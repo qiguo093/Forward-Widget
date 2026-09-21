@@ -71,7 +71,13 @@ const ANIME_CN_NOISE_KEYWORDS = /古诗|诗词|语文|数学|英语|成语|识�
 
 const ANIME_SIMP_CHARS = "丢并干乱動亘亚互體工夫服布字占算并来仑局系侠訊具仓个们幸伦伟侧侦杰伞备家佣传债伤倾仅象侨仆伪侥雇价仪亿俭侪尽偿优储符凶兑儿内两册胄幂冻凯時欄别则克刚剥剐创铲划剧刘剑剂劲动务胜劳势勋励劝匀汇区协恤却源厌厉参採丛咤吴吕员呗念问启哑唤丧吃乔单呛吗叹呕啧尝哗恶嘘哕喷吨当吓尝噜咽咙向严苏嘱囱国围园圆图团位执吉坚尧报场块涂尘垫坠堕垦坛压垒垆坏垄壮壶寿複够梦伙夹奂奥夺奋妆代奸娱娄妇娅妈袅娴娇婴婶娘符位孙学宫采实宁审写宽宠宝将专寻对导届尸圖屡层屦属冈峰岛峡昆岗仑岚嵚岭岳峦岩用帅师帐带币帮帱并干几式坐库厕厢厦荫厨厮庙厂废广廪庐厅數吊张强别弹弥弯录汇角彦后径德从复征彻核效恒耻訊悦闷凄恶恼爱惬怆忾栗态惨惯能虑庆戚欲忧怜凭愤宪忆恳应蒙惩懒怀悬忏惧恋战戏户抛挟舍扪挨卷扫挣挂采結拣扬换挥背损摇捣抢抠抟折捞撑挠拨抚扑捡拥掳择击挡運担据挤抬拟拧搁掷扩摆扰撵拢拦撺携摄攒摊搅揽性败叙敎敌数敛毙據斩紐断于升时晋昼晕晖畅暂晔历晓旷晒书会伺术东査拐心杆条弃枣栋栈栖杨枫桢业极干荣构枪杠桨桩乐梁楼标類样朴树桦桥机横档检台槛柜橱榇蘖栏权榄钦叹欧欢岁历归残殚僵殡杀壳毁殴位毡气氢汙决没冲况汹浃凉凄泪净凌沦渊浅减涡测浑凑涌汤准沟温湿沧灭涤汇滞渗卤滚满渔沤汉渍涨渐浆泼洁潜润涩浇泽淀浊浓蒙济涛滥滨溅滤泻沈濒沥弥澜洒漓滩湾灾为乌烃无炼烟焕烦煴热炽灯炖烧烫营灿毁烛熏烬炉烂争为爷尔床墙抵元牵状狭狈犹狱狮奖独狞获猎兽献现玮瑶玛环琼珑瓮产苏工宁亩毕画异当畴叠酸疴疯疮疟疗痫瘅愈瘪痴痒症癣瘾癫註发皂疱皱杯盗盏尽监盘卢荡眦困瞒了蒙眬瞩矫朱砚盤硕确码砖碛碍矿砺砾達只秘禄祸祯御禅礼祷秃行税禀种称谷稣积颖秾秽稳获窝穷窑窥窜窍灶窃階竞元笔笋个笺作體节范筑笃筛简签帘篮筹籁笼签篱吁粤粪粮团粝粜纪约红纡纥纹纳纽纯纱纸级纷纺扎细绍终弦组结绝绦绞络绚给绒统丝绑经综绿绸维纲网缀彩纶绮绽绰绵缁紧绪线缉缎缘编缓纬练致萦缙缚县缝缩纵纤缦缕总绩绷缪穗织缮绕绣绳绘系茧缴绎继缤续缠缨才纤缆坛罚骂罢罗羁群羡义习玩翘圣闻联聪声耸聩职听聋肃慧脉唇修脱胀肾脑肿脚肠肤胶腻胆脓脸腊脏臜卧临台与兴举旧舱舰舻艰刍兹荆庄茎荚华庵烟莱万叶苇药荤搜苍荪席盖莲卜参蒋葱荫荞芸莸荡萧姜蔷荐萨熏苧苔借蓝艺药蔼芦苏蕴苹兰萝处虚虏号亏蚀虾蜗萤蛰蝉蛲虫蚁蝇蜡蛊蚕蛮众蔑移术同胡卫冲袅里补装里制复裤袜摆衬袭复核见规视亲觊觑觉览观形觞触订计讯讨训讫托记诀讷访设许诉诊注诋诈诒诏评词咏询试诗诡诠话该详诛夸志认诞诱语诚诬误诰诵说谁课谊调谈请论谀诨谐谏谕讳讽诸谚诺谋谒谓誊诌谎谜谤谦讲谢谣谟谬谨哗证谲识谯谭谱噪毁译议护誉读变仇让赞竖丰艳像猪猫贝贞负财贡贫货贪贯责贵贬买贷费贴贻贸贺资贾贼赈宾周赉赐赏赔贤卖贱赋质账赌赖赚购赛赠赞赡赢赃赎赶赵趋迹絡践迹踪跷趸踌跻跃踬躯车轧轨军轩轫轭软轸轴轶较载挽辅轻辆辉辍辈轮辑辏输辐舆毂辖辕辘转辙轿轰辔办辞辫辩农回这连周进游运过达违遥逊递远适迟迁选遗辽迈还迩边逻邮乡郑邻腌丑酝医酱酰酿衅释利厘钉针钓扣钗钝钧铃钰钿巨钳铅钵钩铰银铜铨铭衔锐销铝锋锄铺锯钢录锥锤钱锦锚锡锢错表炼锅锻锹键针钟镕锁镇链戚铲镜镂锈钟镰铁铸鉴鉴钥镶锣钻銮凿长门闪闭开闲闲间闵闸阁合阀闺闽闾阅阎板暗阔阑阗阙闯关辟陕阵阴陈陆阳队阶际随险隐陇隶只虽双杂鸡离难云电沾雾霁雳霭灵静腼秋千韦韧韩韫韵响页顶顷项顺须颂预顽颁顿颇领颐头颊颈频颗题额颜颛愿颠类颟顾颤显颅风飒台刮飏飘飙飞饥饭饮饲饱饰饼养饵馁饿余肴馅馆糊喂馏馑馈馔饥饶馋马驭冯驰驳驻驽驹驾骀驶骏骋骑骗腾骚驱骄验惊驴骥肮脏体发松胡须鬓斗闹哄郁鱼鲁鲇鲍鲜鲸鳌鳞鸟鸠凤鸣鸦鸳鸯鸭鸿鹃鹅鹄鹏雕鹊莺鹤鹘鹰鹭鸾卤咸碱盐丽麦麸面曲么黄点党霉冬齐斋赍齿龄出龙庞龚龟";
 
-const ANIME_STORE_PREFIX = "anime_week_v2";
+// 版本号 v3：v2 时代键里带 page、且存的是**单页切片**（翻页/重载都要重抓）。
+// 现在改为整天只存一份完整数据集，键里不含 page，换前缀避免读到旧格式。
+const ANIME_STORE_PREFIX = "anime_week_v3";
+
+// 本次动漫抓取是否降级（Bangumi / B站 / TMDB 国漫兜底 任一失败）。
+// 降级 → 数据集不完整（例如丢了整块 B站国漫），禁止写持久缓存。
+let animeFetchDegraded = false;
 // 持久层 TTL 比内存层（5 分钟）宽松得多：动漫周更的数据一天之内基本不变，
 // 用户来回切星期、隔十几分钟再打开，都不该重新等一遍网络。
 
@@ -120,6 +126,94 @@ const DRAMA_EXCLUDED_TRAKT_GENRES = ["reality", "news", "talk-show", "documentar
 // 动画/国创/欧美动画一律不收 —— 动漫有独立的「动漫周更」模块，这里只留真人剧
 
 const DRAMA_PAGE_SIZE = 20;
+
+// -------------------------------------------------------------------------
+// 剧集追更的持久缓存（跨「App 切换参数」秒开）
+// -------------------------------------------------------------------------
+// 为什么必须有：内存缓存（DramaTodayCache / DramaTmdbDetailCache …）是模块级变量，
+// 而 App 在**切换模块参数 / 切换频道 / 重新打开**时会重新执行整个 widget 脚本，
+// 内存全部清零 —— 实测「今日更新·全球聚合」切走再切回仍要 13 次请求 / 5.2 秒。
+//
+// 为什么存「整份当日数据集」而不是「某一页的卡片」：数据集只有一份，
+// 翻页只是取不同切片。按页各存一份会让每翻一页都重跑整轮抓取（纯重复劳动）。
+//
+// TTL = 1 小时（与内存 TTL 一致），且 key 含日期 —— 跨零点必然换 key，
+// 不会把昨天的排期当成今天返回。志愿者在这 1 小时内补录的分集/海报，
+// 最多 1 小时后必然重新联网取到最新。
+//
+// ⚠️ 写入端守卫（唯一一道，且必须是真的会触发的）：本次抓取只要有数据源失败，
+// 结果就是残缺的（例如 Trakt 挂了 → 海外排期整块消失，只剩国产几张卡，看着正常），
+// 这种结果**绝不写盘**，否则会被固化 1 小时。
+// 注意别在读取端加「降级就不读缓存」：本次是否降级要等抓取结束才知道，入口处恒为未知。
+const DRAMA_STORE_PREFIX = "drama_day_v3";
+const DRAMA_PM_STORE_PREFIX = "drama_pm_v3";
+
+// 本次抓取是否出现失败（Trakt 不可用 / TVmaze 不可用）。
+// 入口处重置，抓取结束后由写入端读取。
+let dramaFetchDegraded = false;
+
+async function dramaDayStoreGet(dateStr) {
+    try {
+        if (!Widget.storage || !Widget.storage.get) return null;
+        const raw = await Widget.storage.get(`${DRAMA_STORE_PREFIX}|${dateStr}`);
+        if (!raw) return null;
+        const obj = typeof raw === "string" ? JSON.parse(raw) : raw;
+        if (!obj || !Array.isArray(obj.dataset) || !obj.dataset.length) return null;
+        if (Date.now() - Number(obj.ts || 0) >= DRAMA_CACHE_TTL_MS) return null;   // 过期 → 等联网刷新
+        return obj;
+    } catch (e) { return null; }
+}
+
+async function dramaDayStoreSet(dateStr, payload, degraded) {
+    try {
+        if (!Widget.storage || !Widget.storage.set) return;
+        if (degraded) return;   // 抓取降级 → 结果不完整，拒绝写盘
+        if (!payload || !Array.isArray(payload.dataset) || !payload.dataset.length) return;
+        await Widget.storage.set(`${DRAMA_STORE_PREFIX}|${dateStr}`,
+            JSON.stringify(Object.assign({ ts: Date.now() }, payload)));
+    } catch (e) { /* 存储失败不影响正常返回 */ }
+}
+
+// 详情补全（dramaEnrichEntry）发生在数据集写盘**之后**，所以那一刻 details 还是空的。
+// 这里在补全完成后回写一次，让下次切回时详情也能命中缓存（否则每页仍要 6 次详情请求）。
+// ⚠️ 必须保留原 ts：若用当前时间续期，缓存将永不失效，
+//    志愿者新补的海报/简介就永远刷不出来 —— 那正是最不能接受的。
+async function dramaDayStorePatch(dateStr, details) {
+    try {
+        if (!Widget.storage || !Widget.storage.get || !Widget.storage.set) return;
+        const key = `${DRAMA_STORE_PREFIX}|${dateStr}`;
+        const raw = await Widget.storage.get(key);
+        if (!raw) return;
+        const obj = typeof raw === "string" ? JSON.parse(raw) : raw;
+        if (!obj || !obj.ts) return;
+        if (Date.now() - Number(obj.ts) >= DRAMA_CACHE_TTL_MS) return;   // 已过期就别续命
+        obj.details = Object.assign({}, obj.details || {}, details || {});
+        await Widget.storage.set(key, JSON.stringify(obj));              // ts 原样保留
+    } catch (e) { /* 补写失败不影响正常返回 */ }
+}
+
+async function dramaListStoreGet(key) {
+    try {
+        if (!Widget.storage || !Widget.storage.get) return null;
+        const raw = await Widget.storage.get(key);
+        if (!raw) return null;
+        const obj = typeof raw === "string" ? JSON.parse(raw) : raw;
+        if (!obj || !Array.isArray(obj.items) || !obj.items.length) return null;
+        if (Date.now() - Number(obj.ts || 0) >= DRAMA_CACHE_TTL_MS) return null;
+        return obj.items;
+    } catch (e) { return null; }
+}
+
+async function dramaListStoreSet(key, items, degraded) {
+    try {
+        if (!Widget.storage || !Widget.storage.set) return;
+        if (degraded) return;
+        if (!Array.isArray(items) || !items.length) return;
+        if (items.some(it => it && it.type === "text")) return;   // 不固化「加载失败」提示卡
+        await Widget.storage.set(key, JSON.stringify({ ts: Date.now(), items }));
+    } catch (e) { /* 存储失败不影响正常返回 */ }
+}
+
 
 const DRAMA_SERVER_EXCLUDED_GENRE_IDS = [99, 10763, 10764, 10766, 10767];
 
@@ -253,7 +347,10 @@ const VarietySeasonCache = {};
 // 注意别在读取端加「降级就不读缓存」的判断：本次是否会降级要等抓取结束才知道，
 // 入口处恒为未知，那样的守卫是死代码（曾写过一版，被 scenario E 测出来）。
 const VARIETY_STORE_TTL_MS = 60 * 60 * 1000;
-const VARIETY_STORE_PREFIX = "variety_week_v2";
+// v3：v2 时代的键里带 page、存的是**单页卡片**（翻页/重载都要重抓）。
+// 现在整份列表只存一份（键不含 page），翻页只做本地切片。换前缀避免读到旧格式。
+const VARIETY_STORE_PREFIX = "variety_week_v3";
+const VARIETY_HOT_STORE_PREFIX = "variety_hot_v3";
 
 // 本次抓取是否出现过失败（重试耗尽 / Trakt 报错）。
 // 它在每次入口调用开始时重置，调用结束后由入口读取。
@@ -383,10 +480,11 @@ function animePickTmdbMatch(results, wantYear) {
 // 注意：genre_ids 为空的条目**不算**「明确非动画」——TMDB 上不少新番/冷门条目
 // 就是这么个空壳（例如《死神 千年血战篇 -祸进谭》），不能因此把它丢掉。
 
-async function animeStoreGet(weekday, updateDate, page) {
+// 存/取的都是**整份数据集**（键不含 page），调用方自行按页切片。
+async function animeStoreGet(weekday, updateDate) {
     try {
         if (!Widget.storage || !Widget.storage.get) return null;
-        const raw = await Widget.storage.get(`${ANIME_STORE_PREFIX}|${weekday}|${updateDate}|${page}`);
+        const raw = await Widget.storage.get(`${ANIME_STORE_PREFIX}|${weekday}|${updateDate}`);
         if (!raw) return null;
         const obj = typeof raw === "string" ? JSON.parse(raw) : raw;
         if (!obj || !Array.isArray(obj.items) || !obj.items.length) return null;
@@ -396,10 +494,14 @@ async function animeStoreGet(weekday, updateDate, page) {
 }
 
 
-async function animeStoreSet(weekday, updateDate, page, items) {
+async function animeStoreSet(weekday, updateDate, items, degraded) {
     try {
-        if (!Widget.storage || !Widget.storage.set || !Array.isArray(items) || !items.length) return;
-        await Widget.storage.set(`${ANIME_STORE_PREFIX}|${weekday}|${updateDate}|${page}`, JSON.stringify({ ts: Date.now(), items }));
+        if (!Widget.storage || !Widget.storage.set) return;
+        // 抓取过程中有数据源失败 → 数据集不完整，绝不写盘
+        // （否则「B站挂了但 Bangumi 正常」这种残缺结果会被固化一小时）
+        if (degraded) return;
+        if (!Array.isArray(items) || !items.length) return;
+        await Widget.storage.set(`${ANIME_STORE_PREFIX}|${weekday}|${updateDate}`, JSON.stringify({ ts: Date.now(), items }));
     } catch (e) { /* 存储失败不影响正常返回 */ }
 }
 
@@ -504,6 +606,7 @@ async function calendarFetchTmdbCnAnime(updateDate, dayName) {
     }
     const items = collected.map(x => x.item);
     if (ok) AnimeCnTmdbCache[updateDate] = items;   // 失败不进缓存，避免一次抖动锁死整轮
+    else animeFetchDegraded = true;                  // 通知写入端：本次数据集不完整
     return items;
 }
 
@@ -519,6 +622,13 @@ async function calendarScanDramaToday(region, dateStr, baseParams, needCount, is
     if (!pool.length) return [];
     const slice = pool.slice((page - 1) * DRAMA_PAGE_SIZE, page * DRAMA_PAGE_SIZE);
     const enriched = await Promise.all(slice.map(e => dramaEnrichEntry(e).catch(() => e)));
+    // 把刚补全成功的详情回写（保留原 ts），下次切回这一页就是 0 请求
+    const fresh = {};
+    enriched.forEach(e => {
+        const d = DramaTmdbDetailCache[e.tmdbId];
+        if (d) fresh[e.tmdbId] = d;
+    });
+    if (Object.keys(fresh).length) await dramaDayStorePatch(dateStr, fresh);
     return enriched.map(e => dramaEntryToCard(e, dateStr));
 }
 
@@ -527,6 +637,16 @@ async function dramaBuildTodayDataset(dateStr) {
     let st = DramaTodayCache[dateStr];
     if (st && st.dataset) return st.dataset;
     if (!st) st = DramaTodayCache[dateStr] = {};
+
+    // 持久层命中：脚本被重新执行（切参数/切频道）时直接拿整份数据集，0 请求
+    const blob = await dramaDayStoreGet(dateStr);
+    if (blob) {
+        st.dataset = blob.dataset;
+        st.traktOk = blob.traktOk !== false;
+        if (blob.details) Object.assign(DramaTmdbDetailCache, blob.details);
+        if (Array.isArray(blob.cnEntries)) DramaCnDayCache[dateStr] = blob.cnEntries;
+        return st.dataset;
+    }
 
     const [traktRows, cnEntries] = await Promise.all([
         dramaFetchTraktDay(dateStr),
@@ -564,6 +684,20 @@ async function dramaBuildTodayDataset(dateStr) {
     }
     st.dataset = dataset;
     st.enriched = {};
+    // 写盘：Trakt 不可用时走了 TMDB 兜底（排期不完整），拒绝固化
+    if (!st.traktOk) dramaFetchDegraded = true;
+    // 只持久化「查到了」的详情（负缓存不落盘）：否则志愿者刚给某部剧补上海报，
+    // 也会因为一小时内仍命中 null 负缓存而看不到。
+    const okDetails = {};
+    Object.keys(DramaTmdbDetailCache).forEach(k => {
+        if (DramaTmdbDetailCache[k]) okDetails[k] = DramaTmdbDetailCache[k];
+    });
+    await dramaDayStoreSet(dateStr, {
+        dataset,
+        traktOk: st.traktOk,
+        cnEntries: DramaCnDayCache[dateStr] || [],
+        details: okDetails
+    }, dramaFetchDegraded);
     return dataset;
 }
 
@@ -574,6 +708,7 @@ async function dramaBuildTodayDataset(dateStr) {
 async function dramaCollectChineseEntries(dateStr) {
     if (dateStr in DramaCnDayCache) return DramaCnDayCache[dateStr];
     const rows = await dramaFetchTvmazeDay(dateStr, "CN");
+    if (rows === null) { dramaFetchDegraded = true; return []; }   // 源失败：本次结果不完整
     if (!rows.length) { DramaCnDayCache[dateStr] = []; return []; }
 
     const grouped = {};
@@ -800,12 +935,15 @@ async function dramaFetchTraktDay(dateStr) {
 // 所以这里按节目的 airs.timezone 把 first_aired 换算成当地日期，与详情页保持一致。
 
 async function dramaFetchTvmazeDay(dateStr, country) {
+    // ⚠️ 返回值三态：数组 = 成功（可能确实为空）；**null = 请求失败**。
+    // 之前失败也返回空数组，导致「真没有国产剧」与「TVmaze 挂了」无法区分，
+    // 会把残缺结果当成有效数据写进持久缓存。
     try {
         const res = await Widget.http.get(`https://api.tvmaze.com/schedule?date=${dateStr}&country=${country}`);
-        const rows = (res && res.data) || [];
-        if (!Array.isArray(rows)) return [];
+        const rows = res && res.data;
+        if (!Array.isArray(rows)) return null;
         return rows.filter(r => r && r.show && (!r.airdate || r.airdate === dateStr));
-    } catch (_) { return []; }
+    } catch (_) { return null; }
 }
 
 // TVmaze 只给英文名且没有 TMDB id，需回到 TMDB 换中文名/海报/id。
@@ -933,8 +1071,42 @@ async function loadStandaloneDramaCalendar(params = {}) {
     return await calendarLoadDrama({ mode: params.calendar_mode || "update_today", sort_by: params.drama_region || params.sort_by || "Global", page: params.page });
 }
 
+// 综艺追更的持久缓存入口。
+// 数据只有一份（候选池 → 逐条判定 → 排序），所以**整份列表存一条**，翻页只做本地切片。
+// key 含日期：跨零点必然换 key，不会把昨天的排期当成今天返回。
+// TTL 1 小时：志愿者在 TMDB 补录的内容，最多 1 小时后必然重新联网取到。
+// 写入端守卫：本次抓取有任一请求失败（varietyFetchDegraded）→ 拒绝写盘，
+// 否则「Trakt 挂了只剩国产几张卡」这种残缺结果会被固化一小时。
 async function loadStandaloneVarietyAggregate(params = {}) {
-    return await calendarLoadVarietyUltimate({ listType: params.list_type || "calendar", days: params.days || "14", region: params.variety_region || params.sort_by || "all", page: params.page });
+    const listType = params.list_type || "calendar";
+    const days = params.days || "14";
+    const rawRegion = params.variety_region || params.sort_by || "all";
+    const cleanRegion = varietyNormalizeRegion(rawRegion);
+    const page = Math.max(1, Number(params.page || 1));
+    const todayStr = varietyBeijingDate(0);
+    const storeKey = listType === "hot"
+        ? `${VARIETY_HOT_STORE_PREFIX}|${cleanRegion}`
+        : `${VARIETY_STORE_PREFIX}|${listType}|${cleanRegion}|${varietyDays(days)}|${todayStr}`;
+
+    // 1) 持久层命中 → 本地切片，0 请求秒开
+    const stored = await varietyStoreGet(storeKey);
+    if (stored && stored.length) {
+        if (listType === "hot") return stored;   // 热度榜首页即给全量
+        const start = (page - 1) * VARIETY_PAGE_SIZE;
+        return stored.slice(start, start + VARIETY_PAGE_SIZE);
+    }
+
+    // 2) 未命中 → 拿整份列表，落盘后再切片返回
+    const full = await calendarLoadVarietyUltimate({
+        listType, days, region: rawRegion, page: 1, returnFull: true
+    });
+    if (Array.isArray(full) && full.length && !full.some(i => i && i.type === "text")) {
+        await varietyStoreSet(storeKey, full, varietyFetchDegraded);
+        if (listType === "hot") return full;
+        const start = (page - 1) * VARIETY_PAGE_SIZE;
+        return full.slice(start, start + VARIETY_PAGE_SIZE);
+    }
+    return Array.isArray(full) ? full : [];
 }
 
 // =========================================================================
@@ -1161,7 +1333,15 @@ async function varietyFetchTraktCalendar(days) {
         "User-Agent": UA
     };
     const from = varietyBeijingDate(0);
-    const url = `https://api.trakt.tv/calendars/all/shows/${from}/${span}?extended=full`;
+    // 🚀 服务端题材过滤：本项目从这份日历里只收综艺（真人秀/脱口秀/游戏节目），
+    // 而 Trakt 返回的是**全题材**日历 —— 实测 14 天窗口 1363KB / 581 条中，
+    // 只有 206 条（35%）是综艺，剩下 65% 全是剧集，下载完立刻被客户端丢掉。
+    // 实测加过滤后：1363KB → 484KB，耗时 4.6s → 1.6s（均降约 65%），
+    // 且**只丢剧集、不丢综艺**（206 条综艺一条不少）。
+    // 注：Trakt 的 genres 是「命中其一即返回」，与下方客户端过滤条件完全一致；
+    //     即便该参数哪天被上游忽略，客户端仍会再滤一遍，正确性不受影响。
+    const url = `https://api.trakt.tv/calendars/all/shows/${from}/${span}`
+        + `?extended=full&genres=${VARIETY_TRAKT_GENRES.join(",")}`;
     try {
         const res = await Widget.http.get(url, { headers });
         const rows = (res && res.data) || [];
@@ -1745,20 +1925,29 @@ async function calendarLoadAnime(params = {}) {
     }
     if (AnimePageCache[cacheKey]) return AnimePageCache[cacheKey];
 
+    animeFetchDegraded = false;   // 本次抓取开始，先清空降级标记
+
     // 内存缓存未命中 → 查持久缓存（App 切换参数会重新执行脚本，内存会被清空）
-    const storedItems = await animeStoreGet(weekday, updateDate, page);
-    if (storedItems) {
-        AnimePageCache[cacheKey] = storedItems;
-        return storedItems;
+    // 持久层存的是整份数据集，这里按页切片返回。
+    const storedAll = await animeStoreGet(weekday, updateDate);
+    if (storedAll) {
+        const s = (page - 1) * pageSize;
+        const slice = storedAll.slice(s, s + pageSize);
+        AnimePageCache[cacheKey] = slice;
+        return slice;
     }
 
     try {
         // 三个数据源同时开跑。Bangumi / B站 的条目还要各自去 TMDB 搜一次，
         // 那段搜索与 TMDB 国漫兜底是两件独立的事，必须并行起来 ——
         // 否则总耗时是「兜底」+「搜索」两段串行相加。
-        const bgmResP = Widget.http.get("https://api.bgm.tv/calendar").catch(() => ({ data: [] }));
-        const biliResP = Widget.http.get("https://api.bilibili.com/pgc/web/timeline?types=4").catch(() => ({ data: {} }));
-        const tmdbCnP = calendarFetchTmdbCnAnime(updateDate, dayName);
+        // 任一源失败都要标记降级（下面禁止写持久缓存），否则残缺数据集被固化
+        const bgmResP = Widget.http.get("https://api.bgm.tv/calendar")
+            .catch(() => { animeFetchDegraded = true; return { data: [] }; });
+        const biliResP = Widget.http.get("https://api.bilibili.com/pgc/web/timeline?types=4")
+            .catch(() => { animeFetchDegraded = true; return { data: {} }; });
+        const tmdbCnP = calendarFetchTmdbCnAnime(updateDate, dayName)
+            .catch(() => { animeFetchDegraded = true; return []; });
 
         const [bgmRes, biliRes] = await Promise.all([bgmResP, biliResP]);
 
@@ -1902,7 +2091,8 @@ async function calendarLoadAnime(params = {}) {
         const resSlice = mergedAll.slice(start, start + pageSize);
         AnimePageCache[cacheKey] = resSlice;
         AnimeCacheTime[weekday] = Date.now();
-        await animeStoreSet(weekday, updateDate, page, resSlice);
+        // 存**整份数据集**（不是这一页），这样翻页与重载都只需 0 请求
+        await animeStoreSet(weekday, updateDate, mergedAll, animeFetchDegraded);
         return resSlice;
 
     } catch (e) {
@@ -1927,6 +2117,7 @@ async function calendarLoadDrama(params = {}) {
     const mode = params.mode || "update_today";
     const region = params.sort_by || "Global";
     const page = Number(params.page || 1);
+    dramaFetchDegraded = false;   // 本次抓取开始，先清空降级标记
 
     // 第一页加载时检查 5 分钟 TTL：若超过则全量清理剧集缓存（包含 Trakt/TVmaze 当日表和 TMDB 详情缓存），
     // 保证上午查到的旧排期在下午志愿者补录后刷新即可见最新集数。
@@ -1976,6 +2167,9 @@ async function calendarLoadDrama(params = {}) {
         // 首播类（明日/7天/30天）单次请求即可，按页缓存，切地区不再重复等待
         const pKey = `${mode}|${region}|${dates.start}|${page}`;
         if (DramaPremiereCache[pKey]) return DramaPremiereCache[pKey];
+        // 持久层：切参数会重跑脚本、内存清零，这里同样按「模式+地区+日期+页」落盘
+        const storedPm = await dramaListStoreGet(`${DRAMA_PM_STORE_PREFIX}|${pKey}`);
+        if (storedPm) { DramaPremiereCache[pKey] = storedPm; return storedPm; }
         const res = await Widget.tmdb.get("/discover/tv", { params: queryParams });
         // 排除规则对所有地区都要生效（此前只在"全球聚合"下过滤，
         // 导致切到中国/美国等地区时动画会漏进来）
@@ -1997,6 +2191,7 @@ async function calendarLoadDrama(params = {}) {
             });
         });
         DramaPremiereCache[pKey] = built;
+        await dramaListStoreSet(`${DRAMA_PM_STORE_PREFIX}|${pKey}`, built, false);
         return built;
     } catch (e) { return [{ id: "err", type: "text", title: "网络错误" }]; }
 }
@@ -2007,6 +2202,9 @@ async function calendarLoadVarietyUltimate(params = {}) {
     const cleanRegion = varietyNormalizeRegion(rawRegion);
     const days = String(params.days ?? "14");
     const pageNum = Math.max(1, parseInt(params.page) || 1);
+    // returnFull：调用方要整份列表（自行切片/落盘），此时不分页。
+    const returnFull = params.returnFull === true;
+    varietyFetchDegraded = false;   // 本次抓取开始，先清空降级标记
 
     // 🚀 热度榜（hot）：秒开模式，discover 原生数据直出（零详情请求）。
     // 一次**并发**抓多页后合并，首页即给全量、不再分页 —— 详见 varietyResolveHotFast。
@@ -2041,6 +2239,7 @@ async function calendarLoadVarietyUltimate(params = {}) {
         // 纯国外：Trakt 拿到就直接返回（1 次请求，秒开）
         if (cleanRegion === "global" && traktItems.length) {
             traktItems.sort((a, b) => String(a.releaseDate).localeCompare(String(b.releaseDate)));
+            if (returnFull) return traktItems;
             const start = (pageNum - 1) * VARIETY_PAGE_SIZE;
             return traktItems.slice(start, start + VARIETY_PAGE_SIZE);
         }
@@ -2075,6 +2274,7 @@ async function calendarLoadVarietyUltimate(params = {}) {
                 : [];
         }
 
+        if (returnFull) return items;
         const start = (pageNum - 1) * VARIETY_PAGE_SIZE;
         return items.slice(start, start + VARIETY_PAGE_SIZE);
     } catch (e) {
