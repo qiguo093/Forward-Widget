@@ -4694,8 +4694,46 @@ function platformCompanyBuildItem(item, mediaType) {
 }
 
 // =========================================================================
-// 平台公司片库：极速 Discover 直出（单次请求直出，零递归详情探测，秒开）
+// 平台公司片库：极速 Discover 直出 + DC 影业特殊片单手动补全
 // =========================================================================
+
+async function platformCompanyLoadDcExtras(params, results, today, language, sortBy) {
+    if (String(params.with_companies || "") !== "128064") return results;
+    // DC Universe 经典必看电影手动补全名单（超人、蝙蝠侠黑暗骑士三部曲等）
+    const extraIds = [1061474, 1081003, 49521, 209112, 272, 155, 49026, 44912, 1523140];
+    const existing = new Set(results.map(item => String(item.id)));
+    const extras = await Promise.all(extraIds.map(async id => {
+        if (existing.has(String(id))) return null;
+        try {
+            const detail = await Widget.tmdb.get(`/movie/${id}`, { params: { language } });
+            if (!detail?.id) return null;
+            const date = detail.release_date || "";
+            if (params.air_status === "released" && date > today) return null;
+            if (params.air_status === "upcoming" && date && date < today) return null;
+            const genres = (detail.genres || []).map(genre => genre.id);
+            if (genres.includes(16) || genres.includes(99) || genres.includes(10770)) return null;
+            return detail;
+        } catch (error) {
+            console.error("[platformCompany] DC 电影补查失败:", id, error.message || error);
+            return null;
+        }
+    }));
+    // 过滤动画/纪录片/电视电影及短片，合并手动添加的 DC 经典条目后按上映日期排序
+    const merged = results.filter(item =>
+        !(item.genre_ids || []).includes(16) &&
+        !(item.genre_ids || []).includes(99) &&
+        !(item.genre_ids || []).includes(10770) &&
+        String(item.title || item.name || "").trim() !== "Etta's Mission"
+    ).concat(extras.filter(Boolean));
+    merged.sort((a, b) => {
+        const aDate = a.release_date || "";
+        const bDate = b.release_date || "";
+        return sortBy === "primary_release_date.asc"
+            ? aDate.localeCompare(bDate)
+            : bDate.localeCompare(aDate);
+    });
+    return merged;
+}
 
 async function loadPlatformCompanyLibrary(params = {}) {
     const source = params.library_source || "network";
@@ -4733,10 +4771,15 @@ async function loadPlatformCompanyLibrary(params = {}) {
 
     try {
         const response = await Widget.tmdb.get(`/discover/${mediaType}`, { params: query });
-        const results = Array.isArray(response?.results) ? response.results : [];
-        return results
-            .filter(item => item && item.id && (item.poster_path || item.backdrop_path))
-            .map(item => platformCompanyBuildItem(item, mediaType));
+        let results = Array.isArray(response?.results) ? response.results : [];
+        results = results.filter(item => item && item.id && (item.poster_path || item.backdrop_path));
+        
+        // 仅对 DC 影业保留手动补全的经典条目，其余公司/平台一律纯净 discover 直出
+        if (isCompany && String(params.with_companies || "") === "128064") {
+            results = await platformCompanyLoadDcExtras(params, results, today, language, sortBy);
+        }
+        
+        return results.map(item => platformCompanyBuildItem(item, mediaType));
     } catch (error) {
         console.error("[loadPlatformCompanyLibrary] 请求失败:", error.message || error);
         return [{ id: "platform_company_error", type: "text", title: "加载失败", description: "平台/公司片库请求失败，请稍后重试" }];
