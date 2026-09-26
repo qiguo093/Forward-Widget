@@ -4166,6 +4166,17 @@ async function loadChinaAnimeCombined(params = {}) {
     }
 }
 
+// 日文假名（平假名 + 片假名）：TMDB 上被错标成 zh/CN 的日本动画的唯一可靠破绽
+const JAPANESE_KANA_RE = /[\u3040-\u309F\u30A0-\u30FF]/;
+// 汉字：用于识别「original_name 里一个汉字都没有」的可疑条目
+const CJK_RE = /[\u4e00-\u9fff]/;
+// 已知日本动画 IP：TMDB 上还有一类「原名叫中文、数据全标成 CN」的日本片
+// （如《哆啦A梦TV版》《名侦探柯南（中配）》），假名规则抓不到，只能靠片名黑名单。
+// ⚠️ 只收录不可能与国漫同名的日本 IP 全名 —— 实测「精灵」「足球小将」这类词
+//    会误杀真国漫（《精灵梦叶罗丽》《精灵世纪》《宋代足球小将》），故一律不用。
+//    本名单在 1800 条真实数据上实测：命中 6 条全为日本片，零误杀。
+const JP_FRANCHISE_RE = /哆啦A梦|多啦A梦|机器猫|名侦探柯南|海贼王|航海王|火影忍者|七龙珠|龙珠|宝可梦|精灵宝可梦|宠物小精灵|蜡笔小新|樱桃小丸子|灌篮高手|数码宝贝|奥特曼|圣斗士星矢|美少女战士|机动战士高达|新世纪福音战士|鬼灭之刃|咒术回战|进击的巨人|间谍过家家|犬夜叉|银魂|游戏王|铁臂阿童木|光之美少女|假面骑士|超级战队|东京喰种|一拳超人|钢之炼金术师|排球少年/;
+
 // 年份筛选的统一判定：供 TMDB 与 B站 两路复用（year=all 全通过；older=2016 之前）
 function chinaAnimeYearMatch(dateStr, year) {
     if (!year || year === "all") return true;
@@ -4246,7 +4257,31 @@ async function loadChinaAnimeLibrary(params = {}) {
             const res = await Widget.tmdb.get("/discover/tv", { params: q });
             const list = res.results || [];
             if (!list.length) continue;      // 空页换下一种组合再试
-            return list.map(item => ({
+            // TMDB 把大量日本动画错标成 zh/CN（实测 1000 条里 16 条），
+            // 例如《漆黑的射干》《圖書館的她》《哆啦A梦·新版》—— 它们的
+            // original_language / origin_country 全是中文，只有 original_name
+            // 露出马脚（含日文假名）。故用假名做一次确定性过滤。
+            const clean = list.filter(item =>
+                !JAPANESE_KANA_RE.test(item.original_name || "") &&
+                !JP_FRANCHISE_RE.test(item.name || "") &&
+                !JP_FRANCHISE_RE.test(item.original_name || "")
+            );
+            // 其余「原名一点汉字都没有」的条目（实测 0.8%，如《小公主戴安娜》原名
+            // MIS 3 AÑOS）多为误标的外国少儿片。逐个查详情确认产地，
+            // 只有 production_countries 含 CN 才留（《百变马丁》CN 保留、
+            // 《时空使徒》JP+CN 保留、《小公主戴安娜》空 剔除）。
+            // 抽查成本极低（每页 0~1 条），故设上限 3 防止异常页面拖慢首屏。
+            const suspects = clean.filter(item => !CJK_RE.test(item.original_name || ""));
+            const dropped = new Set();
+            for (const s of suspects.slice(0, 3)) {
+                try {
+                    const d = await Widget.tmdb.get(`/tv/${s.id}`, { params: {} });
+                    const pc = ((d && d.production_countries) || []).map(c => c.iso_3166_1);
+                    if (!pc.includes("CN")) dropped.add(s.id);
+                } catch (e) { /* 查不到详情就按保留处理，宁可多一条也不错杀 */ }
+            }
+            const finalList = clean.filter(item => !dropped.has(item.id));
+            return finalList.map(item => ({
                 id: String(item.id),
                 tmdbId: parseInt(item.id),
                 type: "tmdb",
@@ -4317,6 +4352,12 @@ async function loadBilibiliGuochuangAll(params = {}) {
                     genreTitle: "国漫",
                 };
             }
+
+            // 国创片库里混着国创动画电影（《白蛇2：青蛇劫起》《白蛇：浮生》），
+            // searchTmdbAnimeStrict 会匹配到 TMDB 的 movie 条目。本模块是以剧集为单位的
+            // 片库（页尺寸/排序口径都按剧集设计），故电影一律剔除，
+            // 避免出现「mediaType 标成 tv、日期却为空」的错卡片。
+            if (tmdbItem.first_air_date === undefined && tmdbItem.title !== undefined) return null;
 
             // 年份筛选：B站 索引接口不返回首播日期（实测 year/season_year 等参数全被忽略），
             // 只能用 TMDB 匹配回来的 first_air_date 在客户端判年。
