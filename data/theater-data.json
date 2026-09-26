@@ -1,5 +1,5 @@
 {
-  "last_updated": "2026-09-26 19:00:54",
+  "last_updated": "2026-09-27 07:28:34",
   "迷雾剧场": {
     "aired": [
       {
@@ -1269,6 +1269,21 @@
         "genreTitle": "动作冒险"
       },
       {
+        "id": "301804",
+        "type": "tmdb",
+        "title": "万灵渡",
+        "description": "捉妖师上官扉夜与失忆前客栈主东方照白在神秘妖怪客栈中相遇，为解除上官的千年诅咒，他们帮助各路心怀遗憾的客人化解执念。在共同经历中，两人解开千年前误会，重新发现人类情感，并携手击败妖王，守护世间安宁，同时重新相爱。",
+        "rating": 7.0,
+        "voteCount": 1,
+        "popularity": 2.3095,
+        "releaseDate": "2025-10-28",
+        "lastUpdateDate": "2025-10-28",
+        "posterPath": "/dEF3LBaw9PwaUbrWrGWhwymxtX5.jpg",
+        "backdropPath": "/dQRAOBLNhTxqzAISoAdnI7Opd2o.jpg",
+        "mediaType": "tv",
+        "genreTitle": "剧情"
+      },
+      {
         "id": "302933",
         "type": "tmdb",
         "title": "遮云",
@@ -1280,6 +1295,21 @@
         "lastUpdateDate": "2025-10-21",
         "posterPath": "/opSr9GuJtp2o7tfAIhUqmdiQTzP.jpg",
         "backdropPath": "/uVf1veq8m4i96gnvTbJtIvAgvO1.jpg",
+        "mediaType": "tv",
+        "genreTitle": "剧情"
+      },
+      {
+        "id": "294626",
+        "type": "tmdb",
+        "title": "柴门小福妻",
+        "description": "美食博主何青青不慎跌倒穿越古代田园，开启漫长搞钱还债、先婚后爱、养成萌宝的大女主升级线，拼杀出一条致富之路，收获傅清淮互宠互爱的真挚感情。就在她事业、爱情、亲情三全的时候，却面临离开还是留下的艰难抉择……",
+        "rating": 6.0,
+        "voteCount": 2,
+        "popularity": 1.5485,
+        "releaseDate": "2025-10-08",
+        "lastUpdateDate": "2025-10-15",
+        "posterPath": "/cRKmIjZAbmKrrJb6Io7UXAljK4r.jpg",
+        "backdropPath": "/mGQzPHmeHR9oQkFpjuMNNObyTJw.jpg",
         "mediaType": "tv",
         "genreTitle": "剧情"
       },
@@ -1719,6 +1749,21 @@
         "genreTitle": "剧情"
       },
       {
+        "id": "249360",
+        "type": "tmdb",
+        "title": "今天航班零投诉",
+        "description": "王海仙为了追求男神空乘李尔，来到了航空公司面试空乘。公司找了一帮戏精群演来扮演乘客以训练这批新人的应变能力，在培训的过程中，王海仙逐渐认识到了空乘职业的魅力，并同伙伴们一起解决了各类棘手的乘客问题。",
+        "rating": 8.0,
+        "voteCount": 2,
+        "popularity": 1.4965,
+        "releaseDate": "2024-03-18",
+        "lastUpdateDate": "2024-04-01",
+        "posterPath": "/e9rlhLG1BawVsnYKWUrq6XzZGKa.jpg",
+        "backdropPath": "/3z9ZbToAHnMLyEn6Lg2IxLzriKQ.jpg",
+        "mediaType": "tv",
+        "genreTitle": "剧情"
+      },
+      {
         "id": "245749",
         "type": "tmdb",
         "title": "授她以柄",
@@ -1854,6 +1899,21 @@
         "genreTitle": "剧情,犯罪"
       },
       {
+        "id": "231488",
+        "type": "tmdb",
+        "title": "一吻倾城",
+        "description": "一场爆炸让片场小龙套盛夏穿入漫画《他追她逃：四皇子的柔弱小娇妻》中，并被绑定玛丽苏系统，只要完成任务攒够玛丽苏值，她就可以回到现代走上人生巅峰成为女明星！为了实现心愿，盛夏兴致勃勃就要去抓男主角，谁料竟和本作大反派沈十一撞了个满怀，更让她绝望的是她竟然还和这尊瘟神绑定了姻缘称号！\n\n　　一个是铁面绝情大反派，一个是满心事业的女主角，两人竟然还真碰出意想不到的火花。一场游戏，究竟谁是纸片人，而谁又拥有真心？",
+        "rating": 0.0,
+        "voteCount": 0,
+        "popularity": 2.7222,
+        "releaseDate": "2023-07-28",
+        "lastUpdateDate": "2023-08-11",
+        "posterPath": "/m9bHIZEs5edt7srb2W5jga47g7N.jpg",
+        "backdropPath": "/xFSqw8Ia1TxkKUuPnRyhZ0P2ooj.jpg",
+        "mediaType": "tv",
+        "genreTitle": "剧情,喜剧"
+      },
+      {
         "id": "231225",
         "type": "tmdb",
         "title": "君心难逑",
@@ -1867,6 +1927,21 @@
         "backdropPath": "/1Oxqauc4NBJUCD6YcyM3eBujFsw.jpg",
         "mediaType": "tv",
         "genreTitle": "剧情"
+      },
+      {
+        "id": "231304",
+        "type": "tmdb",
+        "title": "套路先生请指示",
+        "description": "该剧讲述看似柔弱的落难孤女莫素情，为复家仇接近集团总裁叶钟珏，步步为营设局请君入瓮。万万没想到，一切计划的顺利推进，竟都是在叶钟珏设下的重重套路之中。白切黑的小白兔VS黑切白的大灰狼，双方自诩掌控全局，殊不知，在这场恋爱游戏中没有猎人，两人皆是猎物......",
+        "rating": 7.0,
+        "voteCount": 1,
+        "popularity": 1.6515,
+        "releaseDate": "2023-07-13",
+        "lastUpdateDate": "2023-07-25",
+        "posterPath": "/vGWVzNL2ctOUeWbkZZXmZ8jvK70.jpg",
+        "backdropPath": "/4qGZrcuz1LOqesVj13GlWeWsKZK.jpg",
+        "mediaType": "tv",
+        "genreTitle": "剧情,悬疑"
       },
       {
         "id": "230468",
@@ -1989,6 +2064,21 @@
         "genreTitle": "剧情,喜剧"
       },
       {
+        "id": "218560",
+        "type": "tmdb",
+        "title": "三生缘起是清欢",
+        "description": "清欢本是忘川河边一朵鸢尾花，意外得到神君白泽点化，二人却因此情根深种、卷入轮回。三生情劫中，白泽与清欢历经悲欢离合，尝尽爱恨情仇，终于参透“情”之一字，收获了凄美动人、感人至深的爱情。",
+        "rating": 7.3,
+        "voteCount": 3,
+        "popularity": 1.6433,
+        "releaseDate": "2022-12-30",
+        "lastUpdateDate": "2023-01-20",
+        "posterPath": "/hMe0UjQqQtHJOvHwGX89XDe0mOM.jpg",
+        "backdropPath": "/ghDpTAXdo8zG8oRm2xWQwfVFf9t.jpg",
+        "mediaType": "tv",
+        "genreTitle": "剧情"
+      },
+      {
         "id": "214740",
         "type": "tmdb",
         "title": "重返1993",
@@ -2002,6 +2092,36 @@
         "backdropPath": "/mcCSULPqjTouQ7eiHjiOvvTYQM4.jpg",
         "mediaType": "tv",
         "genreTitle": "剧情"
+      },
+      {
+        "id": "214309",
+        "type": "tmdb",
+        "title": "明月祭君心",
+        "description": "靖国将军之子萧奇风与宁国公主国婚当晚，一副穿着青衣的骸骨赫然出现在废井之中！萧将军、萧夫人、天命司玄女素晴争相认罪，靖国皇后竟险些遭遇刺杀，萧府一时间成修罗场，“青衣骸骨”背后的真相也逐渐浮出水面。",
+        "rating": 8.0,
+        "voteCount": 2,
+        "popularity": 1.5514,
+        "releaseDate": "2022-11-09",
+        "lastUpdateDate": "2022-11-17",
+        "posterPath": "/8uGJNguD3jwB4B89cQ0ikF7Hof3.jpg",
+        "backdropPath": "/aTdg1swDHVJdaZ14K69xGhIuT7K.jpg",
+        "mediaType": "tv",
+        "genreTitle": "剧情,悬疑"
+      },
+      {
+        "id": "213591",
+        "type": "tmdb",
+        "title": "双世萌妻",
+        "description": "“绿叶女孩”姚靓靓成为失恋又失业的“双失青年”后，意外打开时间裂缝，开启了平行宇宙的神秘大门，又误打误撞成了这个国度里国王“正”的救命稻草。当财迷靓靓遇上落难国王，一纸契约，一段同居，平行宇宙里的奇妙命运就这样联结了，姚靓靓与正跨越时空的合租奇缘，两人从相识、相扶，最终相爱，上演着一段又一段搞笑甜蜜的爱情故事。",
+        "rating": 7.0,
+        "voteCount": 1,
+        "popularity": 1.5761,
+        "releaseDate": "2022-10-31",
+        "lastUpdateDate": "2022-11-17",
+        "posterPath": "/qzoHopP5VfhB151Fly5XBqSGsSI.jpg",
+        "backdropPath": "/zgXf1k4qg7j6ohdEVEyqRt0Dgy2.jpg",
+        "mediaType": "tv",
+        "genreTitle": "剧情,科幻奇幻,喜剧"
       },
       {
         "id": "211908",
@@ -2109,6 +2229,21 @@
         "genreTitle": "喜剧,剧情"
       },
       {
+        "id": "202711",
+        "type": "tmdb",
+        "title": "洛阳四千金",
+        "description": "　　以大唐洛阳的美妆世家顾家四个非同一般的女儿为落点，讲述了在父母失踪后，面对突如其来的家族危机，女孩们放下过往嫌隙恩怨，齐心协力应对内外敌人，成功守护传承秘术的故事，展现古代女子的智勇英气和爱恨情仇。",
+        "rating": 0.0,
+        "voteCount": 0,
+        "popularity": 1.8056,
+        "releaseDate": "2022-05-11",
+        "lastUpdateDate": "2022-06-04",
+        "posterPath": "/ttlweD6bvIfpAalBQl05xi5WFAS.jpg",
+        "backdropPath": "/j8YjGpfbLbNe9vUsi80kf8dRj8P.jpg",
+        "mediaType": "tv",
+        "genreTitle": "剧情"
+      },
+      {
         "id": "198251",
         "type": "tmdb",
         "title": "独女君未见",
@@ -2122,6 +2257,111 @@
         "backdropPath": "/cjbehkm7klxuVUAtLgOWJTwN1DH.jpg",
         "mediaType": "tv",
         "genreTitle": "动作冒险"
+      },
+      {
+        "id": "198165",
+        "type": "tmdb",
+        "title": "瓦舍之素舞遥",
+        "description": "　　宋朝瓦舍兴盛，从小耳濡目染的大小姐周遥最喜素舞，可惜周家突遭变故，周遥被卷入一起离奇案件并成为主要嫌疑人。昔日大小姐的情感之路将何去何从，她又将如何拯救受困女性，找寻幕后之人……",
+        "rating": 0.0,
+        "voteCount": 0,
+        "popularity": 1.3856,
+        "releaseDate": "2022-04-16",
+        "lastUpdateDate": "2022-05-24",
+        "posterPath": "/yJlybXG9CC7ytwueK40y2qgJLZX.jpg",
+        "backdropPath": "/jNkfWGvKNOZLx0lazTVpMtDYX5X.jpg",
+        "mediaType": "tv",
+        "genreTitle": "剧情,动作冒险"
+      },
+      {
+        "id": "196763",
+        "type": "tmdb",
+        "title": "念念无明",
+        "description": "　　风姿绰约的成衣坊老板娘司小念与清苦郎中晏无明喜结连理，然而大婚之日两人却纷纷离开，原来两人都隐藏着一个反转身份——杀手。面对内心的深爱与隐瞒，两人陷入深深的纠葛……",
+        "rating": 7.2,
+        "voteCount": 4,
+        "popularity": 1.9259,
+        "releaseDate": "2022-04-02",
+        "lastUpdateDate": "2022-04-11",
+        "posterPath": "/iOgGe2ATcaFWK2AkNmcf2kWxYXm.jpg",
+        "backdropPath": "/5g7WDxuh5gQNCtotIaZfGVR2PoT.jpg",
+        "mediaType": "tv",
+        "genreTitle": "喜剧,剧情"
+      },
+      {
+        "id": "212373",
+        "type": "tmdb",
+        "title": "长公主在上",
+        "description": "传说长公主李云贞（圻夏夏饰）骄奢淫逸、贪污谋私，让人闻之不齿，侍卫顾玄清（锦超饰）被派卧底长公主身边，搜集证据，以期将她绳之以法。在朝政纷争的背景下，长公主的难言之隐伴随着贪污案的真相逐渐浮出水面，侍卫顾玄清也在卧底任务中彻底爱上任务对象。",
+        "rating": 6.0,
+        "voteCount": 1,
+        "popularity": 2.8104,
+        "releaseDate": "2022-02-05",
+        "lastUpdateDate": "2022-04-09",
+        "posterPath": "/jLupXWbDwvJ74iXsbGjbWZhyOyu.jpg",
+        "backdropPath": "/f7ZXBhQkE6jmRS9j63Qfdhh1KF5.jpg",
+        "mediaType": "tv",
+        "genreTitle": "剧情"
+      },
+      {
+        "id": "155405",
+        "type": "tmdb",
+        "title": "致命主妇",
+        "description": "城市里备受父母宠爱的艾青爱上了农村出身的理发师李大力，李大力拿了艾青父母支援的启动资金和艾青一起创业，业务蒸蒸日上，李大力以不让艾青太辛苦为由，让艾青回家待孕。两年过去了，二人并未怀孕成功，随着婆婆徐春枝搬来同住，战争开始全面爆发。",
+        "rating": 7.0,
+        "voteCount": 1,
+        "popularity": 1.708,
+        "releaseDate": "2022-01-11",
+        "lastUpdateDate": "2022-01-11",
+        "posterPath": "/9st1VrBntamEacI5ke49u9lLQ50.jpg",
+        "backdropPath": "/aBDlC813P9IpzaCgi7gQoWrT3Au.jpg",
+        "mediaType": "tv",
+        "genreTitle": "犯罪,剧情,悬疑"
+      },
+      {
+        "id": "155052",
+        "type": "tmdb",
+        "title": "拜托了！别宠我",
+        "description": "　　讲述了女主颜一一因意外穿越进自己写的小说后，为了回到现实中，想尽办法成为“失宠专业户”，却让一直不近女色的皇帝秦御产生莫大兴趣的故事。",
+        "rating": 10.0,
+        "voteCount": 1,
+        "popularity": 7.1742,
+        "releaseDate": "2022-01-07",
+        "lastUpdateDate": "2023-02-13",
+        "posterPath": "/ypeQ9aLPAGsF5KwGsfbtXHJ5Lzt.jpg",
+        "backdropPath": "/vBAgHDem60xMbShigCMAABflUMp.jpg",
+        "mediaType": "tv",
+        "genreTitle": "剧情"
+      },
+      {
+        "id": "197629",
+        "type": "tmdb",
+        "title": "别惹白鸽",
+        "description": "白鸽、何煦、李力带着各自的问题，来到情感小组寻求帮助。何煦最近偶然间发现自己的“完美伴侣”竟然在陪别的女人逛街；李力想保护自己被骚扰的女儿，反而和女儿产生了更深的隔阂；白鸽困在一段梦幻的爱情中，而故事的男主早已人间蒸发。三人生活出现交集，是巧合，还是一场精心策划的相遇？",
+        "rating": 0.0,
+        "voteCount": 0,
+        "popularity": 1.3795,
+        "releaseDate": "2021-12-31",
+        "lastUpdateDate": "2021-12-31",
+        "posterPath": "/hH01sc52sn8p0thNZXPU3en1p46.jpg",
+        "backdropPath": "/wGn7LwADFg1fn0A3Xa91Vr48I3B.jpg",
+        "mediaType": "tv",
+        "genreTitle": "剧情,悬疑"
+      },
+      {
+        "id": "156113",
+        "type": "tmdb",
+        "title": "大妈的世界",
+        "description": "炎热的夏夜，一场激烈的广场舞交流会名额争夺战打破了王大妈和杨大妈平静的退休生活，在其他队伍竞赛条件的不断内卷中，两大妈利用自己的专长，率领樱桃社区舞队脱颖而出，因此结下了深厚友谊。沉迷追剧、机智反诈、热衷盲盒、齐舞battle、追星打call.....两姐妹在社区开启了欢乐又硬核的晚年生活的同时，数字化社会中各种新潮问题也随之接踵而来……",
+        "rating": 6.5,
+        "voteCount": 2,
+        "popularity": 4.1375,
+        "releaseDate": "2021-12-30",
+        "lastUpdateDate": "2025-07-18",
+        "posterPath": "/akP2jhagGZGvXjT6OWn44VevPcb.jpg",
+        "backdropPath": "/h0pRz5rMq5gouiE2lasOImeqvKJ.jpg",
+        "mediaType": "tv",
+        "genreTitle": "喜剧"
       },
       {
         "id": "154307",
@@ -2139,6 +2379,66 @@
         "genreTitle": ""
       },
       {
+        "id": "137610",
+        "type": "tmdb",
+        "title": "心跳恋爱",
+        "description": "极致理性的物理学霸和漫画玛丽苏谈恋爱。",
+        "rating": 0.0,
+        "voteCount": 0,
+        "popularity": 2.4344,
+        "releaseDate": "2021-11-19",
+        "lastUpdateDate": "2021-12-12",
+        "posterPath": "/fRCz4nPWIJWkQ84jTH1XH7KWBYf.jpg",
+        "backdropPath": "/tnbaqCUVliLfcBgxRkLfsS0QaQ1.jpg",
+        "mediaType": "tv",
+        "genreTitle": "喜剧,剧情"
+      },
+      {
+        "id": "137093",
+        "type": "tmdb",
+        "title": "滚动吧小齿轮",
+        "description": "　　乐队主唱杨可以在出道失败后，不幸沦为黑心广告公司社畜，在奇葩上司叶守愚的“特殊关照”，废柴同事林开心的拖后腿，以及大明星温世晴的娱乐圈诱惑中，最终学会如何倾听自己的声音，找寻自我人生路的故事。",
+        "rating": 0.0,
+        "voteCount": 0,
+        "popularity": 0.7573,
+        "releaseDate": "2021-10-19",
+        "lastUpdateDate": "2021-10-19",
+        "posterPath": "/v5Uo6uka4fpfrI6HbthOnMDRzOa.jpg",
+        "backdropPath": "/mtoT89dbKJP9kwgQ9T0nFsfWAL0.jpg",
+        "mediaType": "tv",
+        "genreTitle": "剧情"
+      },
+      {
+        "id": "135832",
+        "type": "tmdb",
+        "title": "给你我的独家宠爱",
+        "description": "　　女主云想想本该过着幸福的生活，然而一场车祸导致母亲去世，她也双目失明。丧期未过，她的父亲就把养在外面的情妇和私生女接进了家。同时未婚夫也背叛了她，和私生女搞在一起。那个私生女一步步夺走了原本属于她的一切——未婚夫、父亲、甚至云家大小姐的身份。在云想想眼瞎后仍然不放过她，想要找人玷污。同时得知母亲死亡的真相，居然是云心甜做的手脚。绝望的云想想一头撞向了墙，发誓有来生一定要他们付出代价！重生后的云想想回到了17岁出车祸的那一天。从病床上醒来的她遇到了男主傅司寒。虽然他坐在轮椅上，却一点也不影响他帝王一般的气质。确认了重生事实后，发誓这辈子要保护好自己的母亲，同时开始了她的复仇计划。而傅司寒却被云想想坚韧的性格，冷静机智过人所打动，被她吸引。在云想想宣布和前未婚夫解除婚约，高调征婚时，报名参加，惊掉了一众人的下巴，因为他可是帝都赫赫有名的傅三爷，帝都第一世家傅家的掌舵人。虽然这一世的云想想并不想陷入情爱之中，却也慢慢被傅司寒的霸道温柔所俘获，爱上了这个傲娇的男人。",
+        "rating": 7.4,
+        "voteCount": 5,
+        "popularity": 4.3111,
+        "releaseDate": "2021-09-27",
+        "lastUpdateDate": "2022-08-27",
+        "posterPath": "/9ZMK2t6OC48jZ6esdyNowg8mfSb.jpg",
+        "backdropPath": "/v6RFn0jbBGusdKBXIjQhcqYU70.jpg",
+        "mediaType": "tv",
+        "genreTitle": "剧情,喜剧"
+      },
+      {
+        "id": "129010",
+        "type": "tmdb",
+        "title": "大唐小吃货",
+        "description": "《大唐小吃货》讲述了唐朝时期，厨艺过人的女厨元婉儿在遭遇事业、家庭、情感危机后， 仍然不忘初心，为了名厨这一理想而不断努力，最终凭借高超的烹饪技术，赢 得了厨业的认可，并建立了长安第一酒楼的故事。",
+        "rating": 2.0,
+        "voteCount": 1,
+        "popularity": 3.3198,
+        "releaseDate": "2021-07-12",
+        "lastUpdateDate": "2023-10-20",
+        "posterPath": "/2X3xLMgg8RBf8q0ELWr1BnxZHny.jpg",
+        "backdropPath": "/yTWZE9aPSncH1fubrfjt9yvZBNw.jpg",
+        "mediaType": "tv",
+        "genreTitle": "剧情,喜剧"
+      },
+      {
         "id": "127503",
         "type": "tmdb",
         "title": "另一半的我和你",
@@ -2154,6 +2454,21 @@
         "genreTitle": "喜剧,科幻奇幻"
       },
       {
+        "id": "123977",
+        "type": "tmdb",
+        "title": "夫人，大可不必",
+        "description": "　　白沙寨霸气女土匪白云凤（彭雅琦饰）带领陈大碗（任羽饰）及众兄弟妄图劫持骠骑将军送给户部尚书的生辰纲，却偷鸡不成蚀把米，被骠骑将军“一锅端”后抓入将军府，在即将被杀头之际，阴差阳错地被骠骑将军谈和，化名“陆婉儿”，一跃成为将军府二少夫人，误打误撞结识了自己的契约夫君皇甫曜（高梓添饰），开始了一场轰轰烈烈地甜爱之旅。",
+        "rating": 0.0,
+        "voteCount": 0,
+        "popularity": 1.518,
+        "releaseDate": "2021-04-01",
+        "lastUpdateDate": "2021-06-17",
+        "posterPath": "/rhMWs1ALvguWYkJyCMbaCdaniQY.jpg",
+        "backdropPath": "/a1Y4yA8FgglqIdBYwR17sOOO4yA.jpg",
+        "mediaType": "tv",
+        "genreTitle": "喜剧"
+      },
+      {
         "id": "116590",
         "type": "tmdb",
         "title": "欢迎光临高中生",
@@ -2167,11 +2482,26 @@
         "backdropPath": "/muazoVTBLVz3yw37JmaXcOWSaW8.jpg",
         "mediaType": "tv",
         "genreTitle": "喜剧,剧情"
+      },
+      {
+        "id": "104993",
+        "type": "tmdb",
+        "title": "亲爱的没想到吧",
+        "description": "本剧讲述了三对相亲相爱的情侣嬉笑怒骂的日常生活，以两集为一组设计同一个故事的两种不同版本，从男女两种视角讨论年轻情侣面对的种种现实问题，展现男女截然不同的思维方式。30集爆笑剧情中，聚集了6个色彩鲜明的人物，15个热点情感话题以及N多充满生活气息的细节桥段，旨在与观众产生强烈的情感共鸣。",
+        "rating": 0.0,
+        "voteCount": 0,
+        "popularity": 1.7588,
+        "releaseDate": "2020-06-02",
+        "lastUpdateDate": "2020-06-02",
+        "posterPath": "/2jZ6EEYIHzF45SuD4W1Ky1wYH1g.jpg",
+        "backdropPath": "/gQnAJda34LjhVLiGFJphTmPqlKS.jpg",
+        "mediaType": "tv",
+        "genreTitle": "喜剧"
       }
     ],
     "upcoming": [],
-    "totalItems": 102,
-    "totalPages": 5
+    "totalItems": 127,
+    "totalPages": 6
   },
   "生花剧场": {
     "aired": [
@@ -2180,8 +2510,8 @@
         "type": "tmdb",
         "title": "早春晴朗",
         "description": "这是一段十年交锋，敬于才华，合于性格、久于平等的禁忌之恋。北漂伊始的尚之桃与极具天赋的“鬼才”栾念狭路相逢。热烈勇敢的尚之桃亦步亦趋地蜕变成长，撬碎了栾念世故坚硬的心防，互相吸引的二人在都市丛林中极限拉扯、分分合合。爱情，就是用光所有勇气，再无遗憾。爱，则是互相修复，共同成长。但情和爱之间，她选择生存。当她独当一面，他收敛锋芒，势均力敌的他们将会为彼此写下了新的结局……",
-        "rating": 8.3,
-        "voteCount": 22,
+        "rating": 8.391,
+        "voteCount": 23,
         "popularity": 40.8183,
         "releaseDate": "2026-08-26",
         "lastUpdateDate": "2026-09-09",
@@ -4344,7 +4674,7 @@
         "type": "tmdb",
         "title": "七时吉祥",
         "description": "月老阁仙女祥云和卯日星君弟子初空因误会冲突扰乱三界姻缘，被玉帝打落凡间经历七世情劫的故事。 祥云（杨超越 饰）原是一朵云，后被月老点化成仙，在月老阁做事。初空（丁禹兮 饰）是卯日星君座下弟子，一次误入月老阁被当坏人，初空也不小心弄坏了小祥子的扇子，于是两人吵起来，意外弄乱了红绳，导致三界婚姻大乱，玉帝知道了，罚他俩历经七世情劫才可回天界，故事也从此开始。",
-        "rating": 9.059,
+        "rating": 9.1,
         "voteCount": 17,
         "popularity": 7.7595,
         "releaseDate": "2023-08-10",
