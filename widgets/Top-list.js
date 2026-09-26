@@ -2659,12 +2659,11 @@ var WidgetMetadata = {
             cacheDuration: 43200,
             params: [
                 {
-                    name: "anime_source", title: "选择数据源", type: "enumeration", value: "cal",
+                    name: "anime_source", title: "选择数据源", type: "enumeration", value: "cn",
                     enumOptions: [
-                        { title: "Bangumi 追番日历", value: "cal" },
-                        { title: "Bilibili 热度榜单", value: "bili" },
                         { title: "国漫榜单", value: "cn" },
                         { title: "全量国漫库", value: "cn_all" },
+                        { title: "Bilibili 热度榜单", value: "bili" },
                         { title: "Bangumi 近期热门", value: "hot" },
                         { title: "Bangumi 年季度榜", value: "rank" },
                         { title: "Bangumi 每日放送", value: "daily" },
@@ -2673,7 +2672,6 @@ var WidgetMetadata = {
                         { title: "MAL 权威榜单", value: "mal" }
                     ]
                 },
-                { name: "cal_day", title: "选择日期", type: "enumeration", value: "today", belongTo: { paramName: "anime_source", value: ["cal"] }, enumOptions: [ { title: "今日更新", value: "today" }, { title: "周一", value: "1" }, { title: "周二", value: "2" }, { title: "周三", value: "3" }, { title: "周四", value: "4" }, { title: "周五", value: "5" }, { title: "周六", value: "6" }, { title: "周日", value: "7" } ] },
                 { name: "bili_sort", title: "榜单分区", type: "enumeration", value: "1", belongTo: { paramName: "anime_source", value: ["bili"] }, enumOptions: [ { title: "B站番剧", value: "1" }, { title: "B站国创", value: "4" } ] },
                 { name: "cn_year", title: "年份", type: "enumeration", value: "all", belongTo: { paramName: "anime_source", value: ["cn_all"] }, enumOptions: [ { title: "全部年份", value: "all" }, { title: "2026", value: "2026" }, { title: "2025", value: "2025" }, { title: "2024", value: "2024" }, { title: "2023", value: "2023" }, { title: "2022", value: "2022" }, { title: "2021", value: "2021" }, { title: "2020", value: "2020" }, { title: "2019", value: "2019" }, { title: "2018", value: "2018" }, { title: "2017", value: "2017" }, { title: "2016", value: "2016" }, { title: "更早", value: "older" } ] },
                 { name: "cn_sort", title: "排序方式", type: "enumeration", value: "popular", belongTo: { paramName: "anime_source", value: ["cn_all"] }, enumOptions: [ { title: "热度优先", value: "popular" }, { title: "播放量", value: "bili_play" }, { title: "追番人数", value: "bili_follow" }, { title: "评分优先", value: "rating" }, { title: "最新优先", value: "newest" }, { title: "最早优先", value: "oldest" } ] },
@@ -2681,7 +2679,7 @@ var WidgetMetadata = {
                 { name: "rank_cat", title: "分类", type: "enumeration", value: "anime", belongTo: { paramName: "anime_source", value: ["rank"] }, enumOptions: [ { title: "动画", value: "anime" }, { title: "三次元", value: "real" } ] },
                 { name: "rank_year", title: "年份", type: "enumeration", value: `${currentYear}`, belongTo: { paramName: "anime_source", value: ["rank"] }, enumOptions: yearOptions },
                 { name: "rank_month", title: "月份/季度", type: "enumeration", value: "all", belongTo: { paramName: "anime_source", value: ["rank"] }, enumOptions: [ { title: "全年", value: "all" }, { title: "冬季", value: "1" }, { title: "春季", value: "4" }, { title: "夏季", value: "7" }, { title: "秋季", value: "10" } ] },
-                { name: "rank_sort", title: "排序方式", type: "enumeration", value: "collects", belongTo: { paramName: "anime_source", value: ["rank"] }, enumOptions: [ { title: "排名", value: "rank" }, { title: "热度", value: "trends" }, { title: "收藏数", value: "collects" }, { title: "发售日期", value: "date" }, { title: "名称", value: "title" } ] },
+                { name: "rank_sort", title: "排序方式", type: "enumeration", value: "rank", belongTo: { paramName: "anime_source", value: ["rank"] }, enumOptions: [ { title: "排名", value: "rank" }, { title: "热度", value: "heat" }, { title: "评分", value: "score" } ] },
                 { name: "daily_filter", title: "筛选范围", type: "enumeration", value: "today", belongTo: { paramName: "anime_source", value: ["daily"] }, enumOptions: [ { title: "今日放送", value: "today" }, { title: "指定单日", value: "specific_day" }, { title: "本周一至四", value: "mon_thu" }, { title: "本周五至日", value: "fri_sun" }, { title: "整周放送", value: "all_week" } ] },
                 { name: "daily_weekday", title: "指定单日星期", type: "enumeration", value: "1", belongTo: { paramName: "anime_source", value: ["daily"] }, enumOptions: [ { title: "星期一", value: "1" }, { title: "星期二", value: "2" }, { title: "星期三", value: "3" }, { title: "星期四", value: "4" }, { title: "星期五", value: "5" }, { title: "星期六", value: "6" }, { title: "星期日", value: "7" } ] },
                 { name: "daily_sort", title: "排序方式", type: "enumeration", value: "popularity_rat_bgm", belongTo: { paramName: "anime_source", value: ["daily"] }, enumOptions: [ { title: "热度", value: "popularity_rat_bgm" }, { title: "评分", value: "score_bgm_desc" }, { title: "放送日", value: "airdate_desc" }, { title: "默认", value: "default" } ] },
@@ -3021,10 +3019,9 @@ async function loadUpcomingCenter(params = {}) {
 // =========================================================================
 
 async function routeAnimeOmni(params) {
-    const source = params.anime_source || "cal";
+    const source = params.anime_source || "cn";
     let subParams = { page: params.page || 1 };
 
-    if (source === "cal") { subParams.sort_by = params.cal_day || "today"; return await loadBangumiCalendar(subParams); }
     if (source === "bili") { subParams.sort_by = params.bili_sort || "1"; return await loadBilibiliRank(subParams); }
     if (source === "cn") { return await loadChinaAnimeCombined(subParams); }
     if (source === "cn_all") {
@@ -3818,111 +3815,128 @@ async function sanitizeAndEnsureTmdb(items) {
     return results.filter(Boolean);
 }
 
-async function loadBangumiCalendar(params = {}) {
-    const { sort_by = "today", page = 1 } = params;
-    let targetDayId = parseInt(sort_by);
-    if (sort_by === "today") {
-        const jsDay = new Date().getDay();
-        targetDayId = jsDay === 0 ? 7 : jsDay;
-    }
-    
-    try {
-        const res = await Widget.http.get("https://api.bgm.tv/calendar");
-        const dayData = (res.data || []).find(d => d.weekday && d.weekday.id === targetDayId);
-        if (!dayData) return [];
-        
-        const pageSize = 20;
-        const pageItems = dayData.items.slice((page - 1) * pageSize, page * pageSize);
+// =========================================================================
+// Bangumi 数据源统一入口（api.bgm.tv v0 搜索）
+// -------------------------------------------------------------------------
+// 历史背景（重要，别再走回头路）：
+//   · 旧实现用 HTML 抓 `bgm.tv/anime/browser/airtime/...`，该域名现被 Cloudflare 拦截，
+//     实测恒返回 403 + "Just a moment..."（`bgm.tv/anime/browser/tag/...` 同样失效）。
+//   · 「近期热门」原读 MakkaPakka518/List 的 bangumi-hot.json，但该文件上游
+//     `hot_anime` 恒为空数组（实测文件仅 84 字节），故两个数据源此前都是空列表。
+//   · 改走 `api.bgm.tv/v0/search/subjects`（POST）：不被拦截、免密钥、
+//     且自带中文名 name_cn / 封面 / 评分 / 收藏数，比抓 HTML 更稳。
+// 已知限制：v0 搜索的 sort 只支持 match / heat / rank / score，
+//   没有收藏数与发售日期排序，故「年季度榜」的排序项相应收敛为排名/热度/评分。
+// =========================================================================
+const BANGUMI_UA = "MinisWidget/1.0 (https://github.com/qiguo093/Forward-Widget)";
 
-        const promises = pageItems.map(async (item) => {
-            const cleanTitle = (item.name_cn || item.name).replace(/第[一二三四五六七八九十\d]+[季章]/g, "").trim();
-            const year = item.air_date ? item.air_date.substring(0, 4) : null;
-            const tmdbItem = await searchTmdbAnimeStrict(cleanTitle, item.name, year);
-            if (!tmdbItem) return null;
+async function bangumiSearch({ type = 2, sort = "heat", limit = 20, offset = 0, airDate = null }) {
+    const filter = { type: [type], nsfw: false };
+    if (airDate) filter.air_date = airDate;
+    const res = await Widget.http.post(
+        `https://api.bgm.tv/v0/search/subjects?limit=${limit}&offset=${offset}`,
+        { keyword: "", sort, filter },
+        { headers: { "Content-Type": "application/json", "User-Agent": BANGUMI_UA } }
+    );
+    const data = res?.data || {};
+    return Array.isArray(data.data) ? data.data : [];
+}
 
-            return buildItem({
-                id: tmdbItem.id,
-                tmdbId: tmdbItem.id,
-                type: "tv",
-                title: tmdbItem.name || tmdbItem.title || item.name_cn || item.name,
-                date: tmdbItem.first_air_date || item.air_date,
-                poster: tmdbItem.poster_path,
-                backdrop: tmdbItem.backdrop_path,
-                rating: tmdbItem.vote_average || item.rating?.score,
-                genreText: getGenreText(tmdbItem.genre_ids),
-                desc: tmdbItem.overview || item.summary || "暂无简介"
-            });
-        });
-        
-        const results = await Promise.all(promises);
-        return results.filter(Boolean);
-    } catch (e) { return []; }
+// 把 Bangumi 条目映射成 sanitizeAndEnsureTmdb 期望的中间形状
+// （该函数按 name_cn / name + 年份去 TMDB 换中文名与高清海报，并过滤掉匹配不到的条目）
+function mapBangumiItems(list, rankOffset = 0) {
+    return list.map((item, index) => ({
+        name_cn: item.name_cn || item.name,
+        name: item.name,
+        title: item.name,
+        air_date: item.date || "",
+        info: `${item.date || ""} / ${item.platform || ""}`,
+        rating: item.rating?.score || 0,
+        // 收藏数：想看看/在看/看过 合计，仅用于排序参考
+        collects: (item.collection?.wish || 0) + (item.collection?.collect || 0),
+        _rank: rankOffset + index + 1,
+    }));
 }
 
 // =========================================================================
-// 🚀🚀🚀 全新：接入专属 JSON 抓取源 (Bangumi 近期热门)
+// Bangumi 近期热门：近一年放送 + 热度序（替代上游恒空的 bangumi-hot.json）
 // =========================================================================
 async function fetchRecentHot(params = {}) {
-    const url = "https://raw.githubusercontent.com/MakkaPakka518/List/refs/heads/main/data/bangumi-hot.json";
-    
+    const page = Math.max(1, parseInt(params.page || "1", 10));
+    const pageSize = 20;
     try {
-        const res = await Widget.http.get(url);
-        const data = res.data || {};
-        const hotList = data.hot_anime || [];
-
-        if (hotList.length === 0) {
-            return [{ id: "empty", type: "text", title: "暂无数据", description: "获取到的热门列表为空" }];
-        }
-
-        // 分页支持
-        const page = parseInt(params.page || "1", 10);
-        const pageSize = 20;
-        const start = (page - 1) * pageSize;
-        const pageItems = hotList.slice(start, start + pageSize);
-
-        return pageItems.map((item, index) => {
-            // 智能过滤简介：去除原数据自带的第一行（年份·评分·国家），防止和原生排版重复
-            const descLines = (item.description || "").split('\n');
-            const pureDesc = descLines.length > 1 ? descLines.slice(1).join('\n') : item.description;
-
-            return buildItem({
-                id: item.id,
-                tmdbId: item.tmdbId,
-                type: item.mediaType || "tv",
-                title: item.title,
-                date: item.releaseDate || "",
-                poster: item.posterPath,
-                backdrop: item.backdropPath,
-                genreText: item.genreTitle,
-                subTitle: `🔥 热度 TOP ${start + index + 1}`,
-                desc: pureDesc || "暂无简介"
-            });
+        const from = new Date(Date.now() - 365 * 86400000).toISOString().slice(0, 10);
+        const to = new Date(Date.now() + 365 * 86400000).toISOString().slice(0, 10);
+        const list = await bangumiSearch({
+            type: 2, sort: "heat", limit: pageSize,
+            offset: (page - 1) * pageSize,
+            airDate: [`>=${from}`, `<${to}`],
         });
-        
+        if (!list.length) {
+            return page === 1 ? [{ id: "empty", type: "text", title: "暂无数据", description: "Bangumi 未返回热门列表" }] : [];
+        }
+        return await sanitizeAndEnsureTmdb(mapBangumiItems(list, (page - 1) * pageSize));
     } catch (error) {
+        console.error("[Bangumi近期热门] 失败:", error.message || error);
         return [{ id: "error", type: "text", title: "网络异常", description: "获取热门列表失败" }];
     }
 }
 
 // =========================================================================
-// 🌐 纯净刮削引擎 (彻底抛弃老旧 GitHub 数据请求)
+// Bangumi 年季度榜：按年 + 季度（冬/春/夏/秋）筛选，走 v0 搜索接口
+// 原实现抓 bgm.tv/anime/browser/airtime/{year}/{month}，该域名已被 Cloudflare
+// 拦截（实测 403），故改为 api.bgm.tv v0 搜索的 air_date 区间过滤。
 // =========================================================================
 async function fetchAirtimeRanking(params = {}) {
     const category = params.category || "anime";
-    const year = params.year || `${new Date().getFullYear()}`;
-    const month = params.month || "all";
-    const sort = params.sort || "collects";
-    const page = parseInt(params.page || "1", 10);
+    const year = String(params.year || new Date().getFullYear());
+    const month = String(params.month || "all");
+    const sort = params.sort || "rank";
+    const page = Math.max(1, parseInt(params.page || "1", 10));
+    const pageSize = 20;
 
-    const cacheKey = `airtime-${category}-${year}-${month}-${sort}-${page}`;
-    if (ScrapingCache.airtime[cacheKey]) {
-        return await sanitizeAndEnsureTmdb(ScrapingCache.airtime[cacheKey]);
+    // anime = 动画(type 2)；real = 三次元/真人(type 6)
+    const bangumiType = category === "real" ? 6 : 2;
+
+    // 季度 -> 月日区间（BGM 的季度口径与番剧季度一致）
+    const QUARTER_RANGES = {
+        "1": ["-01-01", "-03-31"],   // 冬季
+        "4": ["-04-01", "-06-30"],   // 春季
+        "7": ["-07-01", "-09-30"],   // 夏季
+        "10": ["-10-01", "-12-31"],  // 秋季
+    };
+    let gte, lt;
+    if (QUARTER_RANGES[month]) {
+        const [from, to] = QUARTER_RANGES[month];
+        gte = `${year}${from}`;
+        lt = `${year}${to}`;
+    } else {
+        gte = `${year}-01-01`;
+        lt = `${year}-12-31`;
     }
-    
-    let url = `https://bgm.tv/${category}/browser/airtime/${year}/${month}?sort=${sort}&page=${page}`;
-    const results = await DynamicDataProcessor.processBangumiPage(url, category);
-    ScrapingCache.airtime[cacheKey] = results;
-    return await sanitizeAndEnsureTmdb(results);
+
+    // v0 搜索只认 rank / heat / score / match；其余取值回落 rank，
+    // 避免旧参数值（collects / trends / date / title）传进来时整页空白。
+    const sortMap = { rank: "rank", heat: "heat", score: "score", match: "match" };
+    const bgmSort = sortMap[sort] || "rank";
+
+    try {
+        const list = await bangumiSearch({
+            type: bangumiType, sort: bgmSort, limit: pageSize,
+            offset: (page - 1) * pageSize,
+            airDate: [`>=${gte}`, `<=${lt}`],
+        });
+        if (!list.length) return [];
+        let results = await sanitizeAndEnsureTmdb(mapBangumiItems(list, (page - 1) * pageSize));
+        // 评分序时把 0 分的（数据未出）排到最后，避免空评分条目前置
+        if (bgmSort === "score") {
+            results = results.filter(x => Number(x.rating) > 0);
+        }
+        return results;
+    } catch (e) {
+        console.error("[Bangumi年季度榜] 失败:", e.message || e);
+        return [];
+    }
 }
 
 async function fetchDailyCalendarApi(params = {}) {
