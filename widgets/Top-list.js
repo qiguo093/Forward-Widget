@@ -2664,6 +2664,8 @@ var WidgetMetadata = {
                         { title: "Bangumi 追番日历", value: "cal" },
                         { title: "Bilibili 热度榜单", value: "bili" },
                         { title: "国漫榜单", value: "cn" },
+                        { title: "全量国漫库", value: "cn_all" },
+                        { title: "B站国创全量", value: "bili_all" },
                         { title: "Bangumi 近期热门", value: "hot" },
                         { title: "Bangumi 年季度榜", value: "rank" },
                         { title: "Bangumi 每日放送", value: "daily" },
@@ -2674,6 +2676,9 @@ var WidgetMetadata = {
                 },
                 { name: "cal_day", title: "选择日期", type: "enumeration", value: "today", belongTo: { paramName: "anime_source", value: ["cal"] }, enumOptions: [ { title: "今日更新", value: "today" }, { title: "周一", value: "1" }, { title: "周二", value: "2" }, { title: "周三", value: "3" }, { title: "周四", value: "4" }, { title: "周五", value: "5" }, { title: "周六", value: "6" }, { title: "周日", value: "7" } ] },
                 { name: "bili_sort", title: "榜单分区", type: "enumeration", value: "1", belongTo: { paramName: "anime_source", value: ["bili"] }, enumOptions: [ { title: "B站番剧", value: "1" }, { title: "B站国创", value: "4" } ] },
+                { name: "bili_all_order", title: "排序方式", type: "enumeration", value: "3", belongTo: { paramName: "anime_source", value: ["bili_all"] }, enumOptions: [ { title: "追番人数", value: "3" }, { title: "播放量", value: "2" }, { title: "评分", value: "1" }, { title: "最近更新", value: "0" }, { title: "高分优先", value: "4" }, { title: "即将开播", value: "5" } ] },
+                { name: "cn_year", title: "年份", type: "enumeration", value: "all", belongTo: { paramName: "anime_source", value: ["cn_all"] }, enumOptions: [ { title: "全部年份", value: "all" }, { title: "2026", value: "2026" }, { title: "2025", value: "2025" }, { title: "2024", value: "2024" }, { title: "2023", value: "2023" }, { title: "2022", value: "2022" }, { title: "2021", value: "2021" }, { title: "2020", value: "2020" }, { title: "2019", value: "2019" }, { title: "2018", value: "2018" }, { title: "2017", value: "2017" }, { title: "2016", value: "2016" }, { title: "更早", value: "older" } ] },
+                { name: "cn_sort", title: "排序方式", type: "enumeration", value: "popular", belongTo: { paramName: "anime_source", value: ["cn_all"] }, enumOptions: [ { title: "热度优先", value: "popular" }, { title: "评分优先", value: "rating" }, { title: "最新优先", value: "newest" }, { title: "最早优先", value: "oldest" } ] },
                 { name: "hot_cat", title: "分类", type: "enumeration", value: "anime", belongTo: { paramName: "anime_source", value: ["hot"] }, enumOptions: [ { title: "动画", value: "anime" } ] },
                 { name: "rank_cat", title: "分类", type: "enumeration", value: "anime", belongTo: { paramName: "anime_source", value: ["rank"] }, enumOptions: [ { title: "动画", value: "anime" }, { title: "三次元", value: "real" } ] },
                 { name: "rank_year", title: "年份", type: "enumeration", value: `${currentYear}`, belongTo: { paramName: "anime_source", value: ["rank"] }, enumOptions: yearOptions },
@@ -3024,6 +3029,14 @@ async function routeAnimeOmni(params) {
     if (source === "cal") { subParams.sort_by = params.cal_day || "today"; return await loadBangumiCalendar(subParams); }
     if (source === "bili") { subParams.sort_by = params.bili_sort || "1"; return await loadBilibiliRank(subParams); }
     if (source === "cn") { return await loadChinaAnimeCombined(subParams); }
+    if (source === "cn_all") {
+        subParams.cn_year = params.cn_year || "all"; subParams.cn_sort = params.cn_sort || "popular";
+        return await loadChinaAnimeLibrary(subParams);
+    }
+    if (source === "bili_all") {
+        subParams.bili_all_order = params.bili_all_order || "3";
+        return await loadBilibiliGuochuangAll(subParams);
+    }
     if (source === "hot") { subParams.category = params.hot_cat || "anime"; return await fetchRecentHot(subParams); }
     if (source === "rank") {
         subParams.category = params.rank_cat || "anime"; subParams.year = params.rank_year || "2026";
@@ -4156,6 +4169,185 @@ async function loadChinaAnimeCombined(params = {}) {
         console.error("[国漫榜单] 加载失败:", e.message || e);
         return [];
     }
+}
+
+// =========================================================================
+// 全量国漫库：TMDB discover 直出（中国大陆 + 动画 16），零逐条探测
+// - 覆盖 2500+ 部国漫（含完结、冷门、早年作品），与「国漫榜单」的热度榜定位互补；
+// - discover 的 `with_original_language=zh` 实测 100% 为 CN/zh，无需客户端二次过滤；
+// - 支持年份筛选与四种排序，翻页直接透传给 TMDB，不做本地缓存（每页仅 1 次请求）。
+// =========================================================================
+async function loadChinaAnimeLibrary(params = {}) {
+    const page = Math.max(1, Number(params.page || 1));
+    const year = String(params.cn_year || "all");
+    const sortMode = params.cn_sort || "popular";
+
+    const query = {
+        with_genres: "16",
+        with_original_language: "zh",
+        language: "zh-CN",
+        page,
+        include_adult: false,
+    };
+
+    // 年份：TMDB 只支持区间，用 gte/lte 表达「全部/单年/更早」
+    if (/^\d{4}$/.test(year)) {
+        query["first_air_date.gte"] = `${year}-01-01`;
+        query["first_air_date.lte"] = `${year}-12-31`;
+    } else if (year === "older") {
+        const before = Number(params.cn_year_older_than || 2016);
+        query["first_air_date.lte"] = `${before - 1}-12-31`;
+    }
+
+    if (sortMode === "rating") {
+        query.sort_by = "vote_average.desc";
+        // 挡掉只有一两个评分就刷出 10 分的条目。
+        // ⚠️ 门槛不能设太高：实测「年份 + vote_count.gte=20」会让 TMDB 返回
+        // total_results=undefined 的异常响应（整页空白），10 才稳定返回结果。
+        query["vote_count.gte"] = "10";
+    } else if (sortMode === "newest") {
+        query.sort_by = "first_air_date.desc";
+    } else if (sortMode === "oldest") {
+        query.sort_by = "first_air_date.asc";
+    } else {
+        query.sort_by = "popularity.desc";
+    }
+
+    try {
+        const res = await Widget.tmdb.get("/discover/tv", { params: query });
+        const list = res.results || [];
+        if (!list.length) return [];
+        return list.map(item => ({
+            id: String(item.id),
+            tmdbId: parseInt(item.id),
+            type: "tmdb",
+            mediaType: "tv",
+            title: item.name || item.title || "",
+            genreTitle: getGlobalGenreText(item.genre_ids),
+            description: `${item.first_air_date || "未定档"}${item.vote_average ? ` · ⭐ ${item.vote_average.toFixed(1)}` : ""}\n${item.overview || "暂无简介"}`,
+            releaseDate: item.first_air_date || "",
+            posterPath: item.poster_path ? `https://image.tmdb.org/t/p/w500${item.poster_path}` : "",
+            backdropPath: item.backdrop_path ? `https://image.tmdb.org/t/p/w780${item.backdrop_path}` : "",
+            rating: item.vote_average ? Number(item.vote_average.toFixed(1)) : 0,
+            subTitle: item.first_air_date || "未定档",
+        }));
+    } catch (e) {
+        console.error("[全量国漫库] 加载失败:", e.message || e);
+        return [];
+    }
+}
+
+// =========================================================================
+// B站国创全量库：官方片库索引（season_type=4，实测 total ≈ 3215 部）
+// - 与「全量国漫库」（TMDB）不同：这份是 B站 自己的国创片库，含追番人数/播放量/评分
+//   等 B站 独有口径，且天然 100% 为国创；
+// - 该接口只给中文标题、没有 TMDB id，故逐条走 searchTmdbAnimeStrict 换海报/简介；
+// - 页码直接把 B站 的 page 透传，每页 20 条 = 20 次匹配，冷启动 ≈ 6s（沿用 GLOBAL 的 297ms/请求）。
+// =========================================================================
+async function loadBilibiliGuochuangAll(params = {}) {
+    const page = Math.max(1, Number(params.page || 1));
+    const order = String(params.bili_all_order || "3");
+    // order: 0=最近更新 1=评分 2=播放量 3=追番人数 4=高分优先 5=即将开播
+    const url = `https://api.bilibili.com/pgc/season/index/result?season_type=4&order=${order}&page=${page}&pagesize=20&sort=0&type=1`;
+
+    try {
+        const res = await Widget.http.get(url, {
+            headers: { "User-Agent": "Mozilla/5.0", "Referer": "https://www.bilibili.com/" },
+        });
+        const list = res?.data?.data?.list || res?.data?.result?.list || [];
+        if (!list.length) return [];
+
+        const items = await Promise.all(list.map(async (item) => {
+            const rawTitle = item.title || "";
+            const cleanTitle = biliGuochuangCleanTitle(rawTitle);
+            let tmdbItem = await searchTmdbAnimeStrict(cleanTitle, rawTitle, null);
+            if (!tmdbItem) {
+                const fb = biliGuochuangFallbackTitle(rawTitle);
+                if (fb) tmdbItem = await searchTmdbAnimeStrict(fb, null, null);
+            }
+
+            const score = parseFloat(String(item.score || "").replace(/[^0-9.]/g, "")) || 0;
+            const orderText = item.order || "";       // 如「1788万追番」「73.7亿次播放」「9.7分」
+            const epText = item.index_show || (item.is_finish ? "已完结" : "连载中");
+
+            if (!tmdbItem) {
+                // 匹配不到 TMDB 时回落成纯文本卡片，至少保留 B站 标题与口径，
+                // 否则这些条目会整条消失（实测榜单里约 1/3 是母带/特别篇等 TMDB 无对应条目的形态）
+                return {
+                    id: `bili_ss_${item.season_id}`,
+                    type: "text",
+                    title: rawTitle,
+                    subTitle: `${orderText} · B站国创`,
+                    description: `${epText}${score ? ` · ⭐ ${score}` : ""}${orderText ? ` · ${orderText}` : ""}\nB站国创片库（TMDB 暂无对应条目）`,
+                    posterPath: item.cover || "",
+                    genreTitle: "国漫",
+                };
+            }
+
+            const tmdbScore = tmdbItem.vote_average ? tmdbItem.vote_average.toFixed(1) : "";
+            return {
+                id: String(tmdbItem.id),
+                tmdbId: parseInt(tmdbItem.id),
+                type: "tmdb",
+                mediaType: "tv",
+                title: tmdbItem.name || tmdbItem.title || rawTitle,
+                genreTitle: getGlobalGenreText(tmdbItem.genre_ids),
+                description: `${epText}${score ? ` · ⭐ ${score}` : ""}${orderText ? ` · ${orderText}` : ""}\n${tmdbItem.overview || "暂无简介"}`,
+                releaseDate: tmdbItem.first_air_date || "",
+                posterPath: tmdbItem.poster_path ? `https://image.tmdb.org/t/p/w500${tmdbItem.poster_path}` : (item.cover || ""),
+                backdropPath: tmdbItem.backdrop_path ? `https://image.tmdb.org/t/p/w780${tmdbItem.backdrop_path}` : "",
+                rating: score || Number(tmdbScore) || 0,
+                subTitle: `${orderText || epText} · B站国创`,
+            };
+        }));
+
+        // 页内去重：B站 按「季/篇」分条目，而它们可能都匹配到同一部 TMDB 母条目
+        // （实测《伍六七》暗影宿命/最强发型师/玄武国篇 三条都命中《刺客伍六七》）。
+        // 这种情况把 B站 侧的口径合并进同一张卡片，而不是丢弃 —— 否则该作品
+        // 在「追番人数」榜的一条页里会从 3 张缩成 1 张，整页只剩 10 条、翻页节奏被打乱。
+        const out = [];
+        const indexById = new Map();
+        for (const it of items.filter(Boolean)) {
+            const key = String(it.tmdbId || it.id);
+            const prev = indexById.get(key);
+            if (prev === undefined) {
+                indexById.set(key, out.length);
+                out.push(it);
+                continue;
+            }
+            const kept = out[prev];
+            const extraOrder = it.subTitle && !String(kept.subTitle || "").includes(it.subTitle)
+                ? ` / ${it.subTitle.replace(" · B站国创", "")}` : "";
+            if (extraOrder) {
+                kept.subTitle = `${kept.subTitle}${extraOrder}`;
+                kept.description = `${kept.description}\n另含 B站：${it.title}`;
+            }
+        }
+        return out;
+    } catch (e) {
+        console.error("[B站国创全量] 加载失败:", e.message || e);
+        return [];
+    }
+}
+
+// B站国创标题清洗：去掉版本后缀与副标题，提高 TMDB 命中率。
+// 实测：原始标题直接搜索命中率仅 63%，清洗后疑难样本 12/13 命中。
+// 典型形态：「仙王的日常生活 第五季」「天官赐福 日语版」「百妖谱·洛阳篇」「灵笼 第2季 前瞻版PV」
+function biliGuochuangCleanTitle(raw) {
+    return String(raw || "")
+        .replace(/[（(【\[].*?[）)】\]]/g, "")
+        .replace(/第[一二三四五六七八九十百千\d]+[季部章话集]/g, "")
+        .replace(/(日语版|国语版|普通话版|中配版|原声版|日语配音|中文配音|粤语版|TV版|完整版|重制版|高清版|4K版|前瞻版|特别版|先行版|PV|预告片?|合集|总集篇|回顾篇|特辑)/gi, "")
+        .replace(/[·・].*$/, "")
+        .replace(/\s+/g, "")
+        .trim();
+}
+
+// 清洗后仍搜不到时的兜底：去掉结尾的数字（《罗小黑战记2》→《罗小黑战记》）
+function biliGuochuangFallbackTitle(raw) {
+    const base = biliGuochuangCleanTitle(raw);
+    const stripped = base.replace(/[\dⅠⅡⅢⅣⅤ]+$/g, "").trim();
+    return stripped && stripped !== base ? stripped : "";
 }
 
 async function loadTmdbAnimeRanking(params = {}) {
