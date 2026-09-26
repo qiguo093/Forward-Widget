@@ -2663,6 +2663,7 @@ var WidgetMetadata = {
                     enumOptions: [
                         { title: "Bangumi 追番日历", value: "cal" },
                         { title: "Bilibili 热度榜单", value: "bili" },
+                        { title: "国漫榜单", value: "cn" },
                         { title: "Bangumi 近期热门", value: "hot" },
                         { title: "Bangumi 年季度榜", value: "rank" },
                         { title: "Bangumi 每日放送", value: "daily" },
@@ -3022,6 +3023,7 @@ async function routeAnimeOmni(params) {
 
     if (source === "cal") { subParams.sort_by = params.cal_day || "today"; return await loadBangumiCalendar(subParams); }
     if (source === "bili") { subParams.sort_by = params.bili_sort || "1"; return await loadBilibiliRank(subParams); }
+    if (source === "cn") { return await loadChinaAnimeCombined(subParams); }
     if (source === "hot") { subParams.category = params.hot_cat || "anime"; return await fetchRecentHot(subParams); }
     if (source === "rank") {
         subParams.category = params.rank_cat || "anime"; subParams.year = params.rank_year || "2026";
@@ -3979,6 +3981,181 @@ async function loadBilibiliRank(params = {}) {
         const results = await Promise.all(promises);
         return results.filter(Boolean); 
     } catch (e) { return []; }
+}
+
+// =========================================================================
+// 国漫榜单：B站国创热榜 + 骨朵国漫热度榜 合并（双源并行，整份数据集落 Widget.storage）
+// - B站国创榜（season_type=4）负责 B 站生态的评分/热播序，
+// - 骨朵「动漫」分类负责全平台（腾讯/爱奇艺/优酷独播）的国漫热度，
+// - 合并后两个榜单按名次交叉、同名作品去重；整份缓存 1 小时。
+// 只有两个源都成功才写缓存，避免把残缺数据集固化下来。
+// =========================================================================
+const CHINA_ANIME_PAGE_SIZE = 20;
+const CHINA_ANIME_TTL_MS = 3600000;   // 1 小时
+// B站国创榜参与合并的最大条数。榜单接口一次返回 46 条，但每条都要一次 TMDB 匹配，
+// 全量会带来 46 次请求（按 297ms/请求 ≈ 14s）；此处取 20 条，与页面尺寸对齐。
+const CHINA_ANIME_BILI_MAX = 20;
+
+// 跨源去重用的标题归一化：同一部作品两个榜单写法常有差异
+// （B站《凡人修仙传之瀚海迷踪》vs 骨朵《凡人修仙传》）；
+// 剥掉「年番/第N季/第N话/完结季/之XXX」等后缀与标点后再比对。
+function chinaAnimeTitleKey(title) {
+    return String(title || "")
+        .replace(/[（(【\[].*?[）)】\]]/g, "")
+        .replace(/之[^·|\s]{1,10}$/, "")
+        .replace(/第[一二三四五六七八九十百千\d]+[季部章话集]/g, "")
+        .replace(/年番|完结篇|完结季|特别篇|剧场版|番外|篇|季/g, "")
+        .replace(/[\s·・:\-—_、,，.。!！?？'"“”‘’]/g, "")
+        .trim()
+        .toLowerCase();
+}
+
+function chinaAnimeStoreKey() {
+    const d = new Date();
+    return `china_anime_rank_v1|${d.getFullYear()}-${d.getMonth() + 1}-${d.getDate()}|${d.getHours()}`;
+}
+
+async function chinaAnimeStoreGet(key) {
+    try {
+        if (!Widget.storage || !Widget.storage.get) return null;
+        const raw = await Widget.storage.get(key);
+        if (!raw) return null;
+        const obj = typeof raw === "string" ? JSON.parse(raw) : raw;
+        if (!obj || !Array.isArray(obj.items) || !obj.items.length) return null;
+        if (Date.now() - Number(obj.ts || 0) >= CHINA_ANIME_TTL_MS) return null;
+        return obj.items;
+    } catch (e) { return null; }
+}
+
+async function chinaAnimeStoreSet(key, items) {
+    try {
+        if (!Widget.storage || !Widget.storage.set) return;
+        await Widget.storage.set(key, JSON.stringify({ ts: Date.now(), items }));
+    } catch (e) { /* 写盘失败不影响本次返回 */ }
+}
+
+async function loadChinaAnimeCombined(params = {}) {
+    const page = Math.max(1, Number(params.page || 1));
+    const cacheKey = chinaAnimeStoreKey();
+    try {
+        const cached = await chinaAnimeStoreGet(cacheKey);
+        if (cached) return cached.slice((page - 1) * CHINA_ANIME_PAGE_SIZE, page * CHINA_ANIME_PAGE_SIZE);
+
+        // 两个源并行；用 allSettled 让单源故障不至于整页空白
+        const [biliSettled, guduoSettled] = await Promise.allSettled([
+            Widget.http.get(
+                "https://api.bilibili.com/pgc/web/rank/list?day=3&season_type=4",
+                { headers: { "User-Agent": "Mozilla/5.0", "Referer": "https://www.bilibili.com/" } }
+            ),
+            Widget.http.get(
+                "https://raw.githubusercontent.com/MakkaPakka518/List/refs/heads/main/data/guduo-hot.json?t=" + Math.floor(Date.now() / 3600000),
+                { decodable: true }
+            ),
+        ]);
+
+        let biliList = [];
+        if (biliSettled.status === "fulfilled") {
+            const biliData = biliSettled.value?.data || {};
+            biliList = biliData.result?.list || biliData.data?.list || [];
+        } else {
+            console.error("[国漫榜单] B站国创榜请求失败:", biliSettled.reason?.message || biliSettled.reason);
+        }
+
+        let guduoList = [];
+        if (guduoSettled.status === "fulfilled") {
+            let guduoData = guduoSettled.value?.data;
+            if (typeof guduoData === "string") guduoData = JSON.parse(guduoData);
+            guduoList = guduoData?.categories?.["动漫"] || [];
+        } else {
+            console.error("[国漫榜单] 骨朵国漫榜请求失败:", guduoSettled.reason?.message || guduoSettled.reason);
+        }
+
+        // 两源全挂：直接返回空，不写缓存
+        if (!biliList.length && !guduoList.length) return [];
+        const degraded = !biliList.length || !guduoList.length;
+
+        const guduoItems = guduoList
+            // 没有 tmdbId 的条目点了也打不开详情页，直接丢弃（当前全量 19 条都带 tmdbId）
+            .filter(item => item.tmdbId)
+            .map(item => ({
+                id: String(item.tmdbId),
+                tmdbId: parseInt(item.tmdbId),
+                type: "tmdb", mediaType: item.mediaType || "tv",
+                title: item.tmdbTitle || item.title,
+                genreTitle: item.genreTitle || "国漫",
+                description: `${item.releaseDate || ""}${item.releaseDate ? " · " : ""}骨朵国漫榜 TOP ${item.rank} | 🔥 热度: ${item.heat} | 评分: ${item.rating}\n${item.overview || "暂无简介"}`,
+                releaseDate: item.releaseDate || "",
+                posterPath: item.posterPath || "",
+                backdropPath: item.backdropPath || "",
+                rating: Number(item.rating) || 0,
+                subTitle: `TOP ${item.rank} · 🔥 ${item.heat} · 骨朵国漫`
+            }));
+
+        // B站国创榜每条都要逐条 TMDB 匹配换中文名/海报，是唯一的重请求开销。
+        // 按 GLOBAL 结论（App 吞吐恒定为 ~297ms/请求，降低耗时的唯一杠杆是砍请求数），
+        // 这里只取前 20 条，与页面尺寸一致：19 条骨朵 + 20 条 B站 已足够覆盖两个榜单的头部。
+        // 全量 46 条会把冷启动推到 18s 以上，而首屏只会显示前 20 条。
+        const biliItems = await Promise.all(biliList.slice(0, CHINA_ANIME_BILI_MAX).map(async (item, index) => {
+            const originalTitle = item.title || "";
+            const cleanTitle = originalTitle.replace(/第[一二三四五六七八九十百\d]+[季章部]/g, "").trim();
+            const tmdbItem = await searchTmdbAnimeStrict(cleanTitle, originalTitle, null);
+            if (!tmdbItem) return null;
+            // B站评分是「9.8分」这种字符串，剥出数字；拿不到时回落 TMDB 评分
+            const biliScore = parseFloat(String(item.rating || "").replace(/[^0-9.]/g, "")) || 0;
+            const tmdbScore = tmdbItem.vote_average ? tmdbItem.vote_average.toFixed(1) : "";
+            const episodeText = item.new_ep?.index_show || "热播中";
+            const rank = item.rank || index + 1;
+            return {
+                id: String(tmdbItem.id),
+                tmdbId: parseInt(tmdbItem.id),
+                type: "tmdb",
+                mediaType: "tv",
+                title: tmdbItem.name || tmdbItem.title || cleanTitle,
+                genreTitle: getGlobalGenreText(tmdbItem.genre_ids),
+                description: `${tmdbItem.first_air_date || ""}${tmdbItem.first_air_date ? " · " : ""}${episodeText} · B站国创榜 TOP ${rank} | 评分: ${biliScore || tmdbScore || "暂无"}\n${tmdbItem.overview || "暂无简介"}`,
+                releaseDate: tmdbItem.first_air_date || "",
+                posterPath: tmdbItem.poster_path ? `https://image.tmdb.org/t/p/w500${tmdbItem.poster_path}` : "",
+                backdropPath: tmdbItem.backdrop_path ? `https://image.tmdb.org/t/p/w780${tmdbItem.backdrop_path}` : "",
+                rating: biliScore || Number(tmdbScore) || 0,
+                subTitle: `${episodeText} · B站国创`
+            };
+        }));
+
+        const merged = [];
+        const seen = new Set();
+        const biliQueue = biliItems.filter(Boolean);
+        const guduoQueue = guduoItems;
+
+        // 两个榜单按名次交叉合并（骨朵#1、B站#1、骨朵#2、B站#2…）：
+        //   * 避免任意一源（B站 46 条）把另一源整段挤到几页之后 —— 国漫热度第一的
+        //     《仙逆》《完美世界》《斗破苍穹》只在骨朵出现，全是 B站 独占也排在前面就看不见了；
+        //   * 同一部作品两源都上榜时，先到者（骨朵的口径带全网热度值）占位，另一源的重复项跳过。
+        // 任一源耗尽的指针会跳过，因此不会出现空位或漏项。
+        let bi = 0, gi = 0, turn = 0;
+        while (bi < biliQueue.length || gi < guduoQueue.length) {
+            const useGuduo = turn % 2 === 0;
+            let picked = null;
+
+            if (useGuduo && gi < guduoQueue.length) picked = guduoQueue[gi++];
+            else if (!useGuduo && bi < biliQueue.length) picked = biliQueue[bi++];
+            else if (gi < guduoQueue.length) picked = guduoQueue[gi++];
+            else picked = biliQueue[bi++];
+
+            const key = String(picked.tmdbId || picked.id || picked.title).toLowerCase();
+            const titleKey = chinaAnimeTitleKey(picked.title);
+            if (seen.has(key) || (titleKey && seen.has("t:" + titleKey))) continue;
+            seen.add(key);
+            if (titleKey) seen.add("t:" + titleKey);
+            merged.push(picked);
+            turn++;
+        }
+        // 单源故障时不写盘：否则残缺数据集会固化 1 小时，用户看到的永远是半份榜单
+        if (!degraded && merged.length) await chinaAnimeStoreSet(cacheKey, merged);
+        return merged.slice((page - 1) * CHINA_ANIME_PAGE_SIZE, page * CHINA_ANIME_PAGE_SIZE);
+    } catch (e) {
+        console.error("[国漫榜单] 加载失败:", e.message || e);
+        return [];
+    }
 }
 
 async function loadTmdbAnimeRanking(params = {}) {
