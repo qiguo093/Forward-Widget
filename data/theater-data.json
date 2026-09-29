@@ -1,7 +1,22 @@
 {
-  "last_updated": "2026-09-29 19:16:28",
+  "last_updated": "2026-09-29 19:19:55",
   "迷雾剧场": {
     "aired": [
+      {
+        "id": "301494",
+        "type": "tmdb",
+        "title": "余红旧事",
+        "description": "一片广场上发生一连串荒诞命案——冻成冰雕的酒鬼，惨被断肢的壮汉，人间蒸发的地头蛇……看似毫无关联，实则命运环环相扣，情感彼此纠葛。",
+        "rating": 8.0,
+        "voteCount": 1,
+        "popularity": 3.7754,
+        "releaseDate": "2026-09-29",
+        "lastUpdateDate": "2026-09-29",
+        "posterPath": "/1rkBA3pnlVcFk80pmoDYwJJHuTw.jpg",
+        "backdropPath": "/1rkBA3pnlVcFk80pmoDYwJJHuTw.jpg",
+        "mediaType": "tv",
+        "genreTitle": "犯罪"
+      },
       {
         "id": "301489",
         "type": "tmdb",
@@ -1224,6 +1239,21 @@
         "genreTitle": "喜剧,悬疑"
       },
       {
+        "id": "309053",
+        "type": "tmdb",
+        "title": "谁杀了画眉鸟",
+        "description": "幼年遭遇家变的李扶鸢十三年后重回华菖县为冤死的兄长复仇，期间结识外表纨绔无用的知县陆岩崇。随着陆岩崇的真实身份与目的渐渐浮出水面，两人从相互猜忌到携手合作解决重重疑案，让十三年前的画眉疑案真相大白！",
+        "rating": 8.0,
+        "voteCount": 2,
+        "popularity": 1.7532,
+        "releaseDate": "2025-12-26",
+        "lastUpdateDate": "2026-01-01",
+        "posterPath": "/v3PkWLYUMe3EdEU85GEdv8ElE7u.jpg",
+        "backdropPath": "/yuTNyK4fzVF750T8eVZW5lm8K54.jpg",
+        "mediaType": "tv",
+        "genreTitle": "剧情"
+      },
+      {
         "id": "307535",
         "type": "tmdb",
         "title": "鲁班异闻录",
@@ -1235,6 +1265,36 @@
         "lastUpdateDate": "2025-12-22",
         "posterPath": "/7zP3EfMHn1CFRBihO0Ewf7OiVmf.jpg",
         "backdropPath": "/x2GwNh0fPvmQxPOSTSFndMWhoFY.jpg",
+        "mediaType": "tv",
+        "genreTitle": "剧情"
+      },
+      {
+        "id": "294373",
+        "type": "tmdb",
+        "title": "山神异闻录",
+        "description": "孤儿金十三从小被老把头金不换收养，他和义父采得了一支奇参“神龙二柱香”，不料参宝却被人夺走，义父金不换惨死。为报大仇，金十三再上神山一探究竟，却发现自己的身世，竟与山神有着不可思议的关系……",
+        "rating": 9.0,
+        "voteCount": 1,
+        "popularity": 2.2332,
+        "releaseDate": "2025-11-04",
+        "lastUpdateDate": "2025-11-11",
+        "posterPath": "/kLXDRrpEcUYQmu80QAoeAYEUC2F.jpg",
+        "backdropPath": "/JtQFccYLJKZ5AqvLNviOVzdGct.jpg",
+        "mediaType": "tv",
+        "genreTitle": "动作冒险"
+      },
+      {
+        "id": "301804",
+        "type": "tmdb",
+        "title": "万灵渡",
+        "description": "捉妖师上官扉夜与失忆前客栈主东方照白在神秘妖怪客栈中相遇，为解除上官的千年诅咒，他们帮助各路心怀遗憾的客人化解执念。在共同经历中，两人解开千年前误会，重新发现人类情感，并携手击败妖王，守护世间安宁，同时重新相爱。",
+        "rating": 7.0,
+        "voteCount": 1,
+        "popularity": 2.29,
+        "releaseDate": "2025-10-28",
+        "lastUpdateDate": "2025-10-28",
+        "posterPath": "/dEF3LBaw9PwaUbrWrGWhwymxtX5.jpg",
+        "backdropPath": "/dQRAOBLNhTxqzAISoAdnI7Opd2o.jpg",
         "mediaType": "tv",
         "genreTitle": "剧情"
       },
@@ -1569,6 +1629,21 @@
         "genreTitle": "剧情,科幻奇幻"
       },
       {
+        "id": "247398",
+        "type": "tmdb",
+        "title": "怪奇笔记",
+        "description": "闹市街区开了一间“怪奇屋”杂货铺，里面的货品看似普通，却都有着奇特的功能。老板戴蒙把它们的使用说明记录在《怪奇笔记》中，客人可以根据需要挑选物品。形形色色的人来到怪奇屋，他们都遇到了各自的困境，想找到走出困境的方法，但最后总会发现，解决问题靠的并不是这些怪奇杂货，而是凭借他们的爱与信心。",
+        "rating": 6.0,
+        "voteCount": 1,
+        "popularity": 2.9704,
+        "releaseDate": "2024-12-22",
+        "lastUpdateDate": "2025-01-07",
+        "posterPath": "/qGgutk4yKhGnPpz7YlqzmrUVhV0.jpg",
+        "backdropPath": "/qGgutk4yKhGnPpz7YlqzmrUVhV0.jpg",
+        "mediaType": "tv",
+        "genreTitle": "悬疑,科幻奇幻"
+      },
+      {
         "id": "273137",
         "type": "tmdb",
         "title": "南柯梦",
@@ -1704,6 +1779,21 @@
         "genreTitle": "剧情"
       },
       {
+        "id": "249360",
+        "type": "tmdb",
+        "title": "今天航班零投诉",
+        "description": "王海仙为了追求男神空乘李尔，来到了航空公司面试空乘。公司找了一帮戏精群演来扮演乘客以训练这批新人的应变能力，在培训的过程中，王海仙逐渐认识到了空乘职业的魅力，并同伙伴们一起解决了各类棘手的乘客问题。",
+        "rating": 8.0,
+        "voteCount": 2,
+        "popularity": 1.543,
+        "releaseDate": "2024-03-18",
+        "lastUpdateDate": "2024-04-01",
+        "posterPath": "/e9rlhLG1BawVsnYKWUrq6XzZGKa.jpg",
+        "backdropPath": "/3z9ZbToAHnMLyEn6Lg2IxLzriKQ.jpg",
+        "mediaType": "tv",
+        "genreTitle": "剧情"
+      },
+      {
         "id": "245749",
         "type": "tmdb",
         "title": "授她以柄",
@@ -1824,6 +1914,21 @@
         "genreTitle": "动作冒险"
       },
       {
+        "id": "233552",
+        "type": "tmdb",
+        "title": "绝色小神医",
+        "description": "现代著名针灸医师简陌，一次医院漏电事故，意外穿越在风恋国的月无颜身上，醒来便发现自己腹部中刀，倒在野外，还意外认识了男主风倾城，就此展开了一场阴差阳错的爱情喜剧，当医术高明的现代医师遇上邪魅神秘的翩翩公子，女扮男装权谋宫廷，错位爱情正在悄然来临。",
+        "rating": 0.0,
+        "voteCount": 0,
+        "popularity": 1.0573,
+        "releaseDate": "2023-08-20",
+        "lastUpdateDate": "2024-01-28",
+        "posterPath": "/pjRfEpd7kMXMRnNvtPrxjipmW4Z.jpg",
+        "backdropPath": "/pjRfEpd7kMXMRnNvtPrxjipmW4Z.jpg",
+        "mediaType": "tv",
+        "genreTitle": "剧情"
+      },
+      {
         "id": "232639",
         "type": "tmdb",
         "title": "抉择",
@@ -1837,6 +1942,21 @@
         "backdropPath": "/rKMSN6Lw0vqz6PSGP5j7Vsf5asb.jpg",
         "mediaType": "tv",
         "genreTitle": "剧情,犯罪"
+      },
+      {
+        "id": "231488",
+        "type": "tmdb",
+        "title": "一吻倾城",
+        "description": "一场爆炸让片场小龙套盛夏穿入漫画《他追她逃：四皇子的柔弱小娇妻》中，并被绑定玛丽苏系统，只要完成任务攒够玛丽苏值，她就可以回到现代走上人生巅峰成为女明星！为了实现心愿，盛夏兴致勃勃就要去抓男主角，谁料竟和本作大反派沈十一撞了个满怀，更让她绝望的是她竟然还和这尊瘟神绑定了姻缘称号！\n\n　　一个是铁面绝情大反派，一个是满心事业的女主角，两人竟然还真碰出意想不到的火花。一场游戏，究竟谁是纸片人，而谁又拥有真心？",
+        "rating": 0.0,
+        "voteCount": 0,
+        "popularity": 3.0156,
+        "releaseDate": "2023-07-28",
+        "lastUpdateDate": "2023-08-11",
+        "posterPath": "/m9bHIZEs5edt7srb2W5jga47g7N.jpg",
+        "backdropPath": "/xFSqw8Ia1TxkKUuPnRyhZ0P2ooj.jpg",
+        "mediaType": "tv",
+        "genreTitle": "剧情,喜剧"
       },
       {
         "id": "231225",
@@ -1912,6 +2032,21 @@
         "backdropPath": "/eqbj7hDGr5DFoACL6zdpFpBlOia.jpg",
         "mediaType": "tv",
         "genreTitle": "犯罪,剧情,悬疑"
+      },
+      {
+        "id": "223460",
+        "type": "tmdb",
+        "title": "夜夜相见不识君",
+        "description": "“声名狼藉”的侯府世子李书白逃婚遇到意外，回府后发现新娘江玉箫对自己暗藏杀机，于是假装失忆与其周旋，意外发现新娘还有神秘身份，于是带着双重身份的夫妻二人暗中较量，又互相吸引， 最终收获双向奔赴的爱情。",
+        "rating": 8.0,
+        "voteCount": 2,
+        "popularity": 1.9369,
+        "releaseDate": "2023-03-25",
+        "lastUpdateDate": "2023-04-12",
+        "posterPath": "/kbPgWufpNucrL6tFvjjoM4CPBus.jpg",
+        "backdropPath": "/kbPgWufpNucrL6tFvjjoM4CPBus.jpg",
+        "mediaType": "tv",
+        "genreTitle": "剧情"
       },
       {
         "id": "222014",
@@ -2002,6 +2137,21 @@
         "backdropPath": "/ghDpTAXdo8zG8oRm2xWQwfVFf9t.jpg",
         "mediaType": "tv",
         "genreTitle": "剧情"
+      },
+      {
+        "id": "216249",
+        "type": "tmdb",
+        "title": "长安秘闻录",
+        "description": "唐朝年间，皇太子李星河微服出行中，巧遇女仵作张小萌，以及大理寺司直楚七，三人在合力破解生死蛊奇案后，意外卷入红衣杀人案，破案过程中更是牵扯出尘封多年的狐妖密室杀人案。三人将如何在诡异长安，力破奇案？",
+        "rating": 0.0,
+        "voteCount": 0,
+        "popularity": 1.6724,
+        "releaseDate": "2022-11-30",
+        "lastUpdateDate": "2022-12-23",
+        "posterPath": "/l5DS4oEXnULjQfQUwEQoPEUbaE5.jpg",
+        "backdropPath": "/l5DS4oEXnULjQfQUwEQoPEUbaE5.jpg",
+        "mediaType": "tv",
+        "genreTitle": "悬疑"
       },
       {
         "id": "214740",
@@ -2107,6 +2257,21 @@
         "backdropPath": "/dPmGF1UAVMKnOOy60BBwInuYj1n.jpg",
         "mediaType": "tv",
         "genreTitle": "剧情,科幻奇幻"
+      },
+      {
+        "id": "209295",
+        "type": "tmdb",
+        "title": "我才不要和人类恋爱呢",
+        "description": "",
+        "rating": 8.0,
+        "voteCount": 1,
+        "popularity": 1.958,
+        "releaseDate": "2022-08-14",
+        "lastUpdateDate": "2022-08-30",
+        "posterPath": "/eowbCgER7Q0BQUk65oYVu3rPWff.jpg",
+        "backdropPath": "/eowbCgER7Q0BQUk65oYVu3rPWff.jpg",
+        "mediaType": "tv",
+        "genreTitle": "剧情"
       },
       {
         "id": "210651",
@@ -2392,6 +2557,21 @@
         "backdropPath": "/a1Y4yA8FgglqIdBYwR17sOOO4yA.jpg",
         "mediaType": "tv",
         "genreTitle": "喜剧"
+      },
+      {
+        "id": "204075",
+        "type": "tmdb",
+        "title": "做梦吧！晶晶",
+        "description": "",
+        "rating": 0.0,
+        "voteCount": 0,
+        "popularity": 1.5895,
+        "releaseDate": "2021-01-30",
+        "lastUpdateDate": "2021-01-30",
+        "posterPath": "/vzGYtSz88wdlffg5MG1XE2my4N9.jpg",
+        "backdropPath": "/vzGYtSz88wdlffg5MG1XE2my4N9.jpg",
+        "mediaType": "tv",
+        "genreTitle": "喜剧,剧情"
       },
       {
         "id": "116590",
@@ -3157,6 +3337,21 @@
         "genreTitle": "剧情"
       },
       {
+        "id": "247401",
+        "type": "tmdb",
+        "title": "师傅",
+        "description": "警校最优秀毕业生小王，在旁人的惋惜声、惊叹声中，毅然选择加入最危险的警种：缉毒警。在“冷面骂将”师傅老王的教导下，小王很快踏上缉毒正轨，在曲折、挫败中不断成长，捣毁某贩卖第三代新型毒品贩毒组织。",
+        "rating": 0.0,
+        "voteCount": 0,
+        "popularity": 1.9068,
+        "releaseDate": "2024-02-29",
+        "lastUpdateDate": "2024-03-14",
+        "posterPath": "/5RjR3eYHLoyrDGf5m1kWjEcGQlL.jpg",
+        "backdropPath": "/5RjR3eYHLoyrDGf5m1kWjEcGQlL.jpg",
+        "mediaType": "tv",
+        "genreTitle": "剧情,犯罪,动作冒险"
+      },
+      {
         "id": "245749",
         "type": "tmdb",
         "title": "授她以柄",
@@ -3322,6 +3517,21 @@
         "genreTitle": "剧情,悬疑,喜剧"
       },
       {
+        "id": "218259",
+        "type": "tmdb",
+        "title": "夏日不宜入爱河",
+        "description": "时宜和夏禾原本是青梅竹马，两人双双穿越回到2008年后，竟然发现对方是为了自己而来，就在彼此享受这双向奔赴的美好爱情时，时宜未来的家暴丈夫和夏禾未来的出轨妻子也穿越了过来,被命运所羁绊的四人展开了一场关于爱恨情仇的较量。",
+        "rating": 0.0,
+        "voteCount": 0,
+        "popularity": 1.2773,
+        "releaseDate": "2023-01-11",
+        "lastUpdateDate": "2023-01-24",
+        "posterPath": "/86eTSD3izEO9uBoWROrjdFrR3bw.jpg",
+        "backdropPath": "/86eTSD3izEO9uBoWROrjdFrR3bw.jpg",
+        "mediaType": "tv",
+        "genreTitle": "剧情"
+      },
+      {
         "id": "218560",
         "type": "tmdb",
         "title": "三生缘起是清欢",
@@ -3350,6 +3560,21 @@
         "backdropPath": "/nPL2D0wrLWa5F00ucq6phTkVRfV.jpg",
         "mediaType": "tv",
         "genreTitle": "剧情,动作冒险"
+      },
+      {
+        "id": "213520",
+        "type": "tmdb",
+        "title": "玉姬书",
+        "description": "傀儡戏天下一绝的陈家班女弟子刘小小一直重启班社遭遇火灾的惨痛一天，直到遇见来自未来的漫画家宋可杨，一起揭穿火灾真相，解开身世之谜的故事。",
+        "rating": 8.0,
+        "voteCount": 1,
+        "popularity": 2.2637,
+        "releaseDate": "2022-10-26",
+        "lastUpdateDate": "2022-11-17",
+        "posterPath": "/vHCraeLu4Jre4ub50lUDsGsldb6.jpg",
+        "backdropPath": "/59BueGPZLY9WWe2pjW1bFZC3Yif.jpg",
+        "mediaType": "tv",
+        "genreTitle": "科幻奇幻,悬疑"
       },
       {
         "id": "202711",
@@ -5127,6 +5352,21 @@
         "genreTitle": "悬疑"
       },
       {
+        "id": "107460",
+        "type": "tmdb",
+        "title": "刺",
+        "description": "故事讲述了警官陈茜，接到一起女性失踪事件的报案，经过与失踪人韩晓婷周边同事和朋友的接触，一桩十年前发生的校园欺凌案件逐渐浮出水面。十年前的一所高中里，发生在韩晓婷，刘涛，张蓓蕾等人之间的故事，友情与爱情，背叛与旁观，侮辱与损害……在韩晓婷心中留下了深深的阴影。十年后，故事中的主人公因工作关系重新被命运捏合在一起韩晓婷展开了复仇计划……",
+        "rating": 10.0,
+        "voteCount": 1,
+        "popularity": 2.0778,
+        "releaseDate": "2020-07-28",
+        "lastUpdateDate": "2020-08-04",
+        "posterPath": "/buj2G3DDJAzkO4579aBB4Igvexk.jpg",
+        "backdropPath": "/buj2G3DDJAzkO4579aBB4Igvexk.jpg",
+        "mediaType": "tv",
+        "genreTitle": ""
+      },
+      {
         "id": "105962",
         "type": "tmdb",
         "title": "重启之极海听雷",
@@ -5155,21 +5395,6 @@
         "backdropPath": "/eGoTmdFE4ySlc64q0d7Xfj31WVR.jpg",
         "mediaType": "tv",
         "genreTitle": "悬疑"
-      },
-      {
-        "id": "102406",
-        "type": "tmdb",
-        "title": "我的刺猬女孩",
-        "description": "　　讲述了帅气的外科医生吴景昊（李逸男 饰）为弥补青春遗憾，在一个偶然的机会下重新回到高三时期，改变自己懦弱的性格，重新感受身边的友情、亲情。去发现那些被他忽略的青春中的种种细腻与温馨，并帮助女同学韩菲（庄达菲 饰）一点点放下防备、解开心结，捡拾起青春中散落的纯粹与美好的故事。",
-        "rating": 8.0,
-        "voteCount": 4,
-        "popularity": 4.8192,
-        "releaseDate": "2020-04-22",
-        "lastUpdateDate": "2023-03-16",
-        "posterPath": "/zoX9jjz47UaAVTi86NXPBTR4nje.jpg",
-        "backdropPath": "/sD6UHMjkRIMrfrukEH0VHpL4ZtU.jpg",
-        "mediaType": "tv",
-        "genreTitle": "剧情"
       },
       {
         "id": "90768",
