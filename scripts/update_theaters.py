@@ -247,12 +247,14 @@ async def search_tmdb(session, item, cache):
                     )
                         
                     if is_title_match and is_year_match:
-                        # 🔴 核心拦截逻辑 1：检查是否缺失ID和海报
+                        # 🔴 核心拦截逻辑 1：只硬性要求 ID 与海报
+                        # ⚠️ 剧照 backdrop 在搜索接口里对新剧经常为 null（如《余红旧事》），
+                        # 曾是漏片的真凶；缺了就用详情接口补，再不行用海报兜底，不再丢弃。
                         tmdb_id = res.get("id")
                         poster_path = res.get("poster_path")
                         backdrop_path = res.get("backdrop_path")
-                        
-                        if not tmdb_id or not poster_path or not backdrop_path:
+
+                        if not tmdb_id or not poster_path:
                             # 数据不全，看 TMDB 返回的下一个搜索结果
                             continue
                             
@@ -261,7 +263,7 @@ async def search_tmdb(session, item, cache):
                             # 未到开播时间，或者 TMDB 根本没写开播时间，直接跳过
                             continue
 
-                        # 🔴 新增：剧集再请求详情，获取最新更新日期 (last_air_date)
+                        # 🔴 新增：剧集再请求详情，获取最新更新日期 (last_air_date) 与缺失的剧照
                         last_update_date = first_air # 默认用首播日期兜底
                         if media == "tv":
                             detail_url = f"https://api.themoviedb.org/3/tv/{tmdb_id}"
@@ -273,8 +275,15 @@ async def search_tmdb(session, item, cache):
                                     if d_resp.status == 200:
                                         d_data = await d_resp.json()
                                         last_update_date = d_data.get("last_air_date") or first_air
+                                        # 搜索接口没给剧照时用详情补（否则详情页/卡片背景会空白）
+                                        if not backdrop_path:
+                                            backdrop_path = d_data.get("backdrop_path")
                             except Exception as e:
                                 pass # 详情获取失败不影响主体逻辑
+
+                        # 详情也没有剧照时用海报兜底，保证卡片背景不为空
+                        if not backdrop_path:
+                            backdrop_path = poster_path
 
                         genre_ids = res.get("genre_ids", [])
                         genre_names = ",".join([GENRE_MAP.get(gid) for gid in genre_ids if GENRE_MAP.get(gid)])
