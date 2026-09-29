@@ -1,5 +1,5 @@
 {
-  "last_updated": "2026-09-29 19:00:12",
+  "last_updated": "2026-09-29 19:16:28",
   "迷雾剧场": {
     "aired": [
       {
@@ -1224,19 +1224,19 @@
         "genreTitle": "喜剧,悬疑"
       },
       {
-        "id": "294373",
+        "id": "307535",
         "type": "tmdb",
-        "title": "山神异闻录",
-        "description": "孤儿金十三从小被老把头金不换收养，他和义父采得了一支奇参“神龙二柱香”，不料参宝却被人夺走，义父金不换惨死。为报大仇，金十三再上神山一探究竟，却发现自己的身世，竟与山神有着不可思议的关系……",
-        "rating": 9.0,
-        "voteCount": 1,
-        "popularity": 2.2332,
-        "releaseDate": "2025-11-04",
-        "lastUpdateDate": "2025-11-11",
-        "posterPath": "/kLXDRrpEcUYQmu80QAoeAYEUC2F.jpg",
-        "backdropPath": "/JtQFccYLJKZ5AqvLNviOVzdGct.jpg",
+        "title": "鲁班异闻录",
+        "description": "民国时期，百姓愚昧，迷信怪力邪说。李木墩是雾城最好的木匠，精通古籍《鲁班秘术》，相传此书分为上下两册，上册研究木工技法，而下册则是诡谲叵测的邪术秘法。雾城惊现新娘失踪案，死因蹊跷，众人议论纷纷，怀疑乃李木墩利用邪术所为。李木墩为自证清白，和警探杨宗、法医苏青云彻查此案，发现乃凶手利用“机关术”故弄玄虚。三人默契配合，又接连破获打生桩案、木偶杀人案、车夫案等等，而这些案件的凶手和李木墩的师弟巫咸有着千丝万缕的联系。督军身死，雾城再现连环命案，引起轩然大波。李木墩三人临危受命，和巫咸斗智斗勇，最终让真相大白。他们彰显正义终将战胜愚昧与黑暗，传承并发扬中华传统文化中求真务实、破除迷信的精神内核。",
+        "rating": 0.0,
+        "voteCount": 0,
+        "popularity": 1.1246,
+        "releaseDate": "2025-12-07",
+        "lastUpdateDate": "2025-12-22",
+        "posterPath": "/7zP3EfMHn1CFRBihO0Ewf7OiVmf.jpg",
+        "backdropPath": "/x2GwNh0fPvmQxPOSTSFndMWhoFY.jpg",
         "mediaType": "tv",
-        "genreTitle": "动作冒险"
+        "genreTitle": "剧情"
       },
       {
         "id": "302933",
@@ -1250,6 +1250,21 @@
         "lastUpdateDate": "2025-10-21",
         "posterPath": "/opSr9GuJtp2o7tfAIhUqmdiQTzP.jpg",
         "backdropPath": "/uVf1veq8m4i96gnvTbJtIvAgvO1.jpg",
+        "mediaType": "tv",
+        "genreTitle": "剧情"
+      },
+      {
+        "id": "294626",
+        "type": "tmdb",
+        "title": "柴门小福妻",
+        "description": "美食博主何青青不慎跌倒穿越古代田园，开启漫长搞钱还债、先婚后爱、养成萌宝的大女主升级线，拼杀出一条致富之路，收获傅清淮互宠互爱的真挚感情。就在她事业、爱情、亲情三全的时候，却面临离开还是留下的艰难抉择……",
+        "rating": 6.0,
+        "voteCount": 2,
+        "popularity": 1.9606,
+        "releaseDate": "2025-10-08",
+        "lastUpdateDate": "2025-10-15",
+        "posterPath": "/cRKmIjZAbmKrrJb6Io7UXAljK4r.jpg",
+        "backdropPath": "/mGQzPHmeHR9oQkFpjuMNNObyTJw.jpg",
         "mediaType": "tv",
         "genreTitle": "剧情"
       },
@@ -1822,21 +1837,6 @@
         "backdropPath": "/rKMSN6Lw0vqz6PSGP5j7Vsf5asb.jpg",
         "mediaType": "tv",
         "genreTitle": "剧情,犯罪"
-      },
-      {
-        "id": "231488",
-        "type": "tmdb",
-        "title": "一吻倾城",
-        "description": "一场爆炸让片场小龙套盛夏穿入漫画《他追她逃：四皇子的柔弱小娇妻》中，并被绑定玛丽苏系统，只要完成任务攒够玛丽苏值，她就可以回到现代走上人生巅峰成为女明星！为了实现心愿，盛夏兴致勃勃就要去抓男主角，谁料竟和本作大反派沈十一撞了个满怀，更让她绝望的是她竟然还和这尊瘟神绑定了姻缘称号！\n\n　　一个是铁面绝情大反派，一个是满心事业的女主角，两人竟然还真碰出意想不到的火花。一场游戏，究竟谁是纸片人，而谁又拥有真心？",
-        "rating": 0.0,
-        "voteCount": 0,
-        "popularity": 3.0156,
-        "releaseDate": "2023-07-28",
-        "lastUpdateDate": "2023-08-11",
-        "posterPath": "/m9bHIZEs5edt7srb2W5jga47g7N.jpg",
-        "backdropPath": "/xFSqw8Ia1TxkKUuPnRyhZ0P2ooj.jpg",
-        "mediaType": "tv",
-        "genreTitle": "剧情,喜剧"
       },
       {
         "id": "231225",
@@ -3350,21 +3350,6 @@
         "backdropPath": "/nPL2D0wrLWa5F00ucq6phTkVRfV.jpg",
         "mediaType": "tv",
         "genreTitle": "剧情,动作冒险"
-      },
-      {
-        "id": "213520",
-        "type": "tmdb",
-        "title": "玉姬书",
-        "description": "傀儡戏天下一绝的陈家班女弟子刘小小一直重启班社遭遇火灾的惨痛一天，直到遇见来自未来的漫画家宋可杨，一起揭穿火灾真相，解开身世之谜的故事。",
-        "rating": 8.0,
-        "voteCount": 1,
-        "popularity": 2.2637,
-        "releaseDate": "2022-10-26",
-        "lastUpdateDate": "2022-11-17",
-        "posterPath": "/vHCraeLu4Jre4ub50lUDsGsldb6.jpg",
-        "backdropPath": "/59BueGPZLY9WWe2pjW1bFZC3Yif.jpg",
-        "mediaType": "tv",
-        "genreTitle": "科幻奇幻,悬疑"
       },
       {
         "id": "202711",
