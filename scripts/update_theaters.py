@@ -189,10 +189,13 @@ async def fetch_doulist_pages_html(session, theater):
         raise RuntimeError("片单页面成功返回，但未解析到任何有效条目")
     return {"items": all_items, "page_count": page_count}
 
+UNMATCHED_DIAG = []
+
 async def search_tmdb(session, item, cache):
     """在 TMDB 中进行严格匹配（按豆瓣条目类型区分剧集 / 电影）"""
     title = item['title']
     year = item['year']
+    _diag = []
     media = item.get('type') or 'tv'
     if media not in ('tv', 'movie'):
         media = 'tv'
@@ -217,6 +220,7 @@ async def search_tmdb(session, item, cache):
             if resp.status == 200:
                 data = await resp.json()
                 results = data.get("results", [])
+                _diag.append(f"HTTP200 结果{len(results)}条")
                 
                 # 获取当天的北京时间，用于拦截未开播的剧
                 tz_bj = datetime.timezone(datetime.timedelta(hours=8))
@@ -233,6 +237,14 @@ async def search_tmdb(session, item, cache):
                     
                     if year and first_air:
                         is_year_match = first_air.startswith(year)
+
+                    _diag.append(
+                        f"候选[{res.get('id')}] name={res.get('name') or res.get('title')} "
+                        f"orig={res.get('original_name') or res.get('original_title')} "
+                        f"date={first_air} poster={bool(res.get('poster_path'))} "
+                        f"backdrop={bool(res.get('backdrop_path'))} "
+                        f"标题命中={is_title_match} 年份命中={is_year_match} today={today_str}"
+                    )
                         
                     if is_title_match and is_year_match:
                         # 🔴 核心拦截逻辑 1：检查是否缺失ID和海报
@@ -284,7 +296,10 @@ async def search_tmdb(session, item, cache):
                         }
                         cache[cache_key] = info
                         return info
-    except: pass
+    except Exception as e:
+        _diag.append(f"请求异常 {type(e).__name__}: {e}")
+    if _diag:
+        UNMATCHED_DIAG.append(f"[{media}] {title} ({year}) → " + " ; ".join(_diag[:12]))
     return None
 
 
@@ -319,6 +334,7 @@ def build_douban_fallback(item):
     }
 
 async def process_theater(session, theater, cache):
+    UNMATCHED_DIAG.clear()
     douban_data = await fetch_doulist_pages(session, theater)
     items = list(douban_data["items"])
 
@@ -426,6 +442,10 @@ async def process_theater(session, theater, cache):
         f"✅ [{theater['name']}] 处理完成: 共发现 {len(items)} 部，"
         f"TMDB 匹配 {len(aired)} 部，豆瓣兜底 0 部，电影 {movie_count} 部"
     )
+    if UNMATCHED_DIAG:
+        print(f"   ⚠️ [{theater['name']}] 未匹配明细 {len(UNMATCHED_DIAG)} 条:")
+        for line in UNMATCHED_DIAG:
+            print("     " + line)
 
     return {
         theater["name"]: {
