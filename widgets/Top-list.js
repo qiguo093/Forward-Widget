@@ -5116,42 +5116,6 @@ const THEATER_DATA_URLS = [
   "https://gh-proxy.com/https://raw.githubusercontent.com/qiguo093/Forward-Widget/main/data/theater-data.json",
   "https://raw.githubusercontent.com/qiguo093/Forward-Widget/main/data/theater-data.json"
 ];
-const THEATER_SHARD_FILES = {
-  "迷雾剧场": "mist", "暗流剧场": "anliu", "白夜剧场": "white", "X剧场": "x",
-  "横屏短剧": "short", "生花剧场": "shenghua", "大家剧场": "dajia", "小逗剧场": "xiaodou",
-  "十分剧场": "shifen", "板凳单元": "bandeng", "萤火单元": "yinghuo", "正午阳光": "zhengwu",
-  "恋恋剧场": "lianlian", "悬疑剧场": "xuan疑", "微尘剧场": "weichen"
-};
-
-function theaterShardUrls(name) {
-  const file = THEATER_SHARD_FILES[name];
-  if (!file) return [];
-  return [
-    `https://raw.githubusercontent.com/qiguo093/Forward-Widget/main/data/theaters/${file}.json`,
-    `https://cdn.jsdelivr.net/gh/qiguo093/Forward-Widget@main/data/theaters/${file}.json`,
-    `https://fastly.jsdelivr.net/gh/qiguo093/Forward-Widget@main/data/theaters/${file}.json`
-  ];
-}
-
-function theaterPageItems(items, page) {
-  const p = Math.max(1, Number(page) || 1);
-  return items.slice((p - 1) * 24, p * 24);
-}
-
-function theaterSortItems(items, mode) {
-  if (!mode || mode === "default") return items;
-  const copy = [...items];
-  const num = (v) => Number(v) || 0;
-  if (mode === "rating") return copy.sort((a, b) => num(b.rating) - num(a.rating));
-  if (mode === "trending") return copy.sort((a, b) => num(b.popularity) - num(a.popularity));
-  if (mode === "heat") return copy.sort((a, b) => num(b.voteCount || b.vote_count) - num(a.voteCount || a.vote_count));
-  if (mode === "recent" || mode === "updated") {
-    const key = mode === "updated" ? "lastUpdateDate" : "releaseDate";
-    return copy.sort((a, b) => String(b[key] || "").localeCompare(String(a[key] || "")));
-  }
-  return copy;
-}
-
 // 平台剧场：读取 qiguo093/Forward-Widget 自己生成的纯 TMDB 数据。
 const OWN_PLATFORM_THEATER = {
   emptyTips: [{ id: "empty", type: "text", title: "加载失败", description: "请检查网络连接" }],
