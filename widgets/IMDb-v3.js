@@ -86,7 +86,7 @@ const contentTypeParam = {
 var WidgetMetadata = {
     id: "imdb_v3",
     title: "IMDb 分类资源 v3",
-    description: "影视热门聚合（v3 重制：原静态数据仓库已被作者删除，改为 TMDB 实时接口，各地区/年份/分类筛选已真正生效）",
+    description: "影视热门聚合",
     author: "𝓚𝓾𝓰𝓾𝓸𝔃𝓪𝓲 ⁷",
     version: "3.0.0",
     requiredVersion: "0.0.1",
