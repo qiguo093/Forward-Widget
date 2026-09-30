@@ -44,9 +44,9 @@ function processEnumOptions(options, allValue = "all", allTitle = "全部", allL
 const pageParam = { name: "page", title: "页码", type: "page" };
 
 const sortOptions = [
-    { title: "🔥综合热度", value: "hs_desc" },
-    { title: "👍评分", value: "r_desc" },
-    { title: "🆕最新上线", value: "d_desc" }
+    { title: "综合热度", value: "hs_desc" },
+    { title: "评分", value: "r_desc" },
+    { title: "最新上线", value: "d_desc" }
 ];
 const sortParam = (defaultValue = "hs_desc") => ({ name: "sort", title: "排序方式", type: "enumeration", value: defaultValue, enumOptions: sortOptions });
 
@@ -76,8 +76,8 @@ const categoryParam = { name: "category", title: "选择分类/主题", type: "e
 const contentTypeParam = {
     name: "contentType", title: "内容分类", type: "enumeration", value: "all",
     enumOptions: [
-        { title: "🔥全部类型", value: "all" }, { title: "🎬电影", value: "movie" },
-        { title: "📺剧集", value: "tv" }, { title: "✨动画", value: "anime" }
+        { title: "全部类型", value: "all" }, { title: "电影", value: "movie" },
+        { title: "剧集", value: "tv" }, { title: "动画", value: "anime" }
     ]
 };
 
@@ -93,12 +93,12 @@ var WidgetMetadata = {
     detailCacheDuration: 36000,
     cacheDuration: 3600,
     modules: [
-        { title: "🆕 近期热门", functionName: "listRecentHot", params: [contentTypeParam, regionFilterParam, sortParam("hs_desc"), pageParam], cacheDuration: 1800, requiresWebView: false },
-        { title: "🎭 分类/主题", functionName: "listByCategory", params: [categoryParam, contentTypeParam, regionFilterParam, sortParam(), pageParam], cacheDuration: 3600, requiresWebView: false },
-        { title: "📅 按年份浏览", functionName: "listByYear", params: [yearEnumParam, contentTypeParam, regionFilterParam, sortParam("d_desc"), pageParam], cacheDuration: 3600, requiresWebView: false },
-        { title: "🎬 电影", functionName: "listMovies", params: [regionParamSelect, sortParam(), pageParam], cacheDuration: 3600, requiresWebView: false },
-        { title: "📺 剧集", functionName: "listTVSeries", params: [regionParamSelect, sortParam(), pageParam], cacheDuration: 3600, requiresWebView: false },
-        { title: "✨ 动画", functionName: "listAnime", params: [regionParamSelect, sortParam(), pageParam], cacheDuration: 3600, requiresWebView: false },
+        { title: "近期热门", functionName: "listRecentHot", params: [contentTypeParam, regionFilterParam, sortParam("hs_desc"), pageParam], cacheDuration: 1800, requiresWebView: false },
+        { title: "分类/主题", functionName: "listByCategory", params: [categoryParam, contentTypeParam, regionFilterParam, sortParam(), pageParam], cacheDuration: 3600, requiresWebView: false },
+        { title: "按年份浏览", functionName: "listByYear", params: [yearEnumParam, contentTypeParam, regionFilterParam, sortParam("d_desc"), pageParam], cacheDuration: 3600, requiresWebView: false },
+        { title: "电影", functionName: "listMovies", params: [regionParamSelect, sortParam(), pageParam], cacheDuration: 3600, requiresWebView: false },
+        { title: "剧集", functionName: "listTVSeries", params: [regionParamSelect, sortParam(), pageParam], cacheDuration: 3600, requiresWebView: false },
+        { title: "动画", functionName: "listAnime", params: [regionParamSelect, sortParam(), pageParam], cacheDuration: 3600, requiresWebView: false },
     ]
 };
 
@@ -298,7 +298,7 @@ async function runDiscovery(types, opts, page) {
 
 // --- 模块入口 ---
 
-// 🆕 近期热门：TMDB 当前热门，可按内容类型与地区收窄
+// 近期热门：TMDB 当前热门，可按内容类型与地区收窄
 async function listRecentHot(params = {}) {
     return await runDiscovery(resolveTypes(params.contentType), {
         sort: params.sort || "hs_desc",
@@ -307,7 +307,7 @@ async function listRecentHot(params = {}) {
     }, params.page);
 }
 
-// 🎭 分类/主题：类型走 with_genres，主题先查 keyword id 再走 with_keywords
+// 分类/主题：类型走 with_genres，主题先查 keyword id 再走 with_keywords
 async function listByCategory(params = {}) {
     const cat = await resolveCategory(params.category);
     if (!cat.ok) {
@@ -320,7 +320,7 @@ async function listByCategory(params = {}) {
     return await runDiscovery(resolveTypes(params.contentType), opts, params.page);
 }
 
-// 📅 按年份浏览：电影用 primary_release_year，剧集用 first_air_date 区间
+// 按年份浏览：电影用 primary_release_year，剧集用 first_air_date 区间
 async function listByYear(params = {}) {
     return await runDiscovery(resolveTypes(params.contentType), {
         sort: params.sort || "d_desc",
@@ -329,7 +329,7 @@ async function listByYear(params = {}) {
     }, params.page);
 }
 
-// 🎬 电影
+// 电影
 async function listMovies(params = {}) {
     return await runDiscovery(["movie"], {
         sort: params.sort || "hs_desc",
@@ -337,7 +337,7 @@ async function listMovies(params = {}) {
     }, params.page);
 }
 
-// 📺 剧集
+// 剧集
 async function listTVSeries(params = {}) {
     return await runDiscovery(["tv"], {
         sort: params.sort || "hs_desc",
@@ -345,7 +345,7 @@ async function listTVSeries(params = {}) {
     }, params.page);
 }
 
-// ✨ 动画：TMDB 剧集里的动画类型（含日番、国创、欧美动画）
+// 动画：TMDB 剧集里的动画类型（含日番、国创、欧美动画）
 async function listAnime(params = {}) {
     return await runDiscovery(["tv"], {
         sort: params.sort || "hs_desc",
