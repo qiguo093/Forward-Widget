@@ -3197,8 +3197,8 @@ async function loadDoubanTrendEntry(params = {}) {
     }
     else if (sortBy === "db_movie_yearly") list = await loadDoubanYearlyAll(params.movie_yearly || "2025", page);
     else if (sortBy === "db_tv_yearly") list = await loadDoubanTvYearlyAll(params.tv_yearly || "2025", page);
-    else if (sortBy === "movie_weekly") list = await loadDoubanRawCatalog("movie_weekly", "movie", page);
-    else if (sortBy === "custom_tv_global" || sortBy === "tv_global_best") list = await loadDoubanRawCatalog(sortBy, "tv", page);
+    else if (sortBy === "movie_weekly") list = await loadDoubanBridgeCatalog("movie_weekly", "movie", page);
+    else if (sortBy === "custom_tv_global" || sortBy === "tv_global_best") list = await loadDoubanBridgeCatalog(sortBy, "tv", page);
     else if (sortBy === "custom_url") list = await loadLiteCustomDouban(params);
     else list = await loadDoubanModule({ sort_by: sortBy, page });
     return sortDoubanTrendItems(list, sortType);
@@ -3667,6 +3667,24 @@ function doubanItemGenres(item) {
     const raw = pieces.length >= 3 ? pieces[2] : "";
     return raw ? raw.split(/[\s,，]+/).filter(Boolean).slice(0, 2).join("/") : "";
 }
+async function searchTmdbBridgeExactForDouban(query, type, year) {
+    const title = String(query || "").trim();
+    if (!title) return null;
+    try {
+        const res = await Widget.tmdb.get(`/search/${type}`, { params: { query: title, language: "zh-CN" } });
+        const results = Array.isArray(res.results) ? res.results : [];
+        const normalize = x => String(x || "").trim().toLocaleLowerCase();
+        const wanted = new Set([title].filter(Boolean).map(normalize));
+        const exact = results.filter(function (item) {
+            const names = [item.title, item.name, item.original_title, item.original_name].filter(Boolean);
+            const itemYear = String(item.release_date || item.first_air_date || "").slice(0, 4);
+            return names.some(name => wanted.has(normalize(name))) && (!year || !itemYear || itemYear === String(year));
+        });
+        // bridge 只接受唯一精确命中；0 个或多个都保留豆瓣原卡片。
+        return exact.length === 1 ? exact[0] : null;
+    } catch (_) { return null; }
+}
+
 async function searchTmdbExactForDouban(query, type, year) {
     const raw = String(query || "").trim();
     if (!raw) return null;
@@ -5061,9 +5079,9 @@ async function loadDoubanGenreChart(collectionId, mediaType, page, chartLabel) {
     }
 }
 
-async function loadDoubanRawCatalog(categoryKey, mediaType, page) {
+async function loadDoubanBridgeCatalog(categoryKey, mediaType, page) {
     const url = LITE_DOUBAN_URLS[categoryKey];
-    if (!url) return [{ id: "douban_raw_error", type: "text", title: "未找到豆瓣榜单" }];
+    if (!url) return [{ id: "douban_bridge_error", type: "text", title: "未找到豆瓣榜单" }];
     const pageNo = Number(page) || 1;
     const start = (pageNo - 1) * 20;
     try {
@@ -5071,20 +5089,32 @@ async function loadDoubanRawCatalog(categoryKey, mediaType, page) {
         const res = await Widget.http.get(finalUrl, { headers: { "Referer": "https://m.douban.com/", "User-Agent": LITE_UA_PC } });
         const data = safeJsonParse(res.data);
         const rows = (data && data.subject_collection_items) || [];
-        return rows.map(function (item) {
+        return await Promise.all(rows.map(async function (item) {
             const rate = doubanItemRating(item);
             const year = doubanItemYear(item);
             const poster = item.cover_url || (item.pic && (item.pic.large || item.pic.normal)) || "";
-            return {
+            const card = {
                 id: String(item.id), type: "douban", mediaType: mediaType,
                 title: item.title || "", posterPath: poster, backdropPath: "",
-                rating: parseFloat(rate) || 0, genreTitle: doubanRatingGenreLine(rate, doubanItemGenres(item)),
+                rating: parseFloat(rate) || 0,
+                genreTitle: doubanRatingGenreLine(rate, doubanItemGenres(item)),
                 releaseDate: year, year: year,
                 description: item.card_subtitle || item.description || "暂无简介"
             };
-        });
+            const tmdb = await searchTmdbBridgeExactForDouban(item.title, mediaType === "tv" ? "tv" : "movie", year);
+            if (tmdb) {
+                card.type = "tmdb"; card.id = String(tmdb.id); card.tmdbId = tmdb.id;
+                card.posterPath = tmdb.poster_path ? `https://image.tmdb.org/t/p/w500${tmdb.poster_path}` : poster;
+                card.backdropPath = tmdb.backdrop_path ? `https://image.tmdb.org/t/p/w780${tmdb.backdrop_path}` : "";
+                card.genreTitle = doubanRatingGenreLine(rate, getGlobalGenreText(tmdb.genre_ids));
+                card.releaseDate = tmdb.release_date || tmdb.first_air_date || year;
+                card.year = String(card.releaseDate || year).slice(0, 4);
+                card.description = `${card.releaseDate || ""} · ${card.genreTitle}` + (tmdb.overview ? `\n${tmdb.overview}` : "");
+            }
+            return card;
+        }));
     } catch (e) {
-        return [{ id: "douban_raw_error", type: "text", title: "豆瓣榜单加载失败", description: e.message || "请求失败" }];
+        return [{ id: "douban_bridge_error", type: "text", title: "豆瓣榜单加载失败", description: e.message || "请求失败" }];
     }
 }
 
