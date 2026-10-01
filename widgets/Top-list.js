@@ -4845,7 +4845,7 @@ async function loadDoubanYearlyAll(year, page) {
                 const t = g.trim();
                 if (t && t !== "电影" && seenGenre.indexOf(t) < 0) seenGenre.push(t);
             });
-            card.genreTitle = seenGenre.slice(0, 4).join(" · ");   // 最多 4 段，避免第二行过长被截断
+            card.genreTitle = seenGenre.slice(0, 4).join(" / ");   // 「/」比「·」窄，同样宽度能多放内容
         }
         return card;
     }));
