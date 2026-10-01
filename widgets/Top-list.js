@@ -2543,6 +2543,22 @@ var DOUBAN_YEARLY_CATS = {
     "2014": [["华语","2014_movie_2"], ["外语","2014_movie_1"], ["日本","2014_movie_7"], ["韩国","2014_movie_6"], ["欧洲","2014_movie_8"], ["动画","2014_movie_9"], ["短片","2014_movie_11"]]
 };
 
+// 🟢 豆瓣「年度评分最高剧集」：合并全部剧集年度分类，排除纪录与微短剧
+var DOUBAN_TV_YEARLY_CATS = {
+    "2025": [["华语剧集","EC2FACYKQ"],["英美新剧","ECHNAB4LY"],["英美续订","ECWQ7ZJGY"],["日本剧集","ECPNAHZ2A"],["韩国剧集","EC7VAFY4Q"],["综艺","EC647Z33A"],["动画","ECQM7YUOQ"]],
+    "2024": [["华语剧集","ECYA7RAZQ"],["英美新剧","EC5U7O7WY"],["英美续订","ECOY7WR4I"],["日本剧集","ECRE7PJSQ"],["韩国剧集","ECMM7RKRA"],["综艺","ECTE7TV3Y"],["动画","ECHQ7SAPY"]],
+    "2023": [["华语剧集","ECTE6EOZA"],["英美新剧","ECUI6CVAI"],["英美续订","ECM46I42A"],["日本剧集","ECPE6B6NI"],["韩国剧集","EC246FT6Y"],["综艺","EC7I6GR6A"],["动画","EC3Q6JTOQ"]],
+    "2022": [["华语剧集","ECWU56XUI"],["英美新剧","ECQY6HRQQ"],["英美续订","ECMU6H5VY"],["日本剧集","ECRY6I6FA"],["韩国剧集","EC2Y6BEGQ"],["综艺","EC4U6BXLA"],["动画","ECRI533KQ"]],
+    "2021": [["华语剧集","ECOY56I6Y"],["英美新剧","EC5U5X5FA"],["英美续订","ECEI6A5ZI"],["日本剧集","ECZQ6AD6Y"],["韩国剧集","ECNI5ZBSQ"],["动画","ECGA6CUPA"]],
+    "2020": [["华语剧集","ECCM5TXSI"],["英美新剧","ECSA5PTFI"],["英美续订","ECZU5SJAI"],["日本剧集","ECBI5KPKY"],["韩国剧集","ECJM5OL6Y"]],
+    "2019": [["华语剧集","ECR4HOW3I"],["英美新剧","ECS4HX5JI"],["英美续订","ECS4HX6GQ"],["日本剧集","EC2AHUXEA"],["韩国剧集","ECR4HO7JA"]],
+    "2018": [["华语剧集","2018_tv_23"],["英美新剧","2018_tv_24"],["英美续订","2018_tv_25"],["日本剧集","2018_tv_26"],["韩国剧集","2018_tv_27"],["动画","2018_tv_28"]],
+    "2017": [["华语剧集","2017_tv_domestic_score"],["英美新剧","2017_tv_american_score"],["大陆网络剧集","2017_tv_735"],["日本剧集","2017_tv_740"],["韩国剧集","2017_tv_741"],["动画","2017_tv_706"]],
+    "2016": [["华语剧集","2016_tv_478"],["英美新剧","2016_tv_472"],["英美续订","2016_tv_474"],["日本剧集","2016_tv_482"],["韩国剧集","2016_tv_481"],["动画","2016_tv_486"]],
+    "2015": [["华语剧集","2015_tv_6"],["英美新剧","2015_tv_7"],["英美续订","2015_tv_13"],["日本剧集","2015_tv_14"],["韩国剧集","2015_tv_15"],["动画","2015_tv_60"]],
+    "2014": [["华语剧集","2014_tv_14"],["英美新剧","2014_tv_13"],["英美续订","2014_tv_12"],["日本剧集","2014_tv_16"],["韩国剧集","2014_tv_15"]]
+};
+
 var WidgetMetadata = {
     id: "🅖 🅖Media.library",
     title: "影视榜单Pro",
@@ -2681,7 +2697,7 @@ var WidgetMetadata = {
             {
                 name: "sort_by", title: "豆瓣 榜单", type: "enumeration", value: "db_tv_cn",
                 enumOptions: [
-                    { value: "db_tv_cn", title: "热门国产剧" }, { value: "db_variety", title: "热门综艺" }, { value: "db_movie", title: "热门电影" }, { value: "db_tv_us", title: "热门美剧" }, { value: "tv_domestic", title: "大陆剧集" }, { value: "tv_american", title: "欧美剧集" }, { value: "tv_japanese", title: "日本剧集" }, { value: "tv_korean", title: "韩国剧集" }, { value: "tv_animation", title: "动漫番剧" }, { value: "show_domestic", title: "大陆综艺" }, { value: "show_foreign", title: "国外综艺" }, { value: "movie_weekly", title: "一周口碑电影" }, { value: "movie_top250", title: "豆瓣 Top250" }, { value: "db_movie_genre", title: "电影类型榜" }, { value: "db_tv_genre", title: "剧集类型榜" }, { value: "db_movie_yearly", title: "年度评分最高电影" }, { value: "custom_movie_hot", title: "实时热门电影" }, { value: "custom_tv_hot", title: "实时热门电视" }, { value: "custom_subject_hot", title: "实时书影音热门" }, { value: "custom_tv_chinese", title: "华语口碑剧集榜" }, { value: "custom_tv_global", title: "全球口碑剧集榜" }, { value: "custom_movie_showing", title: "影院热映" }, { value: "custom_url", title: "自定义URL" }
+                    { value: "db_tv_cn", title: "热门国产剧" }, { value: "db_variety", title: "热门综艺" }, { value: "db_movie", title: "热门电影" }, { value: "db_tv_us", title: "热门美剧" }, { value: "tv_domestic", title: "大陆剧集" }, { value: "tv_american", title: "欧美剧集" }, { value: "tv_japanese", title: "日本剧集" }, { value: "tv_korean", title: "韩国剧集" }, { value: "tv_animation", title: "动漫番剧" }, { value: "show_domestic", title: "大陆综艺" }, { value: "show_foreign", title: "国外综艺" }, { value: "movie_weekly", title: "一周口碑电影" }, { value: "movie_top250", title: "豆瓣 Top250" }, { value: "db_movie_genre", title: "电影类型榜" }, { value: "db_tv_genre", title: "剧集类型榜" }, { value: "db_movie_yearly", title: "年度评分最高电影" }, { value: "db_tv_yearly", title: "年度评分最高剧集" }, { value: "custom_movie_hot", title: "实时热门电影" }, { value: "custom_tv_hot", title: "实时热门电视" }, { value: "custom_subject_hot", title: "实时书影音热门" }, { value: "custom_tv_chinese", title: "华语口碑剧集榜" }, { value: "custom_tv_global", title: "全球口碑剧集榜" }, { value: "custom_movie_showing", title: "影院热映" }, { value: "custom_url", title: "自定义URL" }
                 ]
             },
             {
@@ -2701,6 +2717,11 @@ var WidgetMetadata = {
             {
                 name: "movie_yearly", title: "选择年份", type: "enumeration", value: "2025",
                 belongTo: { paramName: "sort_by", value: ["db_movie_yearly"] },
+                enumOptions: [ { title: "2025年 最佳", value: "2025" }, { title: "2024年 最佳", value: "2024" }, { title: "2023年 最佳", value: "2023" }, { title: "2022年 最佳", value: "2022" }, { title: "2021年 最佳", value: "2021" }, { title: "2020年 最佳", value: "2020" }, { title: "2019年 最佳", value: "2019" }, { title: "2018年 最佳", value: "2018" }, { title: "2017年 最佳", value: "2017" }, { title: "2016年 最佳", value: "2016" }, { title: "2015年 最佳", value: "2015" }, { title: "2014年 最佳", value: "2014" } ]
+            },
+            {
+                name: "tv_yearly", title: "选择年份", type: "enumeration", value: "2025",
+                belongTo: { paramName: "sort_by", value: ["db_tv_yearly"] },
                 enumOptions: [ { title: "2025年 最佳", value: "2025" }, { title: "2024年 最佳", value: "2024" }, { title: "2023年 最佳", value: "2023" }, { title: "2022年 最佳", value: "2022" }, { title: "2021年 最佳", value: "2021" }, { title: "2020年 最佳", value: "2020" }, { title: "2019年 最佳", value: "2019" }, { title: "2018年 最佳", value: "2018" }, { title: "2017年 最佳", value: "2017" }, { title: "2016年 最佳", value: "2016" }, { title: "2015年 最佳", value: "2015" }, { title: "2014年 最佳", value: "2014" } ]
             },
             {
@@ -3175,6 +3196,7 @@ async function loadDoubanTrendEntry(params = {}) {
         list = await loadDoubanGenreChart(g, "tv", page, isHot ? "剧集类型榜 · 近期热门" : "");
     }
     else if (sortBy === "db_movie_yearly") list = await loadDoubanYearlyAll(params.movie_yearly || "2025", page);
+    else if (sortBy === "db_tv_yearly") list = await loadDoubanTvYearlyAll(params.tv_yearly || "2025", page);
     else if (sortBy === "custom_url") list = await loadLiteCustomDouban(params);
     else list = await loadDoubanModule({ sort_by: sortBy, page });
     return sortDoubanTrendItems(list, sortType);
@@ -4868,6 +4890,88 @@ async function loadDoubanYearlyAll(year, page) {
         } catch (e) { /* 存储失败不影响返回 */ }
     } else {
         console.warn("[douban_yearly] 以下分类取数不完整，本次不写缓存:", incomplete.join(", "));
+    }
+    return items.slice((pageNo - 1) * 20, pageNo * 20);
+}
+
+// 🟢 豆瓣年度评分最高剧集：合并全部分类，去重，排除纪录与微短剧
+async function loadDoubanTvYearlyAll(year, page) {
+    const y = String(year || "2025").trim();
+    const pageNo = Number(page) || 1;
+    const cats = DOUBAN_TV_YEARLY_CATS[y] || [];
+    if (!cats.length) return [{ id: "err", type: "text", title: "该年份暂无数据" }];
+    const cacheKey = "douban_tv_yearly_all_v1|" + y;
+    const label = y + "年度最佳";
+    try {
+        if (Widget.storage && Widget.storage.get) {
+            const raw = await Widget.storage.get(cacheKey);
+            const obj = raw ? (typeof raw === "string" ? JSON.parse(raw) : raw) : null;
+            if (obj && Array.isArray(obj.items) && obj.items.length && Date.now() - Number(obj.ts || 0) < 43200000) {
+                return obj.items.slice((pageNo - 1) * 20, pageNo * 20);
+            }
+        }
+    } catch (e) { /* 缓存坏了就重新抓取 */ }
+
+    const headers = { "Referer": "https://m.douban.com/", "User-Agent": LITE_UA_PC };
+    async function fetchCat(c) {
+        const url = "https://m.douban.com/rexxar/api/v2/subject_collection/" + encodeURIComponent(c[1]) + "/items?start=0&count=50";
+        for (let attempt = 0; attempt < 3; attempt++) {
+            try {
+                const res = await Widget.http.get(url, { headers: headers });
+                const data = safeJsonParse(res.data);
+                const list = (data && data.subject_collection_items) || [];
+                const total = Number(data && data.total) || 0;
+                if (list.length && list.length >= total) return { name: c[0], items: list };
+            } catch (e) { /* 重试 */ }
+        }
+        return { name: c[0], items: null };
+    }
+    const results = [];
+    for (let i = 0; i < cats.length; i += 5) {
+        const batch = await Promise.all(cats.slice(i, i + 5).map(fetchCat));
+        batch.forEach(r => results.push(r));
+    }
+    const map = {}, order = [];
+    results.forEach(function (r) {
+        (r.items || []).forEach(function (item) {
+            if (!item || !item.id) return;
+            const key = String(item.id);
+            if (!map[key]) { map[key] = item; order.push(key); }
+        });
+    });
+    const incomplete = results.filter(r => !r.items).map(r => r.name);
+    if (!order.length) return pageNo === 1 ? [{ id: "empty", type: "text", title: "暂无数据" }] : [];
+
+    const items = await Promise.all(order.map(async function (key) {
+        const item = map[key];
+        const rate = item.rating && typeof item.rating.value === "number" ? item.rating.value.toFixed(1) : "";
+        const cardSub = item.card_subtitle || "";
+        const yearHit = cardSub.match(/(19|20)\d{2}/);
+        const yearStr = item.year || (yearHit ? yearHit[0] : "");
+        const poster = item.cover_url || (item.pic && (item.pic.large || item.pic.normal)) || "";
+        const card = {
+            id: String(item.id), type: "douban", mediaType: "tv", title: item.title || "",
+            genreTitle: rate ? ("豆瓣" + rate) : "剧集",
+            subTitle: (rate ? "豆瓣 " + rate + " · " : "") + label,
+            description: (rate ? "豆瓣 " + rate : "暂无评分") + (cardSub ? " · " + cardSub : "") + "\n" + (item.comment || item.description || "暂无简介"),
+            posterPath: poster, backdropPath: "", rating: parseFloat(rate) || 0,
+            popularity: 0, voteCount: (item.rating && item.rating.count) || 0,
+            releaseDate: yearStr ? String(yearStr) : "", year: yearStr ? String(yearStr) : ""
+        };
+        const tmdb = await searchTmdbForDouban(item.title, "tv", yearStr);
+        if (tmdb) {
+            card.type = "tmdb"; card.id = String(tmdb.id); card.tmdbId = tmdb.id;
+            mergeDoubanTmdb(card, tmdb);
+            card.genreTitle = yearlyGenreLine(rate, card.genreTitle);
+        }
+        return card;
+    }));
+    if (!incomplete.length) {
+        try {
+            if (Widget.storage && Widget.storage.set) await Widget.storage.set(cacheKey, JSON.stringify({ ts: Date.now(), items: items }));
+        } catch (e) { /* 存储失败不影响返回 */ }
+    } else {
+        console.warn("[douban_tv_yearly] 以下分类取数失败，本次不写缓存:", incomplete.join(", "));
     }
     return items.slice((pageNo - 1) * 20, pageNo * 20);
 }
