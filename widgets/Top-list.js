@@ -2519,6 +2519,13 @@ async function loadMonthlyUpcomingStrict(params = {}) {
 
 
 
+// 🟢 豆瓣「电影近期热门」：各类型对应的近期热门集合 id（来源 douban.bridge；无该项的类型回退主榜）
+var DOUBAN_MOVIE_GENRE_HOT = {
+    movie_scifi: "ECZYOJPLI", movie_comedy: "ECAYN54KI", movie_love: "ECSAOJFTA", movie_action: "ECBUOLQGY",
+    film_genre_31: "EC3UOBDQY", film_genre_32: "ECPQOJP5Q", film_genre_46: "ECLAN6LHQ", film_genre_33: "ECBUOL2DA",
+    film_genre_49: "ECDYOE7WY", film_genre_34: "ECV4N4FBI", film_genre_45: "EC6MOCTVQ", film_genre_43: "EC3EOHEYY"
+};
+
 var WidgetMetadata = {
     id: "🅖 🅖Media.library",
     title: "影视榜单Pro",
@@ -2657,7 +2664,7 @@ var WidgetMetadata = {
             {
                 name: "sort_by", title: "豆瓣 榜单", type: "enumeration", value: "db_tv_cn",
                 enumOptions: [
-                    { value: "db_tv_cn", title: "热门国产剧" }, { value: "db_variety", title: "热门综艺" }, { value: "db_movie", title: "热门电影" }, { value: "db_tv_us", title: "热门美剧" }, { value: "tv_domestic", title: "大陆剧集" }, { value: "tv_american", title: "欧美剧集" }, { value: "tv_japanese", title: "日本剧集" }, { value: "tv_korean", title: "韩国剧集" }, { value: "tv_animation", title: "动漫番剧" }, { value: "show_domestic", title: "大陆综艺" }, { value: "show_foreign", title: "国外综艺" }, { value: "movie_weekly", title: "一周口碑电影" }, { value: "movie_top250", title: "豆瓣 Top250" }, { value: "db_movie_genre", title: "电影类型榜" }, { value: "db_tv_genre", title: "剧集类型榜" }, { value: "custom_movie_hot", title: "实时热门电影" }, { value: "custom_tv_hot", title: "实时热门电视" }, { value: "custom_subject_hot", title: "实时书影音热门" }, { value: "custom_tv_chinese", title: "华语口碑剧集榜" }, { value: "custom_tv_global", title: "全球口碑剧集榜" }, { value: "custom_movie_showing", title: "影院热映" }, { value: "custom_url", title: "自定义URL" }
+                    { value: "db_tv_cn", title: "热门国产剧" }, { value: "db_variety", title: "热门综艺" }, { value: "db_movie", title: "热门电影" }, { value: "db_tv_us", title: "热门美剧" }, { value: "tv_domestic", title: "大陆剧集" }, { value: "tv_american", title: "欧美剧集" }, { value: "tv_japanese", title: "日本剧集" }, { value: "tv_korean", title: "韩国剧集" }, { value: "tv_animation", title: "动漫番剧" }, { value: "show_domestic", title: "大陆综艺" }, { value: "show_foreign", title: "国外综艺" }, { value: "movie_weekly", title: "一周口碑电影" }, { value: "movie_top250", title: "豆瓣 Top250" }, { value: "db_movie_genre", title: "电影类型榜" }, { value: "db_movie_genre_hot", title: "电影近期热门" }, { value: "db_tv_genre", title: "剧集类型榜" }, { value: "custom_movie_hot", title: "实时热门电影" }, { value: "custom_tv_hot", title: "实时热门电视" }, { value: "custom_subject_hot", title: "实时书影音热门" }, { value: "custom_tv_chinese", title: "华语口碑剧集榜" }, { value: "custom_tv_global", title: "全球口碑剧集榜" }, { value: "custom_movie_showing", title: "影院热映" }, { value: "custom_url", title: "自定义URL" }
                 ]
             },
             {
@@ -2665,6 +2672,13 @@ var WidgetMetadata = {
                 belongTo: { paramName: "sort_by", value: ["db_movie_genre"] },
                 enumOptions: [
                     { value: "film_genre_27", title: "剧情" }, { value: "movie_comedy", title: "喜剧" }, { value: "movie_love", title: "爱情" }, { value: "movie_action", title: "动作" }, { value: "movie_scifi", title: "科幻" }, { value: "film_genre_31", title: "动画" }, { value: "film_genre_32", title: "悬疑" }, { value: "film_genre_46", title: "犯罪" }, { value: "film_genre_33", title: "惊悚" }, { value: "film_genre_49", title: "冒险" }, { value: "film_genre_41", title: "家庭" }, { value: "film_genre_42", title: "儿童" }, { value: "film_genre_44", title: "历史" }, { value: "film_genre_39", title: "音乐" }, { value: "film_genre_48", title: "奇幻" }, { value: "film_genre_34", title: "恐怖" }, { value: "film_genre_45", title: "战争" }, { value: "film_genre_43", title: "传记" }, { value: "film_genre_40", title: "歌舞" }, { value: "film_genre_50", title: "武侠" }, { value: "film_genre_37", title: "情色" }, { value: "natural_disasters", title: "灾难" }, { value: "film_genre_47", title: "西部" }, { value: "film_genre_51", title: "古装" }, { value: "ECCEPGM4Y", title: "运动" }, { value: "film_genre_36", title: "短片" }
+                ]
+            },
+            {
+                name: "movie_genre_hot", title: "电影类型", type: "enumeration", value: "movie_scifi",
+                belongTo: { paramName: "sort_by", value: ["db_movie_genre_hot"] },
+                enumOptions: [
+                    { value: "movie_scifi", title: "科幻" }, { value: "movie_comedy", title: "喜剧" }, { value: "movie_love", title: "爱情" }, { value: "movie_action", title: "动作" }, { value: "film_genre_31", title: "动画" }, { value: "film_genre_32", title: "悬疑" }, { value: "film_genre_46", title: "犯罪" }, { value: "film_genre_33", title: "惊悚" }, { value: "film_genre_49", title: "冒险" }, { value: "film_genre_34", title: "恐怖" }, { value: "film_genre_45", title: "战争" }, { value: "film_genre_43", title: "传记" }
                 ]
             },
             {
@@ -3135,6 +3149,10 @@ async function loadDoubanTrendEntry(params = {}) {
     else if (sortBy === "db_movie") list = await fetchDoubanAndMap("热门", "movie", page);
     else if (sortBy === "db_tv_us") list = await fetchDoubanAndMap("美剧", "tv", page);
     else if (sortBy === "db_movie_genre") list = await loadDoubanGenreChart(params.movie_genre || "film_genre_27", "movie", page);
+    else if (sortBy === "db_movie_genre_hot") {
+        const g = params.movie_genre_hot || "movie_scifi";
+        list = await loadDoubanGenreChart(DOUBAN_MOVIE_GENRE_HOT[g] || g, "movie", page, "电影近期热门");
+    }
     else if (sortBy === "db_tv_genre") list = await loadDoubanGenreChart(params.tv_genre || "EC74443FY", "tv", page);
     else if (sortBy === "custom_url") list = await loadLiteCustomDouban(params);
     else list = await loadDoubanModule({ sort_by: sortBy, page });
@@ -4719,7 +4737,7 @@ async function searchTmdb(title, year, apiKey, isTv) {
 }
 
 // 🟢 豆瓣类型榜（电影类型榜 / 剧集类型榜）：subject_collection 直出，命中 TMDB 则升级卡片，否则保留豆瓣卡片
-async function loadDoubanGenreChart(collectionId, mediaType, page) {
+async function loadDoubanGenreChart(collectionId, mediaType, page, chartLabel) {
     const collection = String(collectionId || "").trim();
     if (!collection) return [{ id: "err", type: "text", title: "未选择类型" }];
     const pageNo = Number(page) || 1;
@@ -4731,7 +4749,7 @@ async function loadDoubanGenreChart(collectionId, mediaType, page) {
         const list = (data && data.subject_collection_items) || [];
         if (!list.length) return pageNo === 1 ? [{ id: "empty", type: "text", title: "暂无数据" }] : [];
 
-        const chartName = mediaType === "tv" ? "剧集类型榜" : "电影类型榜";
+        const chartName = chartLabel || (mediaType === "tv" ? "剧集类型榜" : "电影类型榜");
         const items = await Promise.all(list.map(async function (item) {
             const rate = item.rating && typeof item.rating.value === "number" ? item.rating.value.toFixed(1) : "";
             const cardSub = item.card_subtitle || "";
