@@ -9217,12 +9217,19 @@ const ZONE_LGBT_EXEMPT_REGIONS = ["CN"];
 // 关键词之外的兜底：片名里明写着这些字样的
 const ZONE_LGBT_TITLE_RE = /耽美|男男|女女|百合|同性|boys'?\s*love|girls'?\s*love|yaoi|yuri|\blgbt|lesbian|queer|\bgay\b|\bBL\b|\bGL\b/i;
 
+// 「宽松区」——只有大陆。对大陆：最新上线不设投票门槛、也不因缺简介而丢弃。
+// 原因：① 刚上线的国产新片常常 0~1 票（《仙逆剧场版：弑仙之战》0 票、《灵魂摆渡·公主之梦》1 票、
+// 《侦战》0 票），设投票门槛会把当天上映的一整批都筛掉；② 用户明确要求大陆保持原样不动。
+// 其它区域一律恢复原来的「至少 1 票」门槛，并且把没有简介的条目也丢掉（用户嫌太垃圾）。
+const ZONE_LENIENT_REGIONS = ["CN"];
+
 function zoneIsJunkItem(item, regionKey) {
     if (!item) return true;
     if (!item.poster_path) return true;                                          // 无海报 → 空白卡片
+    if (!(item.overview || "").trim() && ZONE_LENIENT_REGIONS.indexOf(regionKey) < 0) return true;  // 没有简介 → 国外区直接丢
     const genres = Array.isArray(item.genre_ids) ? item.genre_ids : [];
     if (genres.some(id => ZONE_DROP_GENRE_IDS.indexOf(id) >= 0)) return true;    // 纪录片/音乐/新闻/肥皂剧/脱口秀
-    if (genres.length === 0 && !(item.overview || "").trim()) return true;       // 无类型且无简介 = 残条
+    if (genres.length === 0 && !(item.overview || "").trim()) return true;       // 兜底：无类型且无简介
     const title = item.title || item.name || "";
     const original = item.original_title || item.original_name || "";
     if (ZONE_JUNK_TITLE_RE.test(title) || ZONE_JUNK_TITLE_RE.test(original)) return true;  // 演唱会/晚会
@@ -9259,19 +9266,20 @@ function zoneBuildQueryParams(endpoint, sort_by, page, regionKey, today, since) 
         queryParams["vote_count.gte"] = 5;
     }
     else if (sort_by === "new") {
-        // 「最新上线」= 近 90 天内上线 + 按上线日期倒序（前后都封口，翻页不会翻出上古条目）
-        // ⚠️ 这里刻意不设 vote_count 门槛：刚上线的新片常常只有 0~1 票，设门槛会把它们整体筛掉
-        //    （实测 2026-10-01 上线的《仙逆剧场版：弑仙之战》0 票、《灵魂摆渡·公主之梦》1 票，
-        //     原「vote_count.gte = 1」时两条都进不了榜）
+        // 「最新上线」= 按上线日期倒序
         queryParams.sort_by = isMovie ? "primary_release_date.desc" : "first_air_date.desc";
-        if (isMovie) {
-            queryParams["primary_release_date.lte"] = today;
-            queryParams["primary_release_date.gte"] = since;
+        const _lteKey = isMovie ? "primary_release_date.lte" : "first_air_date.lte";
+        const _gteKey = isMovie ? "primary_release_date.gte" : "first_air_date.gte";
+        queryParams[_lteKey] = today;                    // 上界永远是「今天」，不显示未上线的
+        if (ZONE_LENIENT_REGIONS.indexOf(regionKey) >= 0) {
+            // 大陆：不设投票门槛 —— 刚上线的国产新片常常 0~1 票（《仙逆剧场版：弑仙之战》0 票、
+            // 《灵魂摆渡·公主之梦》1 票），设了门槛当天上映的一整批都会被筛掉。
+            // 再用 90 天窗口封住下界，避免翻页翻出上古条目。
+            queryParams[_gteKey] = since;
         } else {
-            queryParams["first_air_date.lte"] = today;
-            queryParams["first_air_date.gte"] = since;
+            // 其它区域：恢复原来的设定 —— 「至少 1 票」门槛，用来挡掉零票垃圾剧。不设日期下界。
+            queryParams["vote_count.gte"] = 1;
         }
-        queryParams.without_genres = ZONE_DROP_GENRES_PARAM;  // 服务端先挡掉非正剧类型，省流量也省时间
     }
     else if (sort_by === "top") {
         queryParams.sort_by = "vote_average.desc";
@@ -9298,28 +9306,35 @@ async function zoneFetchFromTmdb(endpoint, sort_by, page, regionKey) { // 👉 �
     const since = _fmt(new Date(_now.getTime() - 90 * 24 * 60 * 60 * 1000));
 
     const mediaType = endpoint.includes("movie") ? "movie" : "tv";
+    const isCnNew = sort_by === "new" && ZONE_LENIENT_REGIONS.indexOf(regionKey) >= 0;
 
-    // 「最新上线」每页多取一页：垃圾过滤会砍掉一部分条目，单页常常凑不满 20 条
-    const tmdbPages = sort_by === "new" ? [page * 2 - 1, page * 2] : [page];
-
-    const batches = await Promise.all(tmdbPages.map(async (tmdbPage) => {
-        const params = zoneBuildQueryParams(endpoint, sort_by, tmdbPage, regionKey, today, since);
-        const res = await Widget.tmdb.get(endpoint, { params });
-        return (res && res.results) || [];
-    }));
+    // 「最新上线」要按「过滤后仍能凑满 20 条」来取页：
+    //  · 大陆：无投票门槛，候选多，2 页足够
+    //  · 其它区域：有「至少 1 票」门槛 + 剔除无简介条目，候选少，放宽到 3 页
+    // 每页起始位置固定错开（第 N 页取 (N-1)*K+1 … N*K 页），翻页不会重叠。
+    const pagesPerModulePage = sort_by === "new" ? (isCnNew ? 2 : 3) : 1;
+    const startTmdbPage = (page - 1) * pagesPerModulePage + 1;
 
     const seen = new Set();
     const merged = [];
-    for (const batch of batches) {
+    for (let i = 0; i < pagesPerModulePage; i++) {
+        const params = zoneBuildQueryParams(endpoint, sort_by, startTmdbPage + i, regionKey, today, since);
+        const res = await Widget.tmdb.get(endpoint, { params });
+        const batch = (res && res.results) || [];
+        let added = 0;
         for (const item of batch) {
             if (!item || seen.has(item.id)) continue;
+            if (zoneIsJunkItem(item, regionKey)) continue;   // 边取边筛，凑够 20 条就不再请求下一页
             seen.add(item.id);
             merged.push(item);
+            added++;
         }
+        if (merged.length >= 20) break;                       // 已凑满，省下剩余的请求
+        if (batch.length < 20) break;                         // TMDB 已经没有更多结果
+        if (added === 0 && i >= 1) break;                     // 连续两页颗粒无收，别再翻
     }
 
     return merged
-        .filter(item => !zoneIsJunkItem(item, regionKey))
         .map(item => zoneBuildItem(item, mediaType))
         .filter(Boolean)
         .slice(0, 20);
