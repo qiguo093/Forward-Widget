@@ -9197,13 +9197,26 @@ function zoneBuildItem(item, forceMediaType) {
 //    TMDB 把日韩/东南亚片错标成 CN 出品的条目（Lobang Buaya / Mirada económica / The Third Blade）
 //  · 完全没有海报的条目 —— 卡片上就是一块空白
 // 这些一律挡掉，不让它们进列表。
-// 非「正剧」的类型，一律不要：99 纪录片 / 10402 音乐（演唱会·晚会）/ 10763 新闻 /
+// 非「正剧」的类型，一般不要：99 纪录片 / 10402 音乐（演唱会·晚会）/ 10763 新闻 /
 // 10766 肥皂剧 / 10767 脱口秀（深夜秀、谈话节目）。10763/10766/10767 只对剧集有效，对电影传了也无害。
+// ⚠️ 大陆例外：脱口秀属于「综艺」，用户明确要求保留（《脱口秀大会》《脱口秀和他的朋友们》
+//    这类新一季要能看到），所以大陆不屏蔽 10767。
+// ⚠️ 综艺本身是 10764（Reality），本来就不在屏蔽名单里，故《喜人奇妙夜》《明星大侦探》不受影响。
 const ZONE_DROP_GENRE_IDS = [99, 10402, 10763, 10766, 10767];
 const ZONE_DROP_GENRES_PARAM = "99,10402,10763,10766,10767";
+const ZONE_DROP_GENRE_IDS_CN = [99, 10402, 10763, 10766];       // 大陆：放开脱口秀(10767)
+const ZONE_DROP_GENRES_PARAM_CN = "99,10402,10763,10766";
 const ZONE_JUNK_TITLE_RE = /演唱会|音乐会|音乐节|音乐盛典|巡回演出|巡演|晚会|奇妙游|见面会|首映礼|红毯|颁奖|concert|live\s*(in|at|tour)|the\s+tour/i;
 const ZONE_CJK_REGIONS = ["CN", "HK", "TW"];  // 华语区：纯外语残条一律不要
 const ZONE_HAN_RE = /[\u4e00-\u9fff]/;
+
+// 取该区域要屏蔽的类型（大陆单独一份，见上）
+function zoneDropGenreIds(regionKey) {
+    return ZONE_LENIENT_REGIONS.indexOf(regionKey) >= 0 ? ZONE_DROP_GENRE_IDS_CN : ZONE_DROP_GENRE_IDS;
+}
+function zoneDropGenresParam(regionKey) {
+    return ZONE_LENIENT_REGIONS.indexOf(regionKey) >= 0 ? ZONE_DROP_GENRES_PARAM_CN : ZONE_DROP_GENRES_PARAM;
+}
 
 // 同性恋 / BL / GL / 耽美 题材的 TMDB 关键词 id（服务端 without_keywords 一次性排除）
 // ⚠️ 必须用「管道 |」分隔 = 任一命中即排除；用逗号是 AND 语义，等于没过滤。
@@ -9228,7 +9241,8 @@ function zoneIsJunkItem(item, regionKey) {
     if (!item.poster_path) return true;                                          // 无海报 → 空白卡片
     if (!(item.overview || "").trim() && ZONE_LENIENT_REGIONS.indexOf(regionKey) < 0) return true;  // 没有简介 → 国外区直接丢
     const genres = Array.isArray(item.genre_ids) ? item.genre_ids : [];
-    if (genres.some(id => ZONE_DROP_GENRE_IDS.indexOf(id) >= 0)) return true;    // 纪录片/音乐/新闻/肥皂剧/脱口秀
+    const dropIds = zoneDropGenreIds(regionKey);
+    if (genres.some(id => dropIds.indexOf(id) >= 0)) return true;                // 纪录片/音乐/新闻/肥皂剧/脱口秀
     if (genres.length === 0 && !(item.overview || "").trim()) return true;       // 兜底：无类型且无简介
     const title = item.title || item.name || "";
     const original = item.original_title || item.original_name || "";
@@ -9287,8 +9301,8 @@ function zoneBuildQueryParams(endpoint, sort_by, page, regionKey, today, since) 
     }
 
     // ---- 内容层面的统一屏蔽（与排序、投票门槛无关，三个榜单都生效）----
-    // ① 纪录片/音乐/新闻/肥皂剧/脱口秀（非「正剧」）
-    queryParams.without_genres = ZONE_DROP_GENRES_PARAM;
+    // ① 纪录片/音乐/新闻/肥皂剧/脱口秀（非「正剧」）—— 大陆放开脱口秀，见 zoneDropGenresParam
+    queryParams.without_genres = zoneDropGenresParam(regionKey);
     // ② 同性恋 / BL / GL / 耽美 题材（大陆区不套这条，用户只要求屏蔽「国外」的）
     if (ZONE_LGBT_EXEMPT_REGIONS.indexOf(regionKey) < 0) {
         queryParams.without_keywords = ZONE_LGBT_KEYWORDS;
