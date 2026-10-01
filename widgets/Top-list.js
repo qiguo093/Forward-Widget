@@ -9188,14 +9188,39 @@ function zoneBuildItem(item, forceMediaType) {
     };
 }
 
-async function zoneFetchFromTmdb(endpoint, sort_by, page, regionKey) { // 👉 改为 sort_by
-    // 用「设备本地日期」而不是 toISOString()（那是 UTC 日期，北京时间 0~8 点会差一天，
-    // 会让 lte 条件把「今天刚上线」的新片整体排除）
-    const _now = new Date();
-    const _fmt = (d) => `${d.getFullYear()}-${String(d.getMonth() + 1).padStart(2, "0")}-${String(d.getDate()).padStart(2, "0")}`;
-    const today = _fmt(_now);
-    
-    let queryParams = {
+// ---------------------------------------------------------------------
+// 全球探索发现：垃圾条目过滤
+// ---------------------------------------------------------------------
+// TMDB 的 discover 会把大量「非影视内容」混进来。实测大陆区「最新上线」里能看到：
+//  · 纪录片（99）与音乐类（10402）—— 谢霆锋巡回演唱会、大湾区电影音乐晚会、秦腔、河南中秋奇妙游……
+//  · 只有片名、既无类型也无简介的残条 —— 美术馆录像作品（曲水/録画/Moving Sequences）、
+//    TMDB 把日韩/东南亚片错标成 CN 出品的条目（Lobang Buaya / Mirada económica / The Third Blade）
+//  · 完全没有海报的条目 —— 卡片上就是一块空白
+// 这些一律挡掉，不让它们进列表。
+const ZONE_DROP_GENRE_IDS = [99, 10402];  // 99=纪录片  10402=音乐（演唱会/音乐会/晚会/音乐节）
+const ZONE_JUNK_TITLE_RE = /演唱会|音乐会|音乐节|音乐盛典|巡回演出|巡演|晚会|奇妙游|见面会|首映礼|红毯|颁奖|concert|live\s*(in|at|tour)|the\s+tour/i;
+const ZONE_CJK_REGIONS = ["CN", "HK", "TW"];  // 华语区：纯外语残条一律不要
+const ZONE_HAN_RE = /[\u4e00-\u9fff]/;
+
+function zoneIsJunkItem(item, regionKey) {
+    if (!item) return true;
+    if (!item.poster_path) return true;                                          // 无海报 → 空白卡片
+    const genres = Array.isArray(item.genre_ids) ? item.genre_ids : [];
+    if (genres.some(id => ZONE_DROP_GENRE_IDS.indexOf(id) >= 0)) return true;    // 纪录片 / 音乐
+    if (genres.length === 0 && !(item.overview || "").trim()) return true;       // 无类型且无简介 = 残条
+    const title = item.title || item.name || "";
+    const original = item.original_title || item.original_name || "";
+    if (ZONE_JUNK_TITLE_RE.test(title) || ZONE_JUNK_TITLE_RE.test(original)) return true;  // 演唱会/晚会
+    if (ZONE_CJK_REGIONS.indexOf(regionKey) >= 0) {
+        const lang = item.original_language || "";
+        // 华语区里，译名与原名都没有汉字的纯外语条目（TMDB 惯于把日韩/东南亚片错标成 CN 出品）
+        if (lang !== "zh" && lang !== "cn" && !ZONE_HAN_RE.test(title) && !ZONE_HAN_RE.test(original)) return true;
+    }
+    return false;
+}
+
+function zoneBuildQueryParams(endpoint, sort_by, page, regionKey, today, since) {
+    const queryParams = {
         language: "zh-CN",
         page: page
     };
@@ -9205,24 +9230,22 @@ async function zoneFetchFromTmdb(endpoint, sort_by, page, regionKey) { // 👉 �
     } else if (regionKey === "ES_LANG") {
         queryParams.with_original_language = "es";
     } else if (regionKey === "EU") {
-        queryParams.with_origin_country = "FR|DE|IT|NL|DK|NO|FI"; 
+        queryParams.with_origin_country = "FR|DE|IT|NL|DK|NO|FI";
     } else {
         queryParams.with_origin_country = regionKey;
     }
 
     const isMovie = endpoint.includes("movie");
 
-    if (sort_by === "hot") { // 👉 改为 sort_by
+    if (sort_by === "hot") {
         queryParams.sort_by = "popularity.desc";
-        queryParams["vote_count.gte"] = 5; 
-    } 
-    else if (sort_by === "new") { // 👉 改为 sort_by
+        queryParams["vote_count.gte"] = 5;
+    }
+    else if (sort_by === "new") {
         // 「最新上线」= 近 90 天内上线 + 按上线日期倒序（前后都封口，翻页不会翻出上古条目）
         // ⚠️ 这里刻意不设 vote_count 门槛：刚上线的新片常常只有 0~1 票，设门槛会把它们整体筛掉
         //    （实测 2026-10-01 上线的《仙逆剧场版：弑仙之战》0 票、《灵魂摆渡·公主之梦》1 票，
         //     原「vote_count.gte = 1」时两条都进不了榜）
-        const _since = new Date(_now.getTime() - 90 * 24 * 60 * 60 * 1000);
-        const since = _fmt(_since);
         queryParams.sort_by = isMovie ? "primary_release_date.desc" : "first_air_date.desc";
         if (isMovie) {
             queryParams["primary_release_date.lte"] = today;
@@ -9231,15 +9254,50 @@ async function zoneFetchFromTmdb(endpoint, sort_by, page, regionKey) { // 👉 �
             queryParams["first_air_date.lte"] = today;
             queryParams["first_air_date.gte"] = since;
         }
-    } 
-    else if (sort_by === "top") { // 👉 改为 sort_by
+        queryParams.without_genres = "99,10402";  // 服务端先挡掉纪录片/音乐，省流量也省时间
+    }
+    else if (sort_by === "top") {
         queryParams.sort_by = "vote_average.desc";
-        queryParams["vote_count.gte"] = isMovie ? 50 : 20; 
+        queryParams["vote_count.gte"] = isMovie ? 50 : 20;
     }
 
-    const res = await Widget.tmdb.get(endpoint, { params: queryParams });
-    const mediaType = isMovie ? "movie" : "tv";
-    return (res.results || []).map(i => zoneBuildItem(i, mediaType)).filter(Boolean);
+    return queryParams;
+}
+
+async function zoneFetchFromTmdb(endpoint, sort_by, page, regionKey) { // 👉 改为 sort_by
+    // 用「设备本地日期」而不是 toISOString()（那是 UTC 日期，北京时间 0~8 点会差一天，
+    // 会让 lte 条件把「今天刚上线」的新片整体排除）
+    const _now = new Date();
+    const _fmt = (d) => `${d.getFullYear()}-${String(d.getMonth() + 1).padStart(2, "0")}-${String(d.getDate()).padStart(2, "0")}`;
+    const today = _fmt(_now);
+    const since = _fmt(new Date(_now.getTime() - 90 * 24 * 60 * 60 * 1000));
+
+    const mediaType = endpoint.includes("movie") ? "movie" : "tv";
+
+    // 「最新上线」每页多取一页：垃圾过滤会砍掉一部分条目，单页常常凑不满 20 条
+    const tmdbPages = sort_by === "new" ? [page * 2 - 1, page * 2] : [page];
+
+    const batches = await Promise.all(tmdbPages.map(async (tmdbPage) => {
+        const params = zoneBuildQueryParams(endpoint, sort_by, tmdbPage, regionKey, today, since);
+        const res = await Widget.tmdb.get(endpoint, { params });
+        return (res && res.results) || [];
+    }));
+
+    const seen = new Set();
+    const merged = [];
+    for (const batch of batches) {
+        for (const item of batch) {
+            if (!item || seen.has(item.id)) continue;
+            seen.add(item.id);
+            merged.push(item);
+        }
+    }
+
+    return merged
+        .filter(item => !zoneIsJunkItem(item, regionKey))
+        .map(item => zoneBuildItem(item, mediaType))
+        .filter(Boolean)
+        .slice(0, 20);
 }
 
 async function loadGlobalZoneList(params) {
