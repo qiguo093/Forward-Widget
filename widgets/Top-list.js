@@ -3197,6 +3197,8 @@ async function loadDoubanTrendEntry(params = {}) {
     }
     else if (sortBy === "db_movie_yearly") list = await loadDoubanYearlyAll(params.movie_yearly || "2025", page);
     else if (sortBy === "db_tv_yearly") list = await loadDoubanTvYearlyAll(params.tv_yearly || "2025", page);
+    else if (sortBy === "movie_weekly") list = await loadDoubanRawCatalog("movie_weekly", "movie", page);
+    else if (sortBy === "custom_tv_global" || sortBy === "tv_global_best") list = await loadDoubanRawCatalog(sortBy, "tv", page);
     else if (sortBy === "custom_url") list = await loadLiteCustomDouban(params);
     else list = await loadDoubanModule({ sort_by: sortBy, page });
     return sortDoubanTrendItems(list, sortType);
@@ -5056,6 +5058,33 @@ async function loadDoubanGenreChart(collectionId, mediaType, page, chartLabel) {
         return items;
     } catch (e) {
         return [{ id: "err", type: "text", title: "豆瓣拒绝了请求", description: "网络IP被豆瓣限制，请切换流量(4G/5G)或更换节点。" }];
+    }
+}
+
+async function loadDoubanRawCatalog(categoryKey, mediaType, page) {
+    const url = LITE_DOUBAN_URLS[categoryKey];
+    if (!url) return [{ id: "douban_raw_error", type: "text", title: "未找到豆瓣榜单" }];
+    const pageNo = Number(page) || 1;
+    const start = (pageNo - 1) * 20;
+    try {
+        const finalUrl = url + (url.includes("?") ? "&" : "?") + "start=" + start + "&count=20";
+        const res = await Widget.http.get(finalUrl, { headers: { "Referer": "https://m.douban.com/", "User-Agent": LITE_UA_PC } });
+        const data = safeJsonParse(res.data);
+        const rows = (data && data.subject_collection_items) || [];
+        return rows.map(function (item) {
+            const rate = doubanItemRating(item);
+            const year = doubanItemYear(item);
+            const poster = item.cover_url || (item.pic && (item.pic.large || item.pic.normal)) || "";
+            return {
+                id: String(item.id), type: "douban", mediaType: mediaType,
+                title: item.title || "", posterPath: poster, backdropPath: "",
+                rating: parseFloat(rate) || 0, genreTitle: doubanRatingGenreLine(rate, doubanItemGenres(item)),
+                releaseDate: year, year: year,
+                description: item.card_subtitle || item.description || "暂无简介"
+            };
+        });
+    } catch (e) {
+        return [{ id: "douban_raw_error", type: "text", title: "豆瓣榜单加载失败", description: e.message || "请求失败" }];
     }
 }
 
