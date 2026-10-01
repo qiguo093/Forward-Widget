@@ -2519,6 +2519,51 @@ async function loadMonthlyUpcomingStrict(params = {}) {
 
 
 
+// 🟢 豆瓣类型榜的二级分类表（来源：douban.bridge 的 r9，id 与豆瓣 subject_collection 一致）
+var DOUBAN_MOVIE_GENRE_SUB = {
+    movie_comedy: [["近期热门","ECAYN54KI"], ["高分经典","movie_comedy"], ["华语","ECVUOUD7A"], ["欧洲","ECPQO4BPA"], ["大陆","ECKIO6SXI"], ["美国","ECGUO62ZA"], ["香港","ECOYO2QPA"], ["台湾","ECEAOX2BI"], ["日本","ECFIOT7JA"], ["韩国","ECOIOVQPY"], ["英国","EC6IOYROI"], ["法国","ECIEOY5UI"], ["德国","ECFQO5B4A"], ["意大利","ECREOTSEI"], ["西班牙","EC6UO37NQ"], ["瑞典","ECPMPBHBI"], ["印度","ECTIOYBOY"], ["泰国","ECAIO3EWI"], ["加拿大","ECYUPAHZY"], ["澳大利亚","ECKMOXL6Q"], ["爱尔兰","ECOAOZY7Y"], ["冷门佳作","ECLYOFOKA"]],
+    movie_love: [["近期热门","ECSAOJFTA"], ["高分经典","movie_love"], ["华语","ECOIOTUGY"], ["欧洲","ECUAOYUCA"], ["大陆","EC64OQVEQ"], ["美国","EC4EOSAQA"], ["台湾","ECWQOQO4A"], ["日本","ECKMOVF3Y"], ["韩国","ECHIOXXIQ"], ["英国","ECHAO4AAQ"], ["法国","ECTAOT7GQ"], ["德国","ECNIOS7EQ"], ["意大利","EC3UOSWUY"], ["西班牙","ECU4OWMMI"], ["瑞典","ECCEOUVAA"], ["印度","ECLUOQWVY"], ["泰国","ECYQO7YPQ"], ["加拿大","ECEAOXFIQ"], ["澳大利亚","ECOUOXYUA"], ["爱尔兰","ECJMO2O5Y"], ["冷门佳作","EC2UOKRRQ"]],
+    movie_action: [["近期热门","ECBUOLQGY"], ["高分经典","movie_action"], ["华语","EC2YO2M2A"], ["欧洲","ECHUOXOUA"], ["美国","ECPMPC7JA"], ["台湾","ECTMO64KY"], ["日本","ECBAPBW2Y"], ["韩国","ECWQOU2HI"], ["英国","ECCUPDBHQ"], ["法国","EC5UOWEFY"], ["德国","EC7AOW57Q"], ["印度","ECMQO4F2I"], ["加拿大","ECUQPDN7Y"], ["澳大利亚","EC4QPALEI"], ["冷门佳作","ECVIOHY6A"]],
+    movie_scifi: [["近期热门","ECZYOJPLI"], ["高分经典","movie_scifi"], ["欧洲","ECX4O7JAA"], ["美国","ECDAO6XZI"], ["日本","ECSYOV6GY"], ["英国","EC4UOZQ4Y"], ["法国","EC3MO34NI"], ["德国","ECOUO2ETY"], ["加拿大","ECX4PAGTA"], ["澳大利亚","ECTAOXLWQ"], ["冷门佳作","EC2IOENJA"]],
+    film_genre_31: [["近期热门","EC3UOBDQY"], ["高分经典","film_genre_31"], ["华语","ECFMOYMKA"], ["欧洲","ECLYO57HA"], ["美国","EC4IPDWYI"], ["日本","ECLYO6JQQ"], ["英国","ECWUO3RJA"], ["法国","ECIQPF7NY"], ["加拿大","EC3YPB7WQ"], ["冷门佳作","ECTUO3I3A"]],
+    film_genre_32: [["近期热门","ECPQOJP5Q"], ["高分经典","film_genre_32"], ["华语","ECRMOX2JI"], ["欧洲","ECUMPB7SA"], ["美国","ECJUO3L7I"], ["香港","ECV4OU2WA"], ["日本","ECVYOVDIA"], ["韩国","ECSYOYZWI"], ["英国","EC5YPE3OI"], ["法国","ECQUO7FVQ"], ["德国","ECZQO7KSQ"], ["意大利","ECVEO7MPI"], ["西班牙","ECAYOVXFA"], ["加拿大","ECYMPDCTI"], ["澳大利亚","ECIMOWR2I"], ["冷门佳作","ECK4OEBJY"]],
+    film_genre_46: [["近期热门","ECLAN6LHQ"], ["高分经典","film_genre_46"], ["华语","ECVUO4O4Q"], ["欧洲","EC5QO2HUI"], ["大陆","ECWAPHUIA"], ["美国","ECEAPADKY"], ["香港","EC3AOZZUY"], ["日本","ECVUO43DY"], ["韩国","ECGYO2SPA"], ["英国","ECVYOZNAI"], ["法国","ECFEPCR2A"], ["德国","ECVAPBWRI"], ["意大利","ECRMO4X7I"], ["西班牙","ECPAPDKZA"], ["加拿大","EC2MPBOOI"], ["澳大利亚","ECEMOZ6DI"], ["冷门佳作","EC7EOG3RI"]],
+    film_genre_33: [["近期热门","ECBUOL2DA"], ["高分经典","film_genre_33"], ["华语","EC5MPCA7Y"], ["欧洲","ECTMPCZTY"], ["美国","ECSYO3JKQ"], ["日本","ECFUO25PI"], ["韩国","ECTMPDECI"], ["英国","ECU4O6QYQ"], ["法国","ECPMPHOMI"], ["德国","ECJIPH4JA"], ["意大利","EC2QPBTHY"], ["西班牙","ECLMPAEZY"], ["瑞典","ECMIPBWCY"], ["印度","ECRQPBSYI"], ["加拿大","ECZMPDHQI"], ["澳大利亚","EC7QPFMYA"], ["冷门佳作","ECY4ODRSY"]],
+    film_genre_49: [["近期热门","ECDYOE7WY"], ["高分经典","film_genre_49"], ["华语","ECAUOWGNQ"], ["欧洲","ECW4O3GHY"], ["美国","ECOMON43Q"], ["日本","ECOUOVT2Q"], ["英国","ECFUORHLY"], ["法国","EC5YO53DI"], ["德国","ECMYOXC2Y"], ["加拿大","ECRYO5ULY"], ["澳大利亚","ECFIOR3MY"], ["冷门佳作","ECEMN5MLA"]],
+    film_genre_44: [["高分经典","film_genre_44"], ["华语","ECV4N7YWY"], ["欧洲","ECIAOE4OY"], ["美国","ECK4OGBSA"], ["香港","ECPYOEZNY"], ["日本","EC54OCODY"], ["韩国","ECMAOINLA"], ["英国","ECSEOEISY"], ["法国","ECUMONVJQ"], ["德国","ECNQODGKI"], ["意大利","ECL4OLRCY"], ["冷门佳作","ECBAOKDHQ"]],
+    film_genre_39: [["高分经典","film_genre_39"], ["欧洲","ECAQO25QI"], ["美国","ECUAOV5NA"], ["日本","ECFYORPYQ"], ["英国","ECAQO3LYY"], ["法国","ECYAORESI"], ["冷门佳作","EC2UOKJFQ"]],
+    film_genre_48: [["高分经典","film_genre_48"], ["华语","EC5MOJAZY"], ["欧洲","ECUMOLXQY"], ["美国","ECVIOIPDI"], ["香港","ECUUOJIFA"], ["日本","ECEIOJZTQ"], ["韩国","ECDAOLOSI"], ["英国","ECRAOGHZY"], ["法国","EC6QOILRA"], ["德国","EC4YOCBLQ"], ["冷门佳作","ECCMOLZQA"]],
+    film_genre_34: [["近期热门","ECV4N4FBI"], ["高分经典","film_genre_34"], ["华语","EC54OE5HA"], ["欧洲","ECFAOK5WQ"], ["美国","ECGMORRUY"], ["日本","EC6QOMMWY"], ["韩国","ECFEOMHIQ"], ["英国","ECFUOGJDQ"], ["法国","ECHIOLPXA"], ["西班牙","ECWUOILKA"], ["泰国","EC2AOMMKY"], ["加拿大","ECVYODZIA"], ["澳大利亚","ECFYOIWBQ"], ["冷门佳作","ECTMOHSQY"]],
+    film_genre_45: [["近期热门","EC6MOCTVQ"], ["高分经典","film_genre_45"], ["华语","ECWUOKOLY"], ["欧洲","ECUIOKO6I"], ["美国","ECDYONLLI"], ["香港","ECO4OUYWI"], ["日本","ECFYOK3AQ"], ["韩国","EC2UOS6AQ"], ["英国","ECVIOP57A"], ["法国","EC6UOQ3TY"], ["德国","ECV4OGCIA"], ["意大利","ECYUOU5TA"], ["冷门佳作","ECGEOIWRA"], ["俄罗斯","ECF4OMYDQ"]],
+    film_genre_43: [["近期热门","EC3EOHEYY"], ["高分经典","film_genre_43"], ["华语","ECVYOEEUA"], ["欧洲","ECZIOQ6LY"], ["美国","ECE4OHQQY"], ["英国","ECNMONJTQ"], ["法国","ECYIOK3PY"], ["德国","ECAYOFADY"], ["意大利","ECLEOKFFQ"], ["加拿大","ECCUOUMXQ"], ["冷门佳作","ECRAODXXI"]],
+    film_genre_40: [["高分经典","film_genre_40"], ["欧洲","EC3QOS5MA"], ["美国","ECYQOXMSA"], ["冷门佳作","ECZMOHQ3Q"]],
+    film_genre_50: [["高分经典","film_genre_50"], ["华语","ECEAOOAHI"], ["大陆","EC6YOLGQQ"], ["冷门佳作","ECWAOLLZQ"]],
+    film_genre_37: [["高分经典","film_genre_37"], ["华语","ECKQOVFTY"], ["欧洲","ECVUONKTI"], ["美国","ECTQOQ6XQ"], ["日本","ECLUOK4TA"], ["韩国","ECDMOZMVI"], ["英国","ECA4OSUNA"], ["法国","ECDAOW2PY"], ["意大利","ECM4OVMRY"], ["冷门佳作","ECGYN6NHI"]],
+    natural_disasters: [["高分经典","natural_disasters"], ["欧洲","EC5IOQ75I"], ["美国","EC4IOWGKA"], ["冷门佳作","ECHMOGZLQ"]],
+    film_genre_47: [["高分经典","film_genre_47"], ["欧洲","ECM4OWDGI"], ["美国","ECU4ORYVI"]],
+};
+var DOUBAN_TV_GENRE_SUB = {
+    EC74443FY: [["近期热门","EC74443FY"], ["高分经典","ECT45KVZI"], ["喜剧","ECVQ47BUI"], ["爱情","ECZM5H55I"], ["悬疑","ECIU5AZDA"], ["家庭","ECJU5D3PY"], ["古装","ECTU453WI"], ["犯罪","EC4Q5JNKI"], ["历史","ECN45K75A"], ["冷门佳作","ECRI46YZQ"]],
+    ECFA5DI7Q: [["近期热门","ECFA5DI7Q"], ["高分经典","ECVACWVGI"], ["喜剧","ECX45ISGQ"], ["爱情","ECA45D3RQ"], ["悬疑","ECKI5JNJI"], ["动作","ECME44L4Y"], ["科幻","ECL45GQ4I"], ["犯罪","EC2Y5CTPA"], ["惊悚","ECMM5ALJQ"], ["奇幻","ECHU473PI"], ["恐怖","ECRE46B7Y"], ["冷门佳作","ECGI5HUQI"]],
+    ECVACXBWI: [["高分经典","ECVACXBWI"], ["喜剧","ECZE5BCZA"], ["悬疑","ECTM5HMAI"], ["犯罪","EC5I5EOCQ"], ["冷门佳作","ECEM4373Q"]],
+    ECNA46YBA: [["近期热门","ECNA46YBA"], ["高分经典","ECBQCUATA"], ["喜剧","ECWM5LNJI"], ["爱情","ECEA5D2RQ"], ["悬疑","ECHI5FDTQ"], ["冷门佳作","ECEA5DW5Q"]],
+    ECBE5CBEI: [["近期热门","ECBE5CBEI"], ["高分经典","EC6EC5GBQ"], ["喜剧","ECS45ISKI"], ["爱情","ECOU5ECZQ"], ["冷门佳作","ECZY5IDOY"]],
+    ECVM47WUA: [["高分经典","ECVM47WUA"], ["喜剧","ECXI5EIII"], ["爱情","EC3Y5ISIQ"], ["古装","ECIE5FVTI"], ["犯罪","EC3A46RGQ"], ["冷门佳作","EC3U5ASKQ"]],
+    ECBI5EL6A: [["高分经典","ECBI5EL6A"], ["爱情","ECBU5LX3A"], ["冷门佳作","ECJQ5LAFY"]],
+    EC6I5FYHA: [["近期热门","EC6I5FYHA"], ["高分经典","ECZY5KBOQ"], ["喜剧","ECJQ5LPXY"], ["爱情","ECSA5KEKY"], ["悬疑","ECEU47F2I"], ["犯罪","ECGM5NIQA"], ["冷门佳作","ECTM5JVYA"]],
+};
+// 由上面两张表生成「分类」子参数（每个类型一个，仅在该类型被选中时显示）
+function doubanGenreSubParams(genreParamName, table) {
+    return Object.keys(table).map(function (gid) {
+        return {
+            name: "sub_" + gid, title: "分类", type: "enumeration", value: gid,
+            belongTo: { paramName: genreParamName, value: [gid] },
+            enumOptions: table[gid].map(function (pair) { return { title: pair[0], value: pair[1] }; })
+        };
+    });
+}
+
+
 var WidgetMetadata = {
     id: "🅖 🅖Media.library",
     title: "影视榜单Pro",
@@ -2667,6 +2712,7 @@ var WidgetMetadata = {
                     { value: "film_genre_27", title: "剧情" }, { value: "movie_comedy", title: "喜剧" }, { value: "movie_love", title: "爱情" }, { value: "movie_action", title: "动作" }, { value: "movie_scifi", title: "科幻" }, { value: "film_genre_31", title: "动画" }, { value: "film_genre_32", title: "悬疑" }, { value: "film_genre_46", title: "犯罪" }, { value: "film_genre_33", title: "惊悚" }, { value: "film_genre_49", title: "冒险" }, { value: "film_genre_41", title: "家庭" }, { value: "film_genre_42", title: "儿童" }, { value: "film_genre_44", title: "历史" }, { value: "film_genre_39", title: "音乐" }, { value: "film_genre_48", title: "奇幻" }, { value: "film_genre_34", title: "恐怖" }, { value: "film_genre_45", title: "战争" }, { value: "film_genre_43", title: "传记" }, { value: "film_genre_40", title: "歌舞" }, { value: "film_genre_50", title: "武侠" }, { value: "film_genre_37", title: "情色" }, { value: "natural_disasters", title: "灾难" }, { value: "film_genre_47", title: "西部" }, { value: "film_genre_51", title: "古装" }, { value: "ECCEPGM4Y", title: "运动" }, { value: "film_genre_36", title: "短片" }
                 ]
             },
+            ...doubanGenreSubParams("movie_genre", DOUBAN_MOVIE_GENRE_SUB),
             {
                 name: "tv_genre", title: "剧集类型", type: "enumeration", value: "EC74443FY",
                 belongTo: { paramName: "sort_by", value: ["db_tv_genre"] },
@@ -2674,6 +2720,7 @@ var WidgetMetadata = {
                     { value: "EC74443FY", title: "大陆剧" }, { value: "ECFA5DI7Q", title: "美剧" }, { value: "ECVACXBWI", title: "英剧" }, { value: "ECNA46YBA", title: "日剧" }, { value: "ECBE5CBEI", title: "韩剧" }, { value: "ECVM47WUA", title: "港剧" }, { value: "ECBI5EL6A", title: "台剧" }, { value: "EC2Y5FJTY", title: "泰剧" }, { value: "EC6I5FYHA", title: "欧洲剧" }, { value: "ECR4CRXHA", title: "动画剧集" }
                 ]
             },
+            ...doubanGenreSubParams("tv_genre", DOUBAN_TV_GENRE_SUB),
             {
                 name: "sort_type", title: "排序方式", type: "enumeration", value: "default",
                 enumOptions: [ { title: "默认原序", value: "default" }, { title: "最近更新", value: "updated" }, { title: "最近发布", value: "recent" }, { title: "热度最高", value: "heat" }, { title: "流行趋势", value: "trending" }, { title: "高分优先", value: "rating" } ]
@@ -3134,8 +3181,14 @@ async function loadDoubanTrendEntry(params = {}) {
     else if (sortBy === "db_variety") list = await fetchDoubanAndMap("综艺", "tv", page);
     else if (sortBy === "db_movie") list = await fetchDoubanAndMap("热门", "movie", page);
     else if (sortBy === "db_tv_us") list = await fetchDoubanAndMap("美剧", "tv", page);
-    else if (sortBy === "db_movie_genre") list = await loadDoubanGenreChart(params.movie_genre || "film_genre_27", "movie", page);
-    else if (sortBy === "db_tv_genre") list = await loadDoubanGenreChart(params.tv_genre || "EC74443FY", "tv", page);
+    else if (sortBy === "db_movie_genre") {
+        const g = params.movie_genre || "film_genre_27";
+        list = await loadDoubanGenreChart(params["sub_" + g] || g, "movie", page);
+    }
+    else if (sortBy === "db_tv_genre") {
+        const g = params.tv_genre || "EC74443FY";
+        list = await loadDoubanGenreChart(params["sub_" + g] || g, "tv", page);
+    }
     else if (sortBy === "custom_url") list = await loadLiteCustomDouban(params);
     else list = await loadDoubanModule({ sort_by: sortBy, page });
     return sortDoubanTrendItems(list, sortType);
@@ -4732,6 +4785,14 @@ async function loadDoubanGenreChart(collectionId, mediaType, page) {
         if (!list.length) return pageNo === 1 ? [{ id: "empty", type: "text", title: "暂无数据" }] : [];
 
         const chartName = mediaType === "tv" ? "剧集类型榜" : "电影类型榜";
+        const subTable = mediaType === "tv" ? DOUBAN_TV_GENRE_SUB : DOUBAN_MOVIE_GENRE_SUB;
+        let subName = "";
+        Object.keys(subTable).some(function (k) {
+            const hit = subTable[k].find(function (p) { return p[1] === collection; });
+            if (hit && collection !== k) { subName = hit[0]; return true; }   // 只显示二级分类名（与基础榜单 id 相同时不显示）
+            return false;
+        });
+        const label = subName ? (chartName + " · " + subName) : chartName;
         const items = await Promise.all(list.map(async function (item) {
             const rate = item.rating && typeof item.rating.value === "number" ? item.rating.value.toFixed(1) : "";
             const cardSub = item.card_subtitle || "";
@@ -4742,7 +4803,7 @@ async function loadDoubanGenreChart(collectionId, mediaType, page) {
                 id: String(item.id), type: "douban", mediaType: mediaType,
                 title: item.title || "",
                 genreTitle: mediaType === "tv" ? "剧集" : "电影",
-                subTitle: (rate ? "豆瓣 " + rate + " · " : "") + chartName,
+                subTitle: (rate ? "豆瓣 " + rate + " · " : "") + label,
                 description: (rate ? "豆瓣 " + rate : "暂无评分") + (cardSub ? " · " + cardSub : "") + "\n" + (item.comment || item.description || "暂无简介"),
                 posterPath: poster, backdropPath: "",
                 rating: parseFloat(rate) || 0, popularity: 0, voteCount: (item.rating && item.rating.count) || 0,
