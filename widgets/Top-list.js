@@ -4837,9 +4837,15 @@ async function loadDoubanYearlyAll(year, page) {
         if (tmdb) {
             card.type = "tmdb"; card.id = String(tmdb.id); card.tmdbId = tmdb.id;
             mergeDoubanTmdb(card, tmdb);        // 会把 genreTitle 换成 TMDB 类型
-            const gt = card.genreTitle;
-            // 海报墙第二行实际渲染的是 releaseDate · genreTitle，所以分类要拼进 genreTitle 才看得见
-            card.genreTitle = (gt && gt !== "电影" && gt !== catName) ? (catName + " · " + gt) : catName;
+            // 海报墙第二行实际渲染的是 releaseDate · genreTitle，所以分类要拼进 genreTitle 才看得见。
+            // 豆瓣分类名可能与 TMDB 类型同名（如「动画」），要去重，避免出现「动画 · 动画 / 动作」。
+            const seenGenre = [];
+            catName.split(" / ").forEach(function (c) { if (c && seenGenre.indexOf(c) < 0) seenGenre.push(c); });
+            String(card.genreTitle || "").split(" / ").forEach(function (g) {
+                const t = g.trim();
+                if (t && t !== "电影" && seenGenre.indexOf(t) < 0) seenGenre.push(t);
+            });
+            card.genreTitle = seenGenre.slice(0, 4).join(" · ");   // 最多 4 段，避免第二行过长被截断
         }
         return card;
     }));
