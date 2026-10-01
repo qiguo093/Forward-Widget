@@ -2664,7 +2664,7 @@ var WidgetMetadata = {
             {
                 name: "sort_by", title: "豆瓣 榜单", type: "enumeration", value: "db_tv_cn",
                 enumOptions: [
-                    { value: "db_tv_cn", title: "热门国产剧" }, { value: "db_variety", title: "热门综艺" }, { value: "db_movie", title: "热门电影" }, { value: "db_tv_us", title: "热门美剧" }, { value: "tv_domestic", title: "大陆剧集" }, { value: "tv_american", title: "欧美剧集" }, { value: "tv_japanese", title: "日本剧集" }, { value: "tv_korean", title: "韩国剧集" }, { value: "tv_animation", title: "动漫番剧" }, { value: "show_domestic", title: "大陆综艺" }, { value: "show_foreign", title: "国外综艺" }, { value: "movie_weekly", title: "一周口碑电影" }, { value: "movie_top250", title: "豆瓣 Top250" }, { value: "db_movie_genre", title: "电影类型榜" }, { value: "db_tv_genre", title: "剧集类型榜" }, { value: "custom_movie_hot", title: "实时热门电影" }, { value: "custom_tv_hot", title: "实时热门电视" }, { value: "custom_subject_hot", title: "实时书影音热门" }, { value: "custom_tv_chinese", title: "华语口碑剧集榜" }, { value: "custom_tv_global", title: "全球口碑剧集榜" }, { value: "custom_movie_showing", title: "影院热映" }, { value: "custom_url", title: "自定义URL" }
+                    { value: "db_tv_cn", title: "热门国产剧" }, { value: "db_variety", title: "热门综艺" }, { value: "db_movie", title: "热门电影" }, { value: "db_tv_us", title: "热门美剧" }, { value: "tv_domestic", title: "大陆剧集" }, { value: "tv_american", title: "欧美剧集" }, { value: "tv_japanese", title: "日本剧集" }, { value: "tv_korean", title: "韩国剧集" }, { value: "tv_animation", title: "动漫番剧" }, { value: "show_domestic", title: "大陆综艺" }, { value: "show_foreign", title: "国外综艺" }, { value: "movie_weekly", title: "一周口碑电影" }, { value: "movie_top250", title: "豆瓣 Top250" }, { value: "db_movie_genre", title: "电影类型榜" }, { value: "db_tv_genre", title: "剧集类型榜" }, { value: "db_movie_yearly", title: "年度评分最高电影" }, { value: "custom_movie_hot", title: "实时热门电影" }, { value: "custom_tv_hot", title: "实时热门电视" }, { value: "custom_subject_hot", title: "实时书影音热门" }, { value: "custom_tv_chinese", title: "华语口碑剧集榜" }, { value: "custom_tv_global", title: "全球口碑剧集榜" }, { value: "custom_movie_showing", title: "影院热映" }, { value: "custom_url", title: "自定义URL" }
                 ]
             },
             {
@@ -2680,6 +2680,11 @@ var WidgetMetadata = {
                 enumOptions: [
                     { value: "EC74443FY", title: "大陆剧" }, { value: "ECFA5DI7Q", title: "美剧" }, { value: "ECVACXBWI", title: "英剧" }, { value: "ECNA46YBA", title: "日剧" }, { value: "ECBE5CBEI", title: "韩剧" }, { value: "ECVM47WUA", title: "港剧" }, { value: "ECBI5EL6A", title: "台剧" }, { value: "EC2Y5FJTY", title: "泰剧" }, { value: "EC6I5FYHA", title: "欧洲剧" }, { value: "ECR4CRXHA", title: "动画剧集" }
                 ]
+            },
+            {
+                name: "movie_yearly", title: "选择年份", type: "enumeration", value: "ECE472UNY",
+                belongTo: { paramName: "sort_by", value: ["db_movie_yearly"] },
+                enumOptions: [ { title: "2025年 最佳", value: "ECE472UNY" }, { title: "2024年 最佳", value: "ECBE7RX5A" }, { title: "2023年 最佳", value: "ECQ46F7XI" }, { title: "2022年 最佳", value: "ECKA55LSA" }, { title: "2021年 最佳", value: "ECWY6B2GQ" }, { title: "2020年 最佳", value: "EC2A5MRIY" }, { title: "2019年 最佳", value: "ECFYHQBWQ" }, { title: "2018年 最佳", value: "2018_movie_1" }, { title: "2017年 最佳", value: "2017_movie_chinese_score" }, { title: "2016年 最佳", value: "2016_movie_451" }, { title: "2015年 最佳", value: "2015_movie_3" }, { title: "2014年 最佳", value: "2014_movie_2" } ]
             },
             {
                 name: "sort_type", title: "排序方式", type: "enumeration", value: "default",
@@ -3152,6 +3157,7 @@ async function loadDoubanTrendEntry(params = {}) {
         const isHot = sortType === "genre_hot";
         list = await loadDoubanGenreChart(g, "tv", page, isHot ? "剧集类型榜 · 近期热门" : "");
     }
+    else if (sortBy === "db_movie_yearly") list = await loadDoubanGenreChart(params.movie_yearly || "ECE472UNY", "movie", page, "年度评分最高电影");
     else if (sortBy === "custom_url") list = await loadLiteCustomDouban(params);
     else list = await loadDoubanModule({ sort_by: sortBy, page });
     return sortDoubanTrendItems(list, sortType);
