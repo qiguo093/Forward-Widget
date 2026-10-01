@@ -4760,6 +4760,19 @@ async function searchTmdb(title, year, apiKey, isTv) {
 // 🟢 豆瓣类型榜（电影类型榜 / 剧集类型榜）：subject_collection 直出，命中 TMDB 则升级卡片，否则保留豆瓣卡片
 // 🟢 豆瓣年度评分最高电影：把该年份的全部分类集合合并成一份榜单
 // 各分类条目本身不多（8~12 条），合并后一次给全；结果落 Widget.storage，12 小时内翻页/重进 0 请求。
+// 海报墙第二行的实际内容是 `releaseDate · genreTitle`。
+// 这里把豆瓣评分与 TMDB 类型拼成第二行的形态：`豆瓣8.7 / 剧情 / 战争`。
+// 类型只保留前 2 个 —— 实测再多会超出卡片宽度而被截断。
+function yearlyGenreLine(rate, genreText) {
+    const parts = [];
+    if (rate) parts.push("豆瓣" + rate);
+    String(genreText || "").split(" / ").forEach(function (g) {
+        const t = g.trim();
+        if (t && t !== "电影" && t !== "剧集" && parts.indexOf(t) < 0 && parts.length < 3) parts.push(t);
+    });
+    return parts.join(" / ");
+}
+
 async function loadDoubanYearlyAll(year, page) {
     const y = String(year || "2025").trim();
     const pageNo = Number(page) || 1;
@@ -4826,7 +4839,7 @@ async function loadDoubanYearlyAll(year, page) {
         const card = {
             id: String(item.id), type: "douban", mediaType: "movie",
             title: item.title || "",
-            genreTitle: catName,
+            genreTitle: rate ? ("豆瓣" + rate) : catName,   // 没匹配到 TMDB 时没有类型，只给评分
             subTitle: (rate ? "豆瓣 " + rate + " · " : "") + label + " · " + catName,
             description: (rate ? "豆瓣 " + rate : "暂无评分") + (cardSub ? " · " + cardSub : "") + "\n" + (item.comment || item.description || "暂无简介"),
             posterPath: poster, backdropPath: "",
@@ -4836,16 +4849,10 @@ async function loadDoubanYearlyAll(year, page) {
         const tmdb = await searchTmdbForDouban(item.title, "movie", yearStr);
         if (tmdb) {
             card.type = "tmdb"; card.id = String(tmdb.id); card.tmdbId = tmdb.id;
-            mergeDoubanTmdb(card, tmdb);        // 会把 genreTitle 换成 TMDB 类型
-            // 海报墙第二行实际渲染的是 releaseDate · genreTitle，所以分类要拼进 genreTitle 才看得见。
-            // 豆瓣分类名可能与 TMDB 类型同名（如「动画」），要去重，避免出现「动画 · 动画 / 动作」。
-            const seenGenre = [];
-            catName.split(" / ").forEach(function (c) { if (c && seenGenre.indexOf(c) < 0) seenGenre.push(c); });
-            String(card.genreTitle || "").split(" / ").forEach(function (g) {
-                const t = g.trim();
-                if (t && t !== "电影" && seenGenre.indexOf(t) < 0) seenGenre.push(t);
-            });
-            card.genreTitle = seenGenre.slice(0, 4).join(" / ");   // 「/」比「·」窄，同样宽度能多放内容
+            mergeDoubanTmdb(card, tmdb);        // 会把 genreTitle 换成 TMDB 类型（形如「剧情 / 战争」）
+            // 海报墙第二行实际渲染的是 releaseDate · genreTitle，
+            // 所以「豆瓣评分 + 类型」必须拼进 genreTitle 才看得见；类型最多留 2 个，否则会超出卡片宽度被截断。
+            card.genreTitle = yearlyGenreLine(rate, card.genreTitle);
         }
         return card;
     }));
