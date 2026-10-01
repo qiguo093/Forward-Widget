@@ -9199,14 +9199,21 @@ function zoneBuildItem(item, forceMediaType) {
 // 这些一律挡掉，不让它们进列表。
 // 非「正剧」的类型，一般不要：99 纪录片 / 10402 音乐（演唱会·晚会）/ 10763 新闻 /
 // 10766 肥皂剧 / 10767 脱口秀（深夜秀、谈话节目）。10763/10766/10767 只对剧集有效，对电影传了也无害。
-// ⚠️ 大陆例外：脱口秀属于「综艺」，用户明确要求保留（《脱口秀大会》《脱口秀和他的朋友们》
-//    这类新一季要能看到），所以大陆不屏蔽 10767。
+// ⚠️ 大陆例外（两处）：
+//    ① 脱口秀属于「综艺」，用户明确要求保留（《脱口秀大会》《脱口秀和Ta的朋友们》这类要能看到）
+//       → 大陆不屏蔽 10767；
+//    ② 音乐类只屏蔽「个人明星演唱会」，音乐晚会/盛典（如《“湾区升明月”2026大湾区电影音乐晚会》）
+//       要保留 → 大陆不屏蔽 10402，改由片名规则区分（见 ZONE_JUNK_TITLE_RE_CN）。
 // ⚠️ 综艺本身是 10764（Reality），本来就不在屏蔽名单里，故《喜人奇妙夜》《明星大侦探》不受影响。
 const ZONE_DROP_GENRE_IDS = [99, 10402, 10763, 10766, 10767];
 const ZONE_DROP_GENRES_PARAM = "99,10402,10763,10766,10767";
-const ZONE_DROP_GENRE_IDS_CN = [99, 10402, 10763, 10766];       // 大陆：放开脱口秀(10767)
-const ZONE_DROP_GENRES_PARAM_CN = "99,10402,10763,10766";
+const ZONE_DROP_GENRE_IDS_CN = [99, 10763, 10766];              // 大陆：放开脱口秀(10767)与音乐(10402)
+const ZONE_DROP_GENRES_PARAM_CN = "99,10763,10766";
+// 通用片名黑名单（演唱会/晚会/颁奖礼等非影视内容）
 const ZONE_JUNK_TITLE_RE = /演唱会|音乐会|音乐节|音乐盛典|巡回演出|巡演|晚会|奇妙游|见面会|首映礼|红毯|颁奖|concert|live\s*(in|at|tour)|the\s+tour/i;
+// 大陆专用：只挡「个人明星演唱会 / 音乐会」，音乐晚会·音乐盛典·音乐节一律保留
+// （注意「音乐晚会」并不包含子串「音乐会」，两条互不误伤）
+const ZONE_JUNK_TITLE_RE_CN = /演唱会|音乐会|巡回演出|巡演|concert|live\s*(in|at|tour)|the\s+tour/i;
 const ZONE_CJK_REGIONS = ["CN", "HK", "TW"];  // 华语区：纯外语残条一律不要
 const ZONE_HAN_RE = /[\u4e00-\u9fff]/;
 
@@ -9216,6 +9223,10 @@ function zoneDropGenreIds(regionKey) {
 }
 function zoneDropGenresParam(regionKey) {
     return ZONE_LENIENT_REGIONS.indexOf(regionKey) >= 0 ? ZONE_DROP_GENRES_PARAM_CN : ZONE_DROP_GENRES_PARAM;
+}
+// 取该区域要套的片名黑名单
+function zoneJunkTitleRe(regionKey) {
+    return ZONE_LENIENT_REGIONS.indexOf(regionKey) >= 0 ? ZONE_JUNK_TITLE_RE_CN : ZONE_JUNK_TITLE_RE;
 }
 
 // 同性恋 / BL / GL / 耽美 题材的 TMDB 关键词 id（服务端 without_keywords 一次性排除）
@@ -9246,7 +9257,8 @@ function zoneIsJunkItem(item, regionKey) {
     if (genres.length === 0 && !(item.overview || "").trim()) return true;       // 兜底：无类型且无简介
     const title = item.title || item.name || "";
     const original = item.original_title || item.original_name || "";
-    if (ZONE_JUNK_TITLE_RE.test(title) || ZONE_JUNK_TITLE_RE.test(original)) return true;  // 演唱会/晚会
+    const junkRe = zoneJunkTitleRe(regionKey);
+    if (junkRe.test(title) || junkRe.test(original)) return true;                // 演唱会/晚会/颁奖礼
     if (ZONE_LGBT_EXEMPT_REGIONS.indexOf(regionKey) < 0
         && (ZONE_LGBT_TITLE_RE.test(title) || ZONE_LGBT_TITLE_RE.test(original))) return true;  // 同性恋题材
     if (ZONE_CJK_REGIONS.indexOf(regionKey) >= 0) {
