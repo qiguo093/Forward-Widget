@@ -4834,7 +4834,13 @@ async function loadDoubanYearlyAll(year, page) {
             releaseDate: yearStr ? String(yearStr) : "", year: yearStr ? String(yearStr) : ""
         };
         const tmdb = await searchTmdbForDouban(item.title, "movie", yearStr);
-        if (tmdb) { card.type = "tmdb"; card.id = String(tmdb.id); card.tmdbId = tmdb.id; mergeDoubanTmdb(card, tmdb); }
+        if (tmdb) {
+            card.type = "tmdb"; card.id = String(tmdb.id); card.tmdbId = tmdb.id;
+            mergeDoubanTmdb(card, tmdb);        // 会把 genreTitle 换成 TMDB 类型
+            const gt = card.genreTitle;
+            // 海报墙第二行实际渲染的是 releaseDate · genreTitle，所以分类要拼进 genreTitle 才看得见
+            card.genreTitle = (gt && gt !== "电影" && gt !== catName) ? (catName + " · " + gt) : catName;
+        }
         return card;
     }));
 
