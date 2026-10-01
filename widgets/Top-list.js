@@ -2723,7 +2723,7 @@ var WidgetMetadata = {
                     name: "with_companies", title: "出品公司", type: "enumeration", value: "",
                     belongTo: { paramName: "library_source", value: ["company"] },
                     enumOptions: [
-                        { title: "全部", value: "" }, { title: "皮克斯 Pixar", value: "3" }, { title: "DC Universe", value: "128064" },
+                        { title: "全部", value: "" }, { title: "Pixar", value: "3" }, { title: "DC Universe", value: "128064" },
                         { title: "Disney", value: "2" }, { title: "Warner Bros", value: "174" }, { title: "Columbia", value: "5" },
                         { title: "Sony", value: "34" }, { title: "Universal", value: "33" }, { title: "Paramount", value: "4" },
                         { title: "20th Century", value: "25" }, { title: "Marvel", value: "420" }, { title: "Toho", value: "882" },
