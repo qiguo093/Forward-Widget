@@ -2697,7 +2697,7 @@ var WidgetMetadata = {
             {
                 name: "sort_by", title: "豆瓣 榜单", type: "enumeration", value: "db_tv_cn",
                 enumOptions: [
-                    { value: "db_tv_cn", title: "热门国产剧" }, { value: "db_variety", title: "热门综艺" }, { value: "db_movie", title: "热门电影" }, { value: "db_tv_us", title: "热门美剧" }, { value: "tv_domestic", title: "大陆剧集" }, { value: "tv_american", title: "欧美剧集" }, { value: "tv_japanese", title: "日本剧集" }, { value: "tv_korean", title: "韩国剧集" }, { value: "tv_animation", title: "动漫番剧" }, { value: "show_domestic", title: "大陆综艺" }, { value: "show_foreign", title: "国外综艺" }, { value: "movie_weekly", title: "一周口碑电影" }, { value: "movie_top250", title: "豆瓣 Top250" }, { value: "db_movie_genre", title: "电影类型榜" }, { value: "db_tv_genre", title: "剧集类型榜" }, { value: "db_movie_yearly", title: "年度评分最高电影" }, { value: "db_tv_yearly", title: "年度评分最高剧集" }, { value: "custom_movie_hot", title: "实时热门电影" }, { value: "custom_tv_hot", title: "实时热门电视" }, { value: "custom_subject_hot", title: "实时书影音热门" }, { value: "custom_tv_chinese", title: "华语口碑剧集榜" }, { value: "custom_tv_global", title: "全球口碑剧集榜" }, { value: "custom_movie_showing", title: "影院热映" }, { value: "custom_url", title: "自定义URL" }
+                    { value: "custom_movie_showing", title: "影院热映" }, { value: "custom_movie_hot", title: "实时热门电影" }, { value: "custom_tv_hot", title: "实时热门电视" }, { value: "db_movie", title: "热门电影" }, { value: "db_tv_cn", title: "热门国产剧" }, { value: "db_tv_us", title: "热门美剧" }, { value: "tv_domestic", title: "大陆剧集" }, { value: "tv_american", title: "欧美剧集" }, { value: "tv_japanese", title: "日本剧集" }, { value: "tv_korean", title: "韩国剧集" }, { value: "tv_animation", title: "动漫番剧" }, { value: "db_variety", title: "热门综艺" }, { value: "movie_weekly", title: "一周口碑电影" }, { value: "movie_top250", title: "豆瓣 Top250" }, { value: "custom_tv_chinese", title: "华语口碑剧集榜" }, { value: "custom_tv_global", title: "全球口碑剧集榜" }, { value: "show_domestic", title: "大陆综艺" }, { value: "show_foreign", title: "国外综艺" }, { value: "db_movie_genre", title: "电影类型榜" }, { value: "db_tv_genre", title: "剧集类型榜" }, { value: "custom_subject_hot", title: "实时书影音热门" }, { value: "custom_url", title: "自定义URL" }, { value: "db_movie_yearly", title: "年度评分最高电影" }, { value: "db_tv_yearly", title: "年度评分最高剧集" }
                 ]
             },
             {
@@ -3697,7 +3697,8 @@ async function fetchDoubanAndMap(tag, type, page) {
                 rating: parseFloat(item.rate) || 0, popularity: 0, voteCount: 0
             };
             const tmdb = await searchTmdbForDouban(item.title, type, item.year);
-            if (tmdb) mergeDoubanTmdb(finalItem, tmdb); 
+            if (tmdb) mergeDoubanTmdb(finalItem, tmdb);
+            finalItem.genreTitle = doubanRatingGenreLine(item.rate, finalItem.genreTitle);
             return finalItem;
         });
         return await Promise.all(promises);
@@ -4785,7 +4786,7 @@ async function searchTmdb(title, year, apiKey, isTv) {
 // 海报墙第二行的实际内容是 `releaseDate · genreTitle`。
 // 这里把豆瓣评分与 TMDB 类型拼成第二行的形态：`豆瓣8.7 · 剧情/战争`。
 // 类型只保留前 2 个 —— 实测再多会超出卡片宽度而被截断。
-function yearlyGenreLine(rate, genreText) {
+function doubanRatingGenreLine(rate, genreText) {
     const genres = [];
     String(genreText || "").split(" / ").forEach(function (g) {
         const t = g.trim();
@@ -4796,6 +4797,7 @@ function yearlyGenreLine(rate, genreText) {
     if (rate) return "豆瓣" + rate;
     return genreTextOut;
 }
+function yearlyGenreLine(rate, genreText) { return doubanRatingGenreLine(rate, genreText); }
 
 async function loadDoubanYearlyAll(year, page) {
     const y = String(year || "2025").trim();
@@ -4876,7 +4878,7 @@ async function loadDoubanYearlyAll(year, page) {
             mergeDoubanTmdb(card, tmdb);        // 会把 genreTitle 换成 TMDB 类型（形如「剧情 / 战争」）
             // 海报墙第二行实际渲染的是 releaseDate · genreTitle，
             // 所以「豆瓣评分 + 类型」必须拼进 genreTitle 才看得见；类型最多留 2 个，否则会超出卡片宽度被截断。
-            card.genreTitle = yearlyGenreLine(rate, card.genreTitle);
+            card.genreTitle = doubanRatingGenreLine(rate, card.genreTitle);
         }
         return card;
     }));
@@ -4962,7 +4964,7 @@ async function loadDoubanTvYearlyAll(year, page) {
         if (tmdb) {
             card.type = "tmdb"; card.id = String(tmdb.id); card.tmdbId = tmdb.id;
             mergeDoubanTmdb(card, tmdb);
-            card.genreTitle = yearlyGenreLine(rate, card.genreTitle);
+            card.genreTitle = doubanRatingGenreLine(rate, card.genreTitle);
         }
         return card;
     }));
@@ -5010,6 +5012,7 @@ async function loadDoubanGenreChart(collectionId, mediaType, page, chartLabel) {
                 card.type = "tmdb"; card.id = String(tmdb.id); card.tmdbId = tmdb.id;
                 mergeDoubanTmdb(card, tmdb);
             }
+            card.genreTitle = doubanRatingGenreLine(rate, card.genreTitle);
             return card;
         }));
         return items;
@@ -5047,7 +5050,9 @@ async function loadDoubanModule(params) {
             
             var year = item.year;
             var sub = item.card_subtitle || "";
-            var rate = item.rating ? item.rating.value.toFixed(1) : "0.0";
+            var rawRate = item.rating && item.rating.value != null ? item.rating.value : item.rate;
+            var parsedRate = parseFloat(rawRate);
+            var rate = Number.isFinite(parsedRate) && parsedRate > 0 ? parsedRate.toFixed(1) : "";
             
             var tmdbItem = await searchTmdb(cleanTitle, year, apiKey, isTv);
 
@@ -5065,7 +5070,7 @@ async function loadDoubanModule(params) {
                     mediaType: tmdbItem.media_type,
                     title: tmdbItem.title || tmdbItem.name || rawTitle, // 界面显示依然保留原始名或TMDB名
                     
-                    genreTitle: finalGenreTitle, 
+                    genreTitle: doubanRatingGenreLine(rate, finalGenreTitle),
                     subTitle: dateStr ? `⭐ ${rate} | ${dateStr}` : `⭐ ${rate}`,
                     description: dateStr ? `${dateStr} · ⭐ ${rate}\n${item.info || tmdbItem.overview || "暂无简介"}` : (item.info || tmdbItem.overview),
                     
@@ -5304,7 +5309,8 @@ async function liteCustomDoubanFetch(params = {}) {
         if (!rows.length && listId) return await fetchFromDouban({ ...params, list: "custom", url: raw });
         return rows.map((item, i) => {
             const subject = item.subject || item;
-            return { id: subject.id || item.id || `custom_${start+i}`, type: "douban", mediaType: subject.subtype === "tv" ? "tv" : "movie", title: subject.title || item.title || "未知标题", posterPath: subject.pic?.normal || subject.cover_url || item.cover_url || "", rating: Number(subject.rating?.value || item.rating?.value || 0), releaseDate: subject.year || item.year || "", description: subject.card_subtitle || item.info || "" };
+            const doubanRate = Number(subject.rating?.value || item.rating?.value || 0);
+            return { id: subject.id || item.id || `custom_${start+i}`, type: "douban", mediaType: subject.subtype === "tv" ? "tv" : "movie", title: subject.title || item.title || "未知标题", posterPath: subject.pic?.normal || subject.cover_url || item.cover_url || "", rating: doubanRate, genreTitle: doubanRate ? ("豆瓣" + doubanRate.toFixed(1)) : "", releaseDate: subject.year || item.year || "", description: subject.card_subtitle || item.info || "" };
         });
     } catch (e) { return [{ id: "custom_url_error", type: "text", title: "自定义片单读取失败", description: e.message || "豆瓣返回格式异常" }]; }
 }
