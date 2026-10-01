@@ -9323,7 +9323,7 @@ function zoneBuildQueryParams(endpoint, sort_by, page, regionKey, today, since) 
     return queryParams;
 }
 
-async function zoneFetchFromTmdb(endpoint, sort_by, page, regionKey) { // 👉 改为 sort_by
+async function zoneFetchFromTmdb(endpoint, sort_by, page, regionKey, needCount) { // 👉 改为 sort_by
     // 用「设备本地日期」而不是 toISOString()（那是 UTC 日期，北京时间 0~8 点会差一天，
     // 会让 lte 条件把「今天刚上线」的新片整体排除）
     const _now = new Date();
@@ -9332,38 +9332,34 @@ async function zoneFetchFromTmdb(endpoint, sort_by, page, regionKey) { // 👉 �
     const since = _fmt(new Date(_now.getTime() - 90 * 24 * 60 * 60 * 1000));
 
     const mediaType = endpoint.includes("movie") ? "movie" : "tv";
-    const isCnNew = sort_by === "new" && ZONE_LENIENT_REGIONS.indexOf(regionKey) >= 0;
 
-    // 「最新上线」要按「过滤后仍能凑满 20 条」来取页：
-    //  · 大陆：无投票门槛，候选多，2 页足够
-    //  · 其它区域：有「至少 1 票」门槛 + 剔除无简介条目，候选少，放宽到 3 页
-    // 每页起始位置固定错开（第 N 页取 (N-1)*K+1 … N*K 页），翻页不会重叠。
-    const pagesPerModulePage = sort_by === "new" ? (isCnNew ? 2 : 3) : 1;
-    const startTmdbPage = (page - 1) * pagesPerModulePage + 1;
+    // 从 TMDB 第 1 页开始顺序取，取到「够本模块页用」为止。
+    // ⚠️ 不能按「模块第 N 页 → TMDB 第 N 页」直接映射：电影和剧集合并在「全部」模式下会按日期
+    //    全局重排，模块第 1 页吃掉两个来源各自最新的那批之后，模块第 2 页如果直接跳到 TMDB 第 2 页，
+    //    中间同日期的那批条目就被整段跳过了（实测 09-28 只显示 3 条，下一屏直接跳到 09-23）。
+    //    所以这里让每个来源都提供到「第 page 页末尾」为止，由调用方统一排序后切片。
+    const need = needCount || page * 20;
+    const MAX_TMDB_PAGES = sort_by === "new" ? 12 : 8;   // 上限，避免极端情况下无限翻页
 
     const seen = new Set();
     const merged = [];
-    for (let i = 0; i < pagesPerModulePage; i++) {
-        const params = zoneBuildQueryParams(endpoint, sort_by, startTmdbPage + i, regionKey, today, since);
+    for (let tmdbPage = 1; tmdbPage <= MAX_TMDB_PAGES; tmdbPage++) {
+        const params = zoneBuildQueryParams(endpoint, sort_by, tmdbPage, regionKey, today, since);
         const res = await Widget.tmdb.get(endpoint, { params });
         const batch = (res && res.results) || [];
-        let added = 0;
         for (const item of batch) {
             if (!item || seen.has(item.id)) continue;
-            if (zoneIsJunkItem(item, regionKey)) continue;   // 边取边筛，凑够 20 条就不再请求下一页
+            if (zoneIsJunkItem(item, regionKey)) continue;   // 边取边筛
             seen.add(item.id);
             merged.push(item);
-            added++;
         }
-        if (merged.length >= 20) break;                       // 已凑满，省下剩余的请求
+        if (merged.length >= need) break;                     // 已经够用，省下剩余请求
         if (batch.length < 20) break;                         // TMDB 已经没有更多结果
-        if (added === 0 && i >= 1) break;                     // 连续两页颗粒无收，别再翻
+        if (tmdbPage >= ((res && res.total_pages) || 1)) break;
     }
 
-    return merged
-        .map(item => zoneBuildItem(item, mediaType))
-        .filter(Boolean)
-        .slice(0, 20);
+    // 这里不做截断：由调用方合并电影+剧集后再统一排序、切片，分页才是全局连续的
+    return merged.map(item => zoneBuildItem(item, mediaType)).filter(Boolean);
 }
 
 async function loadGlobalZoneList(params) {
@@ -9374,11 +9370,14 @@ async function loadGlobalZoneList(params) {
 
     try {
         let items = [];
+        const PAGE_SIZE = 20;
+        // 每个来源都取到「第 page 页末尾」为止，合并后再统一切片，分页才是全局连续的
+        const need = page * PAGE_SIZE;
 
         if (mediaType === "all") {
             const [movies, tvs] = await Promise.all([
-                zoneFetchFromTmdb("/discover/movie", sort_by, page, region),
-                zoneFetchFromTmdb("/discover/tv", sort_by, page, region)
+                zoneFetchFromTmdb("/discover/movie", sort_by, page, region, need),
+                zoneFetchFromTmdb("/discover/tv", sort_by, page, region, need)
             ]);
             
             items = [...movies, ...tvs];
@@ -9393,12 +9392,14 @@ async function loadGlobalZoneList(params) {
                 }
                 return 0;
             });
-            
-            items = items.slice(0, 20);
+
+            // 全局切片：丢掉前面 (page-1) 页的，取本页 20 条
+            items = items.slice((page - 1) * PAGE_SIZE, page * PAGE_SIZE);
 
         } else {
             const endpoint = mediaType === "movie" ? "/discover/movie" : "/discover/tv";
-            items = await zoneFetchFromTmdb(endpoint, sort_by, page, region);
+            items = await zoneFetchFromTmdb(endpoint, sort_by, page, region, need);
+            items = items.slice((page - 1) * PAGE_SIZE, page * PAGE_SIZE);
         }
 
         if (items.length === 0) {
