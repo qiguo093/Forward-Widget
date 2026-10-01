@@ -2594,11 +2594,13 @@ var WidgetMetadata = {
                     enumOptions: [
                         { title: "电影综合榜", value: "general" },
                         { title: "年度最佳电影", value: "yearly" },
+                        { title: "年度最佳剧集", value: "yearly_tv" },
                         { title: "按类型探索", value: "genre" }
                     ]
                 },
                 { name: "general_sort", title: "榜单分类", type: "enumeration", value: "popular", belongTo: { paramName: "movie_source", value: ["general"] }, enumOptions: [ { title: "流行趋势", value: "popular" }, { title: "历史高分", value: "top_rated" }, { title: "全球票房榜", value: "box_office" }, { title: "奥斯卡佳片", value: "oscar" } ] },
                 { name: "yearly_sort", title: "选择年份", type: "enumeration", value: "2024", belongTo: { paramName: "movie_source", value: ["yearly"] }, enumOptions: [ { title: "2025年 最佳", value: "2025" }, { title: "2024年 最佳", value: "2024" }, { title: "2023年 最佳", value: "2023" }, { title: "2022年 最佳", value: "2022" }, { title: "2021年 最佳", value: "2021" }, { title: "2020年 最佳", value: "2020" }, { title: "2019年 最佳", value: "2019" }, { title: "2018年 最佳", value: "2018" }, { title: "2017年 最佳", value: "2017" }, { title: "2016年 最佳", value: "2016" }, { title: "2015年 最佳", value: "2015" } ] },
+                { name: "tv_yearly_sort", title: "选择年份", type: "enumeration", value: "2024", belongTo: { paramName: "movie_source", value: ["yearly_tv"] }, enumOptions: [ { title: "2025年 最佳", value: "2025" }, { title: "2024年 最佳", value: "2024" }, { title: "2023年 最佳", value: "2023" }, { title: "2022年 最佳", value: "2022" }, { title: "2021年 最佳", value: "2021" }, { title: "2020年 最佳", value: "2020" }, { title: "2019年 最佳", value: "2019" }, { title: "2018年 最佳", value: "2018" }, { title: "2017年 最佳", value: "2017" }, { title: "2016年 最佳", value: "2016" }, { title: "2015年 最佳", value: "2015" } ] },
                 { name: "genre_sort", title: "选择类型", type: "enumeration", value: "878", belongTo: { paramName: "movie_source", value: ["genre"] }, enumOptions: [ { title: "科幻", value: "878" }, { title: "剧情", value: "18" }, { title: "悬疑", value: "9648" }, { title: "动作", value: "28" }, { title: "喜剧", value: "35" }, { title: "爱情", value: "10749" }, { title: "恐怖", value: "27" }, { title: "犯罪", value: "80" }, { title: "奇幻", value: "14" }, { title: "动画", value: "16" } ] },
                 { name: "page", title: "页码", type: "page", startPage: 1 }
             ]
@@ -3072,6 +3074,7 @@ async function routeMovieOmni(params) {
 
     if (source === "general") { subParams.sort_by = params.general_sort || "popular"; return await loadGeneralMovies(subParams); }
     if (source === "yearly") { subParams.sort_by = params.yearly_sort || "2024"; return await loadYearlyBestMovies(subParams); }
+    if (source === "yearly_tv") { subParams.sort_by = params.tv_yearly_sort || "2024"; return await loadYearlyBestTv(subParams); }
     if (source === "genre") { subParams.sort_by = params.genre_sort || "878"; return await loadGenreMovies(subParams); }
     return [];
 }
@@ -3307,6 +3310,36 @@ async function loadYearlyBestMovies(params) {
         const res = await Widget.tmdb.get("/discover/movie", { params: queryParams }); return (res.results || []).map(i => movie_buildItem(i)).filter(Boolean);
     } catch (e) { return []; }
 }
+function tv_buildItem(item) {
+    if (!item) return null;
+    const airDate = item.first_air_date || "";
+    const gt = movie_getGenreText(item.genre_ids);   // 无类型/未映射时它回落成「电影」，剧集这边要改成「剧集」
+    return {
+        id: String(item.id), tmdbId: parseInt(item.id), type: "tmdb", mediaType: "tv",
+        title: item.name, releaseDate: airDate, genreTitle: gt === "电影" ? "剧集" : gt,
+        subTitle: `${airDate.substring(0, 4)}`,
+        posterPath: item.poster_path ? `https://image.tmdb.org/t/p/w500${item.poster_path}` : "",
+        backdropPath: item.backdrop_path ? `https://image.tmdb.org/t/p/w780${item.backdrop_path}` : "",
+        description: `剧集\n${item.overview || "暂无简介"}`
+    };
+}
+
+// 🟢 年度最佳剧集：只用 first_air_date_year 卡年份，排序与票数门槛写死
+async function loadYearlyBestTv(params) {
+    const year = String(params.sort_by || "2024");
+    const page = params.page || 1;
+    const base = { language: "zh-CN", page: page, first_air_date_year: year, sort_by: "vote_average.desc" };
+    try {
+        let res = await Widget.tmdb.get("/discover/tv", { params: { ...base, "vote_count.gte": 300 } });
+        let list = (res && res.results) || [];
+        if (!list.length) {   // 门槛过高导致空页时降档重试
+            res = await Widget.tmdb.get("/discover/tv", { params: { ...base, "vote_count.gte": 50 } });
+            list = (res && res.results) || [];
+        }
+        return list.map(i => tv_buildItem(i)).filter(Boolean);
+    } catch (e) { return []; }
+}
+
 async function loadGenreMovies(params) {
     try {
         let queryParams = { language: "zh-CN", page: params.page || 1, with_genres: params.sort_by || "878", sort_by: "popularity.desc" };
