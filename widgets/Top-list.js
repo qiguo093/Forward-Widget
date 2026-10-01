@@ -9189,7 +9189,11 @@ function zoneBuildItem(item, forceMediaType) {
 }
 
 async function zoneFetchFromTmdb(endpoint, sort_by, page, regionKey) { // 👉 改为 sort_by
-    const today = new Date().toISOString().split('T')[0];
+    // 用「设备本地日期」而不是 toISOString()（那是 UTC 日期，北京时间 0~8 点会差一天，
+    // 会让 lte 条件把「今天刚上线」的新片整体排除）
+    const _now = new Date();
+    const _fmt = (d) => `${d.getFullYear()}-${String(d.getMonth() + 1).padStart(2, "0")}-${String(d.getDate()).padStart(2, "0")}`;
+    const today = _fmt(_now);
     
     let queryParams = {
         language: "zh-CN",
@@ -9213,13 +9217,20 @@ async function zoneFetchFromTmdb(endpoint, sort_by, page, regionKey) { // 👉 �
         queryParams["vote_count.gte"] = 5; 
     } 
     else if (sort_by === "new") { // 👉 改为 sort_by
+        // 「最新上线」= 近 90 天内上线 + 按上线日期倒序（前后都封口，翻页不会翻出上古条目）
+        // ⚠️ 这里刻意不设 vote_count 门槛：刚上线的新片常常只有 0~1 票，设门槛会把它们整体筛掉
+        //    （实测 2026-10-01 上线的《仙逆剧场版：弑仙之战》0 票、《灵魂摆渡·公主之梦》1 票，
+        //     原「vote_count.gte = 1」时两条都进不了榜）
+        const _since = new Date(_now.getTime() - 90 * 24 * 60 * 60 * 1000);
+        const since = _fmt(_since);
         queryParams.sort_by = isMovie ? "primary_release_date.desc" : "first_air_date.desc";
         if (isMovie) {
             queryParams["primary_release_date.lte"] = today;
+            queryParams["primary_release_date.gte"] = since;
         } else {
             queryParams["first_air_date.lte"] = today;
+            queryParams["first_air_date.gte"] = since;
         }
-        queryParams["vote_count.gte"] = 1;
     } 
     else if (sort_by === "top") { // 👉 改为 sort_by
         queryParams.sort_by = "vote_average.desc";
