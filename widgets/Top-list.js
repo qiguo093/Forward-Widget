@@ -9197,20 +9197,37 @@ function zoneBuildItem(item, forceMediaType) {
 //    TMDB 把日韩/东南亚片错标成 CN 出品的条目（Lobang Buaya / Mirada económica / The Third Blade）
 //  · 完全没有海报的条目 —— 卡片上就是一块空白
 // 这些一律挡掉，不让它们进列表。
-const ZONE_DROP_GENRE_IDS = [99, 10402];  // 99=纪录片  10402=音乐（演唱会/音乐会/晚会/音乐节）
+// 非「正剧」的类型，一律不要：99 纪录片 / 10402 音乐（演唱会·晚会）/ 10763 新闻 /
+// 10766 肥皂剧 / 10767 脱口秀（深夜秀、谈话节目）。10763/10766/10767 只对剧集有效，对电影传了也无害。
+const ZONE_DROP_GENRE_IDS = [99, 10402, 10763, 10766, 10767];
+const ZONE_DROP_GENRES_PARAM = "99,10402,10763,10766,10767";
 const ZONE_JUNK_TITLE_RE = /演唱会|音乐会|音乐节|音乐盛典|巡回演出|巡演|晚会|奇妙游|见面会|首映礼|红毯|颁奖|concert|live\s*(in|at|tour)|the\s+tour/i;
 const ZONE_CJK_REGIONS = ["CN", "HK", "TW"];  // 华语区：纯外语残条一律不要
 const ZONE_HAN_RE = /[\u4e00-\u9fff]/;
+
+// 同性恋 / BL / GL / 耽美 题材的 TMDB 关键词 id（服务端 without_keywords 一次性排除）
+// ⚠️ 必须用「管道 |」分隔 = 任一命中即排除；用逗号是 AND 语义，等于没过滤。
+// 由 /search/keyword 查得：boys' love(384569/365317/289844)、bl(363397/328692/320085)、
+// girls' love(383699/280003)、yaoi(353318)、yuri(214564)、gay(363345)、lesbian(264386)、
+// homosexual(272617)、queer(250606)、lgbt(158718/380747)、bisexual(329968)、
+// transgender(290527)、同性(300054)
+const ZONE_LGBT_KEYWORDS = "384569|365317|289844|363397|328692|320085|383699|280003|353318|214564|363345|264386|272617|250606|158718|380747|329968|290527|300054";
+// 只有大陆区不套这条（用户要求屏蔽的是「国外」的同性恋题材）
+const ZONE_LGBT_EXEMPT_REGIONS = ["CN"];
+// 关键词之外的兜底：片名里明写着这些字样的
+const ZONE_LGBT_TITLE_RE = /耽美|男男|女女|百合|同性|boys'?\s*love|girls'?\s*love|yaoi|yuri|\blgbt|lesbian|queer|\bgay\b|\bBL\b|\bGL\b/i;
 
 function zoneIsJunkItem(item, regionKey) {
     if (!item) return true;
     if (!item.poster_path) return true;                                          // 无海报 → 空白卡片
     const genres = Array.isArray(item.genre_ids) ? item.genre_ids : [];
-    if (genres.some(id => ZONE_DROP_GENRE_IDS.indexOf(id) >= 0)) return true;    // 纪录片 / 音乐
+    if (genres.some(id => ZONE_DROP_GENRE_IDS.indexOf(id) >= 0)) return true;    // 纪录片/音乐/新闻/肥皂剧/脱口秀
     if (genres.length === 0 && !(item.overview || "").trim()) return true;       // 无类型且无简介 = 残条
     const title = item.title || item.name || "";
     const original = item.original_title || item.original_name || "";
     if (ZONE_JUNK_TITLE_RE.test(title) || ZONE_JUNK_TITLE_RE.test(original)) return true;  // 演唱会/晚会
+    if (ZONE_LGBT_EXEMPT_REGIONS.indexOf(regionKey) < 0
+        && (ZONE_LGBT_TITLE_RE.test(title) || ZONE_LGBT_TITLE_RE.test(original))) return true;  // 同性恋题材
     if (ZONE_CJK_REGIONS.indexOf(regionKey) >= 0) {
         const lang = item.original_language || "";
         // 华语区里，译名与原名都没有汉字的纯外语条目（TMDB 惯于把日韩/东南亚片错标成 CN 出品）
@@ -9254,11 +9271,19 @@ function zoneBuildQueryParams(endpoint, sort_by, page, regionKey, today, since) 
             queryParams["first_air_date.lte"] = today;
             queryParams["first_air_date.gte"] = since;
         }
-        queryParams.without_genres = "99,10402";  // 服务端先挡掉纪录片/音乐，省流量也省时间
+        queryParams.without_genres = ZONE_DROP_GENRES_PARAM;  // 服务端先挡掉非正剧类型，省流量也省时间
     }
     else if (sort_by === "top") {
         queryParams.sort_by = "vote_average.desc";
         queryParams["vote_count.gte"] = isMovie ? 50 : 20;
+    }
+
+    // ---- 内容层面的统一屏蔽（与排序、投票门槛无关，三个榜单都生效）----
+    // ① 纪录片/音乐/新闻/肥皂剧/脱口秀（非「正剧」）
+    queryParams.without_genres = ZONE_DROP_GENRES_PARAM;
+    // ② 同性恋 / BL / GL / 耽美 题材（大陆区不套这条，用户只要求屏蔽「国外」的）
+    if (ZONE_LGBT_EXEMPT_REGIONS.indexOf(regionKey) < 0) {
+        queryParams.without_keywords = ZONE_LGBT_KEYWORDS;
     }
 
     return queryParams;
