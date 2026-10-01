@@ -4761,16 +4761,18 @@ async function searchTmdb(title, year, apiKey, isTv) {
 // 🟢 豆瓣年度评分最高电影：把该年份的全部分类集合合并成一份榜单
 // 各分类条目本身不多（8~12 条），合并后一次给全；结果落 Widget.storage，12 小时内翻页/重进 0 请求。
 // 海报墙第二行的实际内容是 `releaseDate · genreTitle`。
-// 这里把豆瓣评分与 TMDB 类型拼成第二行的形态：`豆瓣8.7 / 剧情 / 战争`。
+// 这里把豆瓣评分与 TMDB 类型拼成第二行的形态：`豆瓣8.7 · 剧情/战争`。
 // 类型只保留前 2 个 —— 实测再多会超出卡片宽度而被截断。
 function yearlyGenreLine(rate, genreText) {
-    const parts = [];
-    if (rate) parts.push("豆瓣" + rate);
+    const genres = [];
     String(genreText || "").split(" / ").forEach(function (g) {
         const t = g.trim();
-        if (t && t !== "电影" && t !== "剧集" && parts.indexOf(t) < 0 && parts.length < 3) parts.push(t);
+        if (t && t !== "电影" && t !== "剧集" && genres.indexOf(t) < 0 && genres.length < 2) genres.push(t);
     });
-    return parts.join(" / ");
+    const genreTextOut = genres.join("/");
+    if (rate && genreTextOut) return "豆瓣" + rate + " · " + genreTextOut;
+    if (rate) return "豆瓣" + rate;
+    return genreTextOut;
 }
 
 async function loadDoubanYearlyAll(year, page) {
@@ -4779,7 +4781,7 @@ async function loadDoubanYearlyAll(year, page) {
     const cats = DOUBAN_YEARLY_CATS[y] || [];
     if (!cats.length) return [{ id: "err", type: "text", title: "该年份暂无数据" }];
 
-    const cacheKey = "douban_yearly_all_v3|" + y;
+    const cacheKey = "douban_yearly_all_v4|" + y;
     const label = y + "年度最佳";
 
     // ① 先读持久缓存（超 12 小时自然失效）
