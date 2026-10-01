@@ -2526,6 +2526,23 @@ var DOUBAN_MOVIE_GENRE_HOT = {
     film_genre_49: "ECDYOE7WY", film_genre_34: "ECV4N4FBI", film_genre_45: "EC6MOCTVQ", film_genre_43: "EC3EOHEYY"
 };
 
+// 🟢 豆瓣「年度评分最高电影」：各年份的全部分类集合（id 与豆瓣 subject_collection 一致）
+// 2019-2025 来自 douban.bridge 的 r9；2014-2018 为实测探测所得（老年份 id 规则不同）。
+var DOUBAN_YEARLY_CATS = {
+    "2025": [["华语","ECE472UNY"],["外语","ECB5AE5EQ"],["冷门佳片","ECFM7Z3AA"],["日本","ECNI724YA"],["韩国","EC45ABN2Y"],["喜剧","ECANAAAGY"],["爱情","ECM5AC2HQ"],["恐怖","ECNA72CVA"],["动画","ECKU74SFA"],["纪录","ECDBAETMY"]],
+    "2024": [["华语","ECBE7RX5A"],["外语","ECBQ7RNSA"],["冷门佳片","ECSE7P7GQ"],["日本","ECRY73E2Q"],["韩国","ECBM7NLJA"],["喜剧","ECLE7RV6Y"],["爱情","ECHU7QOYQ"],["恐怖","ECKY7RPLQ"],["动画","ECZA7V7AA"],["纪录","ECS47YXRQ"]],
+    "2023": [["华语","ECQ46F7XI"],["外语","ECFA6FLWQ"],["冷门佳片","ECMY6GCCA"],["日本","ECCU6MRTY"],["韩国","EC4Y6ALRA"],["喜剧","ECCI6H3TA"],["爱情","EC3A56FJA"],["恐怖","ECYI6DWVQ"],["动画","ECHU6BXBI"],["纪录","ECRM6A2JA"]],
+    "2022": [["华语","ECKA55LSA"],["外语","ECQU6DFQA"],["冷门佳片","ECSQ6DBYA"],["日本","ECEA6ANKY"],["韩国","ECHM6DG7Y"],["喜剧","EC4Y54ORI"],["爱情","ECYU6IHKI"],["恐怖","ECRI53OUQ"],["动画","EC4M6ACVQ"],["纪录","ECGY527GY"]],
+    "2021": [["华语","ECWY6B2GQ"],["外语","ECNE54UQI"],["冷门佳片","ECRA53WMI"],["喜剧","ECJM6BMEA"],["爱情","EC6A575FI"],["恐怖","ECBM5YQVA"],["动画","ECOY6BCBI"],["纪录","ECLY57EVQ"]],
+    "2020": [["华语","EC2A5MRIY"],["外语","ECIU5HIEQ"],["冷门佳片","ECGY5FDUA"],["日本","ECCA5MMHI"],["韩国","EC3A5GQ5A"],["喜剧","ECM45Q7VI"],["爱情","ECBA5UC6Q"],["恐怖","EC7U5TVBY"],["动画","ECMY5PBHI"],["纪录","EC4Q5SGKQ"]],
+    "2019": [["华语","ECFYHQBWQ"],["外语","ECFQHXCTQ"],["冷门佳片","ECOUHS3TY"],["喜剧","ECBU6ENLI"],["爱情","ECSY52PSI"],["动画","EC7E57OPQ"],["纪录","ECYQ6G4WI"]],
+    "2018": [["华语","2018_movie_1"],["外语","2018_movie_0"],["冷门佳片","2018_movie_14"],["日本","2018_movie_5"],["韩国","2018_movie_4"],["欧洲","2018_movie_6"],["喜剧","2018_movie_16"],["爱情","2018_movie_17"],["恐怖","2018_movie_19"],["动画","2018_movie_20"],["纪录","2018_movie_21"],["短片","2018_movie_22"],["科幻/动作","2018_movie_18"]],
+    "2017": [["华语","2017_movie_chinese_score"],["外语","2017_movie_foreign_score"],["冷门佳片","2017_movie_dark_horse"],["日本","2017_movie_696"],["韩国","2017_movie_695"],["欧洲","2017_movie_697"],["喜剧","2017_movie_699"],["爱情","2017_movie_700"],["恐怖","2017_movie_702"],["科幻/动作","2017_movie_701"],["惊悚/犯罪","2017_movie_714"]],
+    "2016": [["华语","2016_movie_451"],["外语","2016_movie_272"],["冷门佳片","2016_movie_456"],["日本","2016_movie_459"],["韩国","2016_movie_458"],["欧洲","2016_movie_460"],["喜剧","2016_movie_465"],["爱情","2016_movie_466"],["恐怖","2016_movie_468"],["动画","2016_movie_469"],["纪录","2016_movie_470"],["短片","2016_movie_471"],["科幻/动作","2016_movie_467"]],
+    "2015": [["华语","2015_movie_3"],["外语","2015_movie_2"],["冷门佳片","2015_movie_43"],["日本","2015_movie_45"],["韩国","2015_movie_44"],["欧洲","2015_movie_46"],["动画","2015_movie_54"],["纪录","2015_movie_55"],["短片","2015_movie_56"]],
+    "2014": [["华语","2014_movie_2"],["外语","2014_movie_1"],["冷门佳片","2014_movie_5"],["日本","2014_movie_7"],["韩国","2014_movie_6"],["欧洲","2014_movie_8"],["动画","2014_movie_9"],["纪录","2014_movie_10"],["短片","2014_movie_11"]]
+};
+
 var WidgetMetadata = {
     id: "🅖 🅖Media.library",
     title: "影视榜单Pro",
@@ -2682,9 +2699,9 @@ var WidgetMetadata = {
                 ]
             },
             {
-                name: "movie_yearly", title: "选择年份", type: "enumeration", value: "ECE472UNY",
+                name: "movie_yearly", title: "选择年份", type: "enumeration", value: "2025",
                 belongTo: { paramName: "sort_by", value: ["db_movie_yearly"] },
-                enumOptions: [ { title: "2025年 最佳", value: "ECE472UNY" }, { title: "2024年 最佳", value: "ECBE7RX5A" }, { title: "2023年 最佳", value: "ECQ46F7XI" }, { title: "2022年 最佳", value: "ECKA55LSA" }, { title: "2021年 最佳", value: "ECWY6B2GQ" }, { title: "2020年 最佳", value: "EC2A5MRIY" }, { title: "2019年 最佳", value: "ECFYHQBWQ" }, { title: "2018年 最佳", value: "2018_movie_1" }, { title: "2017年 最佳", value: "2017_movie_chinese_score" }, { title: "2016年 最佳", value: "2016_movie_451" }, { title: "2015年 最佳", value: "2015_movie_3" }, { title: "2014年 最佳", value: "2014_movie_2" } ]
+                enumOptions: [ { title: "2025年 最佳", value: "2025" }, { title: "2024年 最佳", value: "2024" }, { title: "2023年 最佳", value: "2023" }, { title: "2022年 最佳", value: "2022" }, { title: "2021年 最佳", value: "2021" }, { title: "2020年 最佳", value: "2020" }, { title: "2019年 最佳", value: "2019" }, { title: "2018年 最佳", value: "2018" }, { title: "2017年 最佳", value: "2017" }, { title: "2016年 最佳", value: "2016" }, { title: "2015年 最佳", value: "2015" }, { title: "2014年 最佳", value: "2014" } ]
             },
             {
                 name: "sort_type", title: "排序方式", type: "enumeration", value: "default",
@@ -3157,7 +3174,7 @@ async function loadDoubanTrendEntry(params = {}) {
         const isHot = sortType === "genre_hot";
         list = await loadDoubanGenreChart(g, "tv", page, isHot ? "剧集类型榜 · 近期热门" : "");
     }
-    else if (sortBy === "db_movie_yearly") list = await loadDoubanGenreChart(params.movie_yearly || "ECE472UNY", "movie", page, "年度评分最高电影");
+    else if (sortBy === "db_movie_yearly") list = await loadDoubanYearlyAll(params.movie_yearly || "2025", page);
     else if (sortBy === "custom_url") list = await loadLiteCustomDouban(params);
     else list = await loadDoubanModule({ sort_by: sortBy, page });
     return sortDoubanTrendItems(list, sortType);
@@ -4741,6 +4758,80 @@ async function searchTmdb(title, year, apiKey, isTv) {
 }
 
 // 🟢 豆瓣类型榜（电影类型榜 / 剧集类型榜）：subject_collection 直出，命中 TMDB 则升级卡片，否则保留豆瓣卡片
+// 🟢 豆瓣年度评分最高电影：把该年份的全部分类集合合并成一份榜单
+// 各分类条目本身不多（8~12 条），合并后一次给全；结果落 Widget.storage，12 小时内翻页/重进 0 请求。
+async function loadDoubanYearlyAll(year, page) {
+    const y = String(year || "2025").trim();
+    const pageNo = Number(page) || 1;
+    const cats = DOUBAN_YEARLY_CATS[y] || [];
+    if (!cats.length) return [{ id: "err", type: "text", title: "该年份暂无数据" }];
+
+    const cacheKey = "douban_yearly_all_v2|" + y;
+    const label = y + "年度最佳";
+
+    // ① 先读持久缓存（写盘时已带 ts，超 12 小时自然失效）
+    try {
+        if (Widget.storage && Widget.storage.get) {
+            const raw = await Widget.storage.get(cacheKey);
+            const obj = raw ? (typeof raw === "string" ? JSON.parse(raw) : raw) : null;
+            if (obj && Array.isArray(obj.items) && obj.items.length && Date.now() - Number(obj.ts || 0) < 43200000) {
+                return obj.items.slice((pageNo - 1) * 20, pageNo * 20);
+            }
+        }
+    } catch (e) { /* 缓存坏了就当没有 */ }
+
+    // ② 并行拉全部分类
+    const headers = { "Referer": "https://m.douban.com/", "User-Agent": LITE_UA_PC };
+    const results = await Promise.all(cats.map(function (c) {
+        const url = "https://m.douban.com/rexxar/api/v2/subject_collection/" + encodeURIComponent(c[1]) + "/items?start=0&count=50";
+        return Widget.http.get(url, { headers: headers })
+            .then(function (res) { return { id: c[1], name: c[0], data: safeJsonParse(res.data) }; })
+            .catch(function () { return { id: c[1], name: c[0], data: null }; });
+    }));
+
+    const failed = results.filter(function (r) { return !r.data; }).length;   // 有失败就不写盘，避免残缺结果固化 12 小时
+    const merged = [], seen = {};
+    let raw = [];
+    results.forEach(function (r) {
+        const list = (r.data && r.data.subject_collection_items) || [];
+        list.forEach(function (item) { if (item && item.id && !seen[item.id]) { seen[item.id] = 1; raw.push({ item: item, cat: r.name }); } });
+    });
+    if (!raw.length) return pageNo === 1 ? [{ id: "empty", type: "text", title: "暂无数据" }] : [];
+
+    // ③ 逐条匹配 TMDB（命中就升级卡片，未命中保留豆瓣卡片）
+    const items = await Promise.all(raw.map(async function (row) {
+        const item = row.item;
+        const rate = item.rating && typeof item.rating.value === "number" ? item.rating.value.toFixed(1) : "";
+        const cardSub = item.card_subtitle || "";
+        const yearHit = cardSub.match(/(19|20)\d{2}/);
+        const yearStr = item.year || (yearHit ? yearHit[0] : "");
+        const poster = item.cover_url || (item.pic && (item.pic.large || item.pic.normal)) || "";
+        const card = {
+            id: String(item.id), type: "douban", mediaType: "movie",
+            title: item.title || "",
+            genreTitle: row.cat,   // 来自哪个分类（华语/外语/动画…），匹配到 TMDB 后会被 TMDB 类型覆盖
+            subTitle: (rate ? "豆瓣 " + rate + " · " : "") + label + " · " + row.cat,
+            description: (rate ? "豆瓣 " + rate : "暂无评分") + (cardSub ? " · " + cardSub : "") + "\n" + (item.comment || item.description || "暂无简介"),
+            posterPath: poster, backdropPath: "",
+            rating: parseFloat(rate) || 0, popularity: 0, voteCount: (item.rating && item.rating.count) || 0,
+            releaseDate: yearStr ? String(yearStr) : "", year: yearStr ? String(yearStr) : ""
+        };
+        const tmdb = await searchTmdbForDouban(item.title, "movie", yearStr);
+        if (tmdb) { card.type = "tmdb"; card.id = String(tmdb.id); card.tmdbId = tmdb.id; mergeDoubanTmdb(card, tmdb); }
+        return card;
+    }));
+
+    // ④ 整份落盘（降级/残缺不写）
+    if (!failed) {
+        try {
+            if (Widget.storage && Widget.storage.set) {
+                await Widget.storage.set(cacheKey, JSON.stringify({ ts: Date.now(), items: items }));
+            }
+        } catch (e) { /* 存储失败不影响返回 */ }
+    }
+    return items.slice((pageNo - 1) * 20, pageNo * 20);
+}
+
 async function loadDoubanGenreChart(collectionId, mediaType, page, chartLabel) {
     const collection = String(collectionId || "").trim();
     if (!collection) return [{ id: "err", type: "text", title: "未选择类型" }];
