@@ -2687,8 +2687,140 @@ var WidgetMetadata = {
             // 脚本内部另有内存数据集，翻页/切地区为 0 请求。
             cacheDuration: 7200,
             params: [
-                { name: "sort_by", title: "综艺地区", type: "enumeration", value: "cn", enumOptions: [ { title: "国产综艺", value: "cn" }, { title: "韩国综艺", value: "kr" }, { title: "台湾综艺", value: "tw" }, { title: "欧美综艺", value: "us" }, { title: "全球热门", value: "global" } ] },
-                { name: "variety_mode", title: "时间范围", type: "enumeration", value: "today", enumOptions: [ { title: "今日更新", value: "today" }, { title: "明日预告", value: "tomorrow" }, { title: "近期热播", value: "trending" } ] },
+                {
+                    // 数据源二选一：原来的综艺更新时刻表 / 移植自「观影偏好(TMDB版)」的豆瓣综艺推荐
+                    name: "variety_source",
+                    title: "数据源",
+                    type: "enumeration",
+                    value: "tmdb",
+                    enumOptions: [
+                        { title: "综艺更新时刻表（TMDB）", value: "tmdb" },
+                        { title: "观影偏好 · 综艺（豆瓣）", value: "douban" }
+                    ]
+                },
+                { name: "sort_by", title: "综艺地区", type: "enumeration", value: "cn", belongTo: { paramName: "variety_source", value: ["tmdb"] }, enumOptions: [ { title: "国产综艺", value: "cn" }, { title: "韩国综艺", value: "kr" }, { title: "台湾综艺", value: "tw" }, { title: "欧美综艺", value: "us" }, { title: "全球热门", value: "global" } ] },
+                { name: "variety_mode", title: "时间范围", type: "enumeration", value: "today", belongTo: { paramName: "variety_source", value: ["tmdb"] }, enumOptions: [ { title: "今日更新", value: "today" }, { title: "明日预告", value: "tomorrow" }, { title: "近期热播", value: "trending" } ] },
+                {
+                    name: "zy_genre",
+                    title: "综艺类型",
+                    type: "enumeration",
+                    value: "",
+                    belongTo: { paramName: "variety_source", value: ["douban"] },
+                    enumOptions: [
+                        { title: "全部", value: "" },
+                        { title: "真人秀", value: "真人秀" },
+                        { title: "脱口秀", value: "脱口秀" },
+                        { title: "音乐", value: "音乐" },
+                        { title: "歌舞", value: "歌舞" }
+                    ]
+                },
+                {
+                    name: "zy_region",
+                    title: "地区",
+                    type: "enumeration",
+                    value: "",
+                    belongTo: { paramName: "variety_source", value: ["douban"] },
+                    enumOptions: [
+                        { title: "全部地区", value: "" },
+                        { title: "华语", value: "华语" },
+                        { title: "欧美", value: "欧美" },
+                        { title: "韩国", value: "韩国" },
+                        { title: "日本", value: "日本" },
+                        { title: "中国大陆", value: "中国大陆" },
+                        { title: "中国香港", value: "中国香港" },
+                        { title: "中国台湾", value: "中国台湾" },
+                        { title: "美国", value: "美国" },
+                        { title: "英国", value: "英国" },
+                        { title: "法国", value: "法国" },
+                        { title: "德国", value: "德国" },
+                        { title: "意大利", value: "意大利" },
+                        { title: "西班牙", value: "西班牙" },
+                        { title: "印度", value: "印度" },
+                        { title: "泰国", value: "泰国" }
+                    ]
+                },
+                {
+                    name: "zy_year",
+                    title: "年份",
+                    type: "enumeration",
+                    value: "",
+                    belongTo: { paramName: "variety_source", value: ["douban"] },
+                    enumOptions: [
+                        { title: "全部年份", value: "" },
+                        { title: "2026", value: "2026" },
+                        { title: "2025", value: "2025" },
+                        { title: "2024", value: "2024" },
+                        { title: "2023", value: "2023" },
+                        { title: "2022", value: "2022" },
+                        { title: "2021", value: "2021" },
+                        { title: "2020", value: "2020" },
+                        { title: "2020年代", value: "2020年代" },
+                        { title: "2010年代", value: "2010年代" },
+                        { title: "2000年代", value: "2000年代" },
+                        { title: "90年代", value: "90年代" },
+                        { title: "更早", value: "更早" }
+                    ]
+                },
+                {
+                    name: "zy_platform",
+                    title: "平台",
+                    type: "enumeration",
+                    value: "",
+                    belongTo: { paramName: "variety_source", value: ["douban"] },
+                    enumOptions: [
+                        { title: "全部", value: "" },
+                        { title: "芒果TV", value: "芒果TV" },
+                        { title: "湖南卫视", value: "湖南卫视" },
+                        { title: "浙江卫视", value: "浙江卫视" },
+                        { title: "东方卫视", value: "东方卫视" },
+                        { title: "江苏卫视", value: "江苏卫视" },
+                        { title: "腾讯视频", value: "腾讯视频" },
+                        { title: "爱奇艺", value: "爱奇艺" },
+                        { title: "优酷", value: "优酷" },
+                        { title: "Netflix", value: "Netflix" }
+                    ]
+                },
+                {
+                    name: "zy_sort",
+                    title: "豆瓣排序",
+                    type: "enumeration",
+                    value: "T",
+                    belongTo: { paramName: "variety_source", value: ["douban"] },
+                    enumOptions: [
+                        { title: "综合排序", value: "T" },
+                        { title: "近期热度", value: "U" },
+                        { title: "首映时间", value: "R" },
+                        { title: "高分优选", value: "S" }
+                    ]
+                },
+                {
+                    name: "zy_rating",
+                    title: "最低评分",
+                    type: "input",
+                    value: "0",
+                    belongTo: { paramName: "variety_source", value: ["douban"] },
+                    description: "填 0～9 的整数，0 表示不限",
+                    placeholders: [
+                        { title: "不限", value: "0" },
+                        { title: "7 分以上", value: "7" },
+                        { title: "8 分以上", value: "8" },
+                        { title: "9 分以上", value: "9" }
+                    ]
+                },
+                {
+                    name: "zy_tags",
+                    title: "自定义标签",
+                    type: "input",
+                    value: "",
+                    belongTo: { paramName: "variety_source", value: ["douban"] },
+                    description: "多个标签用英文逗号分隔，例如：选秀,推理",
+                    placeholders: [
+                        { title: "空", value: "" },
+                        { title: "推理", value: "推理" },
+                        { title: "选秀", value: "选秀" },
+                        { title: "美食", value: "美食" }
+                    ]
+                },
                 { name: "page", title: "页码", type: "page" }
             ]
         },
@@ -3801,6 +3933,29 @@ function normalizeDoubanTmdbTitle(title) {
         .replace(/[^\p{L}\p{N}]+/gu, "")
         .replace(/ii/g, "2")
         .replace(/iii/g, "3");
+}
+
+// 【仅用于新移植的两个「观影偏好」数据源】
+// 豆瓣的综艺/剧集是按「季/期」建条目，TMDB 常常只有一个母条目；
+// 直接信任搜索首条会撞上「同名的另一部节目」（实例：《明星大侦探 第三季》被配成《名侦探俱乐部》、
+// 《新西游记 第四季》被配成 1990 年的《新西游记》、《大逃脱》被配成《密室大逃脱》）。
+// 这里做一次名称相关性校验：剥掉「第N季/部/期/辑」后，两边名称必须互为前缀（或全等），否则视为误配。
+function doubanTmdbNameOk(doubanTitle, tmdb, doubanYear) {
+    const strip = function (s) { return String(s || "").replace(/第[一二三四五六七八九十百零\d]+[季部期辑]/g, ""); };
+    const a = normalizeDoubanTmdbTitle(strip(doubanTitle));
+    const b = normalizeDoubanTmdbTitle(strip((tmdb && (tmdb.name || tmdb.title)) || ""));
+    if (!a || !b) return false;
+    if (!(a === b || a.indexOf(b) === 0 || b.indexOf(a) === 0)) return false;
+    // 豆瓣条目是「某一季/某一期」，而 TMDB 命中的是母条目（名称更短）时，
+    // 再校一次年份：母条目首播不应比这一季早太多，否则是同名的另一部节目
+    // （实例：《新西游记 第四季》撞上 1990 年的《新西游记》、《花儿与少年·丝路季》撞上 2014 年的《花儿与少年》）。
+    const seasonLike = /第[一二三四五六七八九十百零\d]+[季部期辑]/.test(String(doubanTitle || "")) || a !== b;
+    if (seasonLike && doubanYear) {
+        const ty = parseInt(String((tmdb && (tmdb.first_air_date || tmdb.release_date)) || "").slice(0, 4), 10);
+        const dy = parseInt(String(doubanYear), 10);
+        if (ty && dy && ty < dy - 6) return false;
+    }
+    return true;
 }
 
 async function searchTmdbForDouban(query, type, year) {
@@ -6508,7 +6663,104 @@ async function loadGlobalCalendarHub(params = {}) {
 }
 
 async function loadStandaloneVarietyTime(params = {}) {
+    // 数据源分发：默认仍是原来的综艺更新时刻表
+    if ((params.variety_source || "tmdb") === "douban") return await loadVarietyDoubanRec(params);
     return await calendarLoadVariety({ mode: params.variety_mode || "today", sort_by: params.sort_by || "cn", page: params.page });
+}
+
+// ================= 综艺时刻 · 观影偏好（豆瓣综艺推荐） =================
+// 移植自第三方模块「豆瓣我看&豆瓣个性化推荐」的 getPreferenceRecommendations，
+// 只保留其中的「综艺」部分（形式固定为 综艺，不涉及电视剧/电影）。
+// 数据源：https://m.douban.com/rexxar/api/v2/tv/recommend（与豆瓣网页「选综艺」同一接口，免登录）
+// 每条再走一次 TMDB 搜索换高清海报/简介/类型；匹配失败时保留豆瓣卡片（type:"douban"），不丢条目。
+async function loadVarietyDoubanRec(params) {
+    const page = Math.max(1, parseInt(params.page) || 1);
+    const start = (page - 1) * 20;
+
+    const genre = params.zy_genre || "";
+    const region = params.zy_region || "";
+    const year = params.zy_year || "";
+    const platform = params.zy_platform || "";
+    const sort = params.zy_sort || "T";
+    let rating = String(params.zy_rating || "0").trim();
+    if (!/^\d$/.test(rating)) rating = "0";
+
+    // 「形式」固定为综艺；类型/地区走 selected_categories（与豆瓣网页一致）
+    const selectedCategories = { "形式": "综艺" };
+    if (genre) selectedCategories["类型"] = genre;
+    if (region) selectedCategories["地区"] = region;
+
+    // tags 拼装顺序与原模块一致：类型（无类型时用「综艺」）→ 地区 → 年份 → 平台 → 自定义标签
+    const tags = [];
+    if (genre) tags.push(genre); else tags.push("综艺");
+    if (region) tags.push(region);
+    if (year) tags.push(year);
+    if (platform) tags.push(platform);
+    String(params.zy_tags || "").split(/[,，]/).forEach(function (t) {
+        const v = t.trim();
+        if (v) tags.push(v);
+    });
+
+    const url = "https://m.douban.com/rexxar/api/v2/tv/recommend?refresh=0&start=" + start + "&count=20&selected_categories=" +
+        encodeURIComponent(JSON.stringify(selectedCategories)) + "&uncollect=false&score_range=" + rating + ",10&tags=" +
+        encodeURIComponent(tags.join(",")) + "&sort=" + sort;
+
+    try {
+        const res = await Widget.http.get(url, {
+            headers: { "Referer": "https://movie.douban.com/explore", "User-Agent": LITE_UA_PC }
+        });
+        const data = typeof res.data === "string" ? safeJsonParse(res.data) : res.data;
+        const list = (data && Array.isArray(data.items) ? data.items : []).filter(function (it) {
+            return it && it.card === "subject";
+        });
+        if (!list.length) {
+            return page === 1
+                ? [{ id: "empty", type: "text", title: "无数据", description: "换个类型 / 地区，或降低最低评分再试" }]
+                : [];
+        }
+
+        const items = await Promise.all(list.map(async function (item) {
+            const rawTitle = item.title || "";
+            const cardSub = String(item.card_subtitle || "");
+            const yearHit = cardSub.match(/(19|20)\d{2}/);
+            const itemYear = String(item.year || (yearHit ? yearHit[0] : ""));
+            const rate = item.rating && typeof item.rating.value === "number" ? item.rating.value.toFixed(1) : "";
+            const poster = (item.pic && (item.pic.large || item.pic.normal)) || item.cover_url || "";
+            const comment = (item.comment && item.comment.comment) || "";
+
+            const card = {
+                id: String(item.id || rawTitle), type: "douban", mediaType: "tv",
+                title: rawTitle,
+                genreTitle: "综艺",
+                subTitle: (rate ? "豆瓣 " + rate + " · " : "") + "观影偏好",
+                description: (rate ? "豆瓣 " + rate : "暂无评分") + (cardSub ? " · " + cardSub : "") + "\n" + (comment || "暂无简介"),
+                posterPath: poster, backdropPath: "",
+                rating: parseFloat(rate) || 0, popularity: 0,
+                voteCount: (item.rating && item.rating.count) || 0,
+                releaseDate: itemYear
+            };
+
+            const tmdb = await searchTmdbForDouban(rawTitle, "tv", itemYear);
+            if (tmdb && doubanTmdbNameOk(rawTitle, tmdb, itemYear)) {
+                card.type = "tmdb"; card.id = String(tmdb.id); card.tmdbId = tmdb.id;
+                mergeDoubanTmdb(card, tmdb);
+            }
+            card.genreTitle = doubanRatingGenreLine(rate, card.genreTitle);
+            return card;
+        }));
+
+        // 同一 TMDB 条目的多条豆瓣条目（如《明星大侦探》各季）合并成一张卡，避免重复。
+        const seen = {};
+        return items.filter(function (it) {
+            const key = it.type === "tmdb" && it.tmdbId ? "t" + it.tmdbId : "d" + it.id;
+            if (seen[key]) return false;
+            seen[key] = 1;
+            return true;
+        });
+    } catch (e) {
+        console.error("[VarietyDoubanRec] 请求失败: " + e.message);
+        return [{ id: "err", type: "text", title: "豆瓣拒绝了请求", description: "网络IP被豆瓣限制，请切换流量(4G/5G)或更换节点。" }];
+    }
 }
 
 function calendarGetTodayStr() {
@@ -10058,7 +10310,7 @@ async function loadZoneDoubanRec(params) {
             };
 
             const tmdb = await searchTmdbForDouban(rawTitle, "tv", itemYear);
-            if (tmdb) {
+            if (tmdb && doubanTmdbNameOk(rawTitle, tmdb, itemYear)) {
                 card.type = "tmdb"; card.id = String(tmdb.id); card.tmdbId = tmdb.id;
                 mergeDoubanTmdb(card, tmdb);
             }
