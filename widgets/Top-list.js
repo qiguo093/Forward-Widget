@@ -3685,6 +3685,31 @@ async function searchTmdbExactForDouban(query, type, year) {
     } catch (_) { return null; }
 }
 
+// 豆瓣榜单专用：走 /search/multi（结果自带 media_type），并强制按榜单类型过滤，
+// 避免把剧集匹配成同名电影（会导致 App 用错误类型解析而报错）。
+async function searchTmdbByMediaType(query, year, isTv) {
+    const wanted = isTv ? "tv" : "movie";
+    const cleaned = cleanDoubanTitle(String(query || ""));
+    if (!cleaned) return null;
+    try {
+        const res = await Widget.tmdb.get("/search/multi", { params: { query: cleaned, language: "zh-CN" } });
+        const list = (res.results || []).filter(function (i) { return i.media_type === wanted; });
+        if (!list.length) return null;
+        const norm = x => String(x || "").toLowerCase().replace(/[^\p{L}\p{N}]+/gu, "");
+        const want = norm(cleaned);
+        const namesOf = i => [i.title, i.name, i.original_title, i.original_name].map(norm).filter(Boolean);
+        const related = i => namesOf(i).some(n => n === want || n.indexOf(want) === 0 || want.indexOf(n) === 0);
+        const yearOf = i => String(i.release_date || i.first_air_date || "").slice(0, 4);
+        // ① 名字完全一致；② 名字有前缀包含关系且年份相符；③ 名字有前缀包含关系
+        const exact = list.find(i => namesOf(i).some(n => n === want));
+        if (exact) return exact;
+        const y = String(year || "");
+        const relatedSameYear = list.find(i => related(i) && (!y || !yearOf(i) || yearOf(i) === y));
+        if (relatedSameYear) return relatedSameYear;
+        return list.find(i => related(i)) || null;   // 名字都不相关就不硬配，交给豆瓣卡片
+    } catch (_) { return null; }
+}
+
 async function searchTmdbForDouban(query, type, year) {
     const cleaned = String(query || "").replace(/第[一二三四五六七八九十\d]+[季章]/g, "").trim();
     try {
@@ -5093,21 +5118,23 @@ async function loadDoubanModule(params) {
             var sub = item.card_subtitle || "";
             var rate = doubanItemRating(item);
             
-            var tmdbItem = await searchTmdbExactForDouban(cleanTitle, isTv ? "tv" : "movie", year);
+            var tmdbItem = await searchTmdbByMediaType(cleanTitle, year, isTv);   // /search/multi + 按榜单类型过滤
 
             // 命中 TMDB 时升级卡片；匹配失败时保留原始豆瓣卡片，确保榜单名次不丢失
             if (tmdbItem) {
-                var dateStr = tmdbItem.release_date || tmdbItem.first_air_date || (year + "");
-                var yearStr = dateStr.substring(0, 4);
+                var tmdbDate = tmdbItem.release_date || tmdbItem.first_air_date || "";
+                var dateStr = year || tmdbDate;                  // 豆瓣年份优先，保证与豆瓣榜单一致
+                var yearStr = String(dateStr).substring(0, 4);
                 var genreStr = getGenreString(tmdbItem.genre_ids);
                 var finalGenreTitle = genreStr || doubanItemGenres(item) || (isTv ? "剧集" : "电影");
+                if (!genreStr && doubanItemGenres(item)) finalGenreTitle = doubanItemGenres(item);
 
                 return {
                     id: String(tmdbItem.id),
                     tmdbId: tmdbItem.id,
                     type: "tmdb",
-                    mediaType: tmdbItem.media_type,
-                    title: tmdbItem.title || tmdbItem.name || rawTitle, // 界面显示依然保留原始名或TMDB名
+                    mediaType: tmdbItem.media_type || (isTv ? "tv" : "movie"),
+                    title: rawTitle,   // 保留豆瓣原始标题，避免被 TMDB 的英文名覆盖
                     
                     genreTitle: doubanRatingGenreLine(rate, finalGenreTitle),
                     subTitle: dateStr ? `⭐ ${rate} | ${dateStr}` : `⭐ ${rate}`,
@@ -5123,7 +5150,17 @@ async function loadDoubanModule(params) {
                 };
             }
             
-            return null; // 搜不到直接抛弃（保持列表全部为 TMDB 卡片）
+            // 与 bridge 一致：匹配不到 TMDB 时保留豆瓣原始卡片（type: douban），
+            // 保证豆瓣榜单原始名次与条目不丢失。
+            return {
+                id: String(item.id || ("douban_" + rawTitle)), type: "douban",
+                mediaType: isTv ? "tv" : "movie",
+                title: rawTitle, posterPath: item.cover_url || item.pic?.large || item.pic?.normal || "",
+                backdropPath: "", rating: parseFloat(rate) || 0,
+                genreTitle: doubanRatingGenreLine(rate, doubanItemGenres(item)),
+                releaseDate: year, year: year,
+                description: sub || "暂无简介"
+            };
         });
         
         var results = await Promise.all(promises);
