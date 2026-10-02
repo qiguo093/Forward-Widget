@@ -2697,7 +2697,7 @@ var WidgetMetadata = {
             {
                 name: "sort_by", title: "豆瓣 榜单", type: "enumeration", value: "db_tv_cn",
                 enumOptions: [
-                    { value: "custom_movie_showing", title: "影院热映" }, { value: "tv_domestic", title: "大陆剧集" }, { value: "tv_american", title: "欧美剧集" }, { value: "tv_korean", title: "韩国剧集" }, { value: "tv_japanese", title: "日本剧集" }, { value: "tv_animation", title: "动漫番剧" }, { value: "show_domestic", title: "国内综艺"}, { value: "show_foreign", title: "国外综艺" }, { value: "db_movie", title: "热门电影" }, { value: "db_variety", title: "热门综艺" }, { value: "db_tv_us", title: "热门美剧" }, { value: "db_tv_cn", title: "热门国产剧" }, { value: "db_movie_genre", title: "电影类型榜" }, { value: "db_tv_genre", title: "剧集类型榜" }, { value: "movie_top250", title: "豆瓣Top250" }, { value: "custom_movie_hot", title: "实时热门电影" }, { value: "custom_tv_hot", title: "实时热门电视" }, { value: "custom_subject_hot", title: "实时热门书影音"}, { value: "movie_weekly", title: "一周口碑电影榜"}, { value: "custom_tv_chinese", title: "华语口碑剧集榜" }, { value: "custom_tv_global", title: "全球口碑剧集榜" }, { value: "db_movie_yearly", title: "年度评分最高电影" }, { value: "db_tv_yearly", title: "年度评分最高剧集" }, { value: "custom_url", title: "自定义URL" }
+                    { value: "custom_movie_showing", title: "影院热映" }, { value: "tv_domestic", title: "大陆剧集" }, { value: "tv_american", title: "欧美剧集" }, { value: "tv_korean", title: "韩国剧集" }, { value: "tv_japanese", title: "日本剧集" }, { value: "tv_animation", title: "动漫番剧" }, { value: "show_domestic", title: "国内综艺"}, { value: "show_foreign", title: "国外综艺" }, { value: "db_movie", title: "热门电影" }, { value: "db_variety", title: "热门综艺" }, { value: "db_tv_us", title: "热门美剧" }, { value: "db_tv_cn", title: "热门国产剧" }, { value: "db_movie_genre", title: "电影类型榜" }, { value: "db_tv_genre", title: "剧集类型榜" }, { value: "movie_top250", title: "豆瓣Top250" }, { value: "custom_movie_hot", title: "实时热门电影" }, { value: "custom_tv_hot", title: "实时热门电视" }, { value: "custom_subject_hot", title: "实时热门书影音"}, { value: "db_weekly_best", title: "一周口碑电影榜"}, { value: "custom_tv_chinese", title: "华语口碑剧集榜" }, { value: "db_tv_global", title: "全球口碑剧集榜" }, { value: "db_movie_yearly", title: "年度评分最高电影" }, { value: "db_tv_yearly", title: "年度评分最高剧集" }, { value: "custom_url", title: "自定义URL" }
                 ]
             },
             {
@@ -3197,8 +3197,8 @@ async function loadDoubanTrendEntry2(params = {}) {
     }
     else if (sortBy === "db_movie_yearly") list = await loadDoubanYearlyAll(params.movie_yearly || "2025", page);
     else if (sortBy === "db_tv_yearly") list = await loadDoubanTvYearlyAll(params.tv_yearly || "2025", page);
-    else if (sortBy === "movie_weekly") list = await loadDoubanBridgeCatalog("movie_weekly", "movie", page);
-    else if (sortBy === "custom_tv_global" || sortBy === "tv_global_best") list = await loadDoubanBridgeCatalog(sortBy, "tv", page);
+    else if (sortBy === "movie_weekly" || sortBy === "db_weekly_best") list = await loadDoubanBridgeCatalog("db_weekly_best", "movie", page);
+    else if (sortBy === "custom_tv_global" || sortBy === "tv_global_best" || sortBy === "db_tv_global") list = await loadDoubanBridgeCatalog(sortBy, "tv", page);
     else if (sortBy === "custom_url") list = await loadLiteCustomDouban(params);
     else list = await loadDoubanModule({ sort_by: sortBy, page });
     return sortDoubanTrendItems(list, sortType);
@@ -4770,8 +4770,8 @@ var LITE_GENRE_MAP = {
 var LITE_DEFAULT_TMDB_KEY = "d913a144d0ba98fdca978f53a1ce27a5";
 var LITE_UA_PC = "Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 Chrome/120 Safari/537.36";
 const LITE_DOU_BAN_COLLECTIONS = {
-  movie_weekly: "movie_weekly_best", custom_movie_weekly: "movie_weekly_best",
-  custom_tv_global: "tv_global_best_weekly", tv_global_best: "tv_global_best_weekly",
+  movie_weekly: "movie_weekly_best", db_weekly_best: "movie_weekly_best", custom_movie_weekly: "movie_weekly_best",
+  custom_tv_global: "tv_global_best_weekly", db_tv_global: "tv_global_best_weekly", tv_global_best: "tv_global_best_weekly",
   custom_tv_chinese: "tv_chinese_best_weekly", tv_chinese_best: "tv_chinese_best_weekly",
   custom_movie_showing: "movie_showing", movie_showing: "movie_showing",
   custom_movie_hot: "movie_real_time_hotest", movie_hot: "movie_real_time_hotest",
