@@ -3064,8 +3064,10 @@ var WidgetMetadata = {
                     belongTo: { paramName: "data_source", value: ["tmdb"] },
                     enumOptions: [
                         { title: "全部", value: "all" },
-                        { title: "仅看电影", value: "movie" },
-                        { title: "仅看剧集", value: "tv" }
+                        { title: "电影", value: "movie" },
+                        { title: "剧集", value: "tv" },
+                        { title: "动漫", value: "anime" },
+                        { title: "综艺", value: "variety" }
                     ]
                 },
                 {
@@ -10096,7 +10098,7 @@ function zoneGetGenreText(ids) {
     return ids.map(id => ZONE_GLOBAL_GENRE_MAP[id]).filter(Boolean).slice(0, 3).join(" / ");
 }
 
-function zoneBuildItem(item, forceMediaType) {
+function zoneBuildItem(item, forceMediaType, contentType) {
     if (!item) return null;
     
     const mediaType = forceMediaType || item.media_type || (item.title ? "movie" : "tv");
@@ -10105,7 +10107,9 @@ function zoneBuildItem(item, forceMediaType) {
     const score = item.vote_average ? item.vote_average.toFixed(1) : "暂无";
     const genreText = zoneGetGenreText(item.genre_ids) || "影视";
     
-    const typeTag = mediaType === "movie" ? "🎬电影" : "📺剧集";
+    const typeTag = mediaType === "movie"
+        ? "🎬电影"
+        : (contentType === "anime" ? "✨动漫" : (contentType === "variety" ? "🎤综艺" : "📺剧集"));
 
     return {
         id: String(item.id),
@@ -10153,6 +10157,12 @@ const ZONE_JUNK_TITLE_RE = /演唱会|音乐会|音乐节|音乐盛典|巡回演
 const ZONE_JUNK_TITLE_RE_CN = /演唱会|音乐会|巡回演出|巡演|concert|live\s*(in|at|tour)|the\s+tour/i;
 const ZONE_CJK_REGIONS = ["CN", "HK", "TW"];  // 华语区：纯外语残条一律不要
 const ZONE_HAN_RE = /[\u4e00-\u9fff]/;
+
+// —— 地区热播榜的内容类型切分（剧集 / 动漫 / 综艺）——
+// TMDB 剧集里混着动画与真人秀，不切开的话选「仅看剧集」会冒出一堆国漫和综艺。
+const ZONE_ANIME_GENRE_ID = 16;                 // 动画
+const ZONE_VARIETY_GENRES = [10764, 10767];     // 真人秀 / 脱口秀
+const ZONE_VARIETY_GENRE_PARAM = "10764|10767"; // 「|」= 任一命中（OR），逗号是 AND，别写错
 
 // 取该区域要屏蔽的类型（大陆单独一份，见上）
 function zoneDropGenreIds(regionKey) {
@@ -10206,7 +10216,7 @@ function zoneIsJunkItem(item, regionKey) {
     return false;
 }
 
-function zoneBuildQueryParams(endpoint, sort_by, page, regionKey, today, since) {
+function zoneBuildQueryParams(endpoint, sort_by, page, regionKey, today, since, contentType) {
     const queryParams = {
         language: "zh-CN",
         page: page
@@ -10251,8 +10261,34 @@ function zoneBuildQueryParams(endpoint, sort_by, page, regionKey, today, since) 
 
     // ---- 内容层面的统一屏蔽（与排序、投票门槛无关，三个榜单都生效）----
     // ① 纪录片/音乐/新闻/肥皂剧/脱口秀（非「正剧」）—— 大陆放开脱口秀，见 zoneDropGenresParam
-    queryParams.without_genres = zoneDropGenresParam(regionKey);
-    // ② 同性恋 / BL / GL / 耽美 题材（大陆区不套这条，用户只要求屏蔽「国外」的）
+    const dropIds = zoneDropGenreIds(regionKey).slice();
+
+    // ② 内容类型切分：剧集 / 动漫 / 综艺 三者互不混入
+    if (contentType === "tv") {
+        // 纯剧集：额外排掉 动画(16)、真人秀(10764)、脱口秀(10767)
+        if (dropIds.indexOf(ZONE_ANIME_GENRE_ID) < 0) dropIds.push(ZONE_ANIME_GENRE_ID);
+        for (let i = 0; i < ZONE_VARIETY_GENRES.length; i++) {
+            if (dropIds.indexOf(ZONE_VARIETY_GENRES[i]) < 0) dropIds.push(ZONE_VARIETY_GENRES[i]);
+        }
+    } else if (contentType === "anime") {
+        // 动漫：必须是动画，且不要真人秀/脱口秀混进来
+        queryParams.with_genres = String(ZONE_ANIME_GENRE_ID);
+        for (let i = 0; i < ZONE_VARIETY_GENRES.length; i++) {
+            if (dropIds.indexOf(ZONE_VARIETY_GENRES[i]) < 0) dropIds.push(ZONE_VARIETY_GENRES[i]);
+        }
+    } else if (contentType === "variety") {
+        // 综艺：必须是真人秀/脱口秀，所以要把默认屏蔽里的「脱口秀」放开
+        queryParams.with_genres = ZONE_VARIETY_GENRE_PARAM;
+        const keep = [];
+        for (let i = 0; i < dropIds.length; i++) {
+            if (ZONE_VARIETY_GENRES.indexOf(dropIds[i]) < 0 && dropIds[i] !== 10402) keep.push(dropIds[i]);
+        }
+        dropIds.length = 0;
+        for (let i = 0; i < keep.length; i++) dropIds.push(keep[i]);
+    }
+
+    queryParams.without_genres = dropIds.join(",");
+    // ③ 同性恋 / BL / GL / 耽美 题材（大陆区不套这条，用户只要求屏蔽「国外」的）
     if (ZONE_LGBT_EXEMPT_REGIONS.indexOf(regionKey) < 0) {
         queryParams.without_keywords = ZONE_LGBT_KEYWORDS;
     }
@@ -10260,7 +10296,7 @@ function zoneBuildQueryParams(endpoint, sort_by, page, regionKey, today, since) 
     return queryParams;
 }
 
-async function zoneFetchFromTmdb(endpoint, sort_by, page, regionKey, needCount) { // 👉 改为 sort_by
+async function zoneFetchFromTmdb(endpoint, sort_by, page, regionKey, needCount, contentType) { // 👉 改为 sort_by
     // 用「设备本地日期」而不是 toISOString()（那是 UTC 日期，北京时间 0~8 点会差一天，
     // 会让 lte 条件把「今天刚上线」的新片整体排除）
     const _now = new Date();
@@ -10281,7 +10317,7 @@ async function zoneFetchFromTmdb(endpoint, sort_by, page, regionKey, needCount) 
     const seen = new Set();
     const merged = [];
     for (let tmdbPage = 1; tmdbPage <= MAX_TMDB_PAGES; tmdbPage++) {
-        const params = zoneBuildQueryParams(endpoint, sort_by, tmdbPage, regionKey, today, since);
+        const params = zoneBuildQueryParams(endpoint, sort_by, tmdbPage, regionKey, today, since, contentType);
         const res = await Widget.tmdb.get(endpoint, { params });
         const batch = (res && res.results) || [];
         for (const item of batch) {
@@ -10296,7 +10332,7 @@ async function zoneFetchFromTmdb(endpoint, sort_by, page, regionKey, needCount) 
     }
 
     // 这里不做截断：由调用方合并电影+剧集后再统一排序、切片，分页才是全局连续的
-    return merged.map(item => zoneBuildItem(item, mediaType)).filter(Boolean);
+    return merged.map(item => zoneBuildItem(item, mediaType, contentType)).filter(Boolean);
 }
 
 async function loadGlobalZoneList(params) {
@@ -10316,6 +10352,7 @@ async function loadGlobalZoneList(params) {
 
         if (mediaType === "all") {
             const [movies, tvs] = await Promise.all([
+                // 「全部」不切内容类型：电影 + 全部剧集（含动漫/综艺），行为与改造前完全一致
                 zoneFetchFromTmdb("/discover/movie", sort_by, page, region, need),
                 zoneFetchFromTmdb("/discover/tv", sort_by, page, region, need)
             ]);
@@ -10337,8 +10374,9 @@ async function loadGlobalZoneList(params) {
             items = items.slice((page - 1) * PAGE_SIZE, page * PAGE_SIZE);
 
         } else {
+            // 电影 / 剧集 / 动漫 / 综艺 都走单一路径；动漫与综艺仍是 TMDB 的 tv，只是带了类型条件
             const endpoint = mediaType === "movie" ? "/discover/movie" : "/discover/tv";
-            items = await zoneFetchFromTmdb(endpoint, sort_by, page, region, need);
+            items = await zoneFetchFromTmdb(endpoint, sort_by, page, region, need, mediaType);
             items = items.slice((page - 1) * PAGE_SIZE, page * PAGE_SIZE);
         }
 
