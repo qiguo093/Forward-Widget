@@ -4751,6 +4751,55 @@ function cleanDoubanTitle(rawTitle) {
 
 // strict=true 时（仅"一周口碑电影榜"使用）：先做名称相关性校验，且年份不符就不硬配。
 // strict 为假时，行为与原先完全一致，其它榜单不受影响。
+// 部分豆瓣条目用中文名在 TMDB 搜不到（例：《流人 第六季》的正名其实是 Slow Horses），
+// 但豆瓣详情里的「别名」(aka) 常能命中。用别名反查，把这些条目也变成 TMDB 卡片，
+// 保证整列卡片类型统一（混排会导致 App 只渲染出部分条目）。
+// 剧集同名条目很多（TMDB 里叫「流人」的就有 2004 和 2022 两版），靠名字无法区分。
+// 用该剧的停播年份判断它是否还在豆瓣榜单标注的年份附近更新，否则视为错配。
+async function tmdbTvStillRelevant(id, doubanYear) {
+    const dy = parseInt(doubanYear);
+    if (!id || !dy) return true;
+    try {
+        const d = await Widget.tmdb.get(`/tv/${id}`, { params: { language: "zh-CN" } });
+        const last = String(d.last_air_date || d.first_air_date || "");
+        if (!last) return true;
+        return parseInt(last.slice(0, 4)) >= dy - 2;
+    } catch (e) { return true; }
+}
+
+async function searchTmdbByDoubanAka(doubanId, isTv) {
+    if (!doubanId) return null;
+    try {
+        const res = await Widget.http.get(`https://m.douban.com/rexxar/api/v2/movie/${doubanId}`,
+            { headers: { "Referer": "https://m.douban.com/", "User-Agent": LITE_UA_PC } });
+        const detail = safeJsonParse(res.data) || {};
+        const akas = (detail.aka || []).filter(Boolean).map(function (x) { return String(x).replace(/[（(].*?[)）]/g, "").trim(); }).filter(Boolean).slice(0, 4);
+        for (let i = 0; i < akas.length; i++) {
+            const hit = await searchTmdbByAkaName(akas[i], isTv);
+            if (hit) return hit;
+        }
+    } catch (e) { /* 忽略，交由上层丢弃 */ }
+    return null;
+}
+
+async function searchTmdbByAkaName(akaName, isTv) {
+    const wanted = isTv ? "tv" : "movie";
+    try {
+        const res = await Widget.tmdb.get("/search/multi", { params: { query: akaName, language: "zh-CN" } });
+        const list = (res.results || []).filter(function (i) { return i.media_type === wanted; });
+        if (!list.length) return null;
+        const norm = function (x) { return String(x || "").toLowerCase().replace(/[^\p{L}\p{N}]+/gu, ""); };
+        const q = norm(akaName);
+        // 别名能对上就用别名；否则只有"仅一条结果"时才敢采用，避免误配
+        const related = list.filter(function (i) {
+            return [i.title, i.name, i.original_title, i.original_name].map(norm)
+                .some(function (n) { return n === q || n.indexOf(q) === 0 || q.indexOf(n) === 0; });
+        });
+        if (related.length) return related[0];
+        return list.length === 1 ? list[0] : null;
+    } catch (e) { return null; }
+}
+
 async function searchTmdb(title, year, apiKey, isTv, strict) {
     if (!title) return null;
     var url = "https://api.themoviedb.org/3/search/multi?api_key=" + apiKey + "&language=zh-CN&query=" + encodeURIComponent(title);
@@ -4785,7 +4834,9 @@ async function searchTmdb(title, year, apiKey, isTv, strict) {
                 return Math.abs(y - targetYear) <= 1;
             });
             if (match) return match;
-            if (strict) return null;   // 年份已知但无相符条目：不用错误的同名作品
+            // 电影：年份不符就不硬配（宁可丢弃）；
+            // 剧集：豆瓣年份是"这一季"的年份，TMDB 是整剧首播年，两者天然不同，故仅作优选、不作否决。
+            if (strict && !isTv) return null;
         }
 
         if (isTv) {
@@ -5086,6 +5137,12 @@ async function loadDoubanModule(params) {
             var rate = Number.isFinite(parsedRate) && parsedRate > 0 ? parsedRate.toFixed(1) : "";
             
             var tmdbItem = await searchTmdb(cleanTitle, year, apiKey, isTv, isWeeklyBest);
+            // 仅这两个榜单：常规匹配失败时用豆瓣别名再试一次
+            if (!tmdbItem && isWeeklyBest) tmdbItem = await searchTmdbByDoubanAka(item.id, isTv);
+            // 仅这两个榜单的剧集：核对命中的剧是否还在该年份附近更新，同名但早已完结的视为错配
+            if (tmdbItem && isWeeklyBest && isTv && !(await tmdbTvStillRelevant(tmdbItem.id, year))) {
+                tmdbItem = await searchTmdbByDoubanAka(item.id, isTv);
+            }
 
             // 🔴 关键改动：如果匹配成功则返回数据，匹配失败则直接丢弃 (返回 null)
             if (tmdbItem) {
@@ -5117,18 +5174,7 @@ async function loadDoubanModule(params) {
             
             // 这两个榜单匹配不到 TMDB 时保留豆瓣原始卡片，保证名次与豆瓣一致。
             // 其它榜单维持原先行为（丢弃），避免影响它们的数据完整性。
-            if (isWeeklyBest) {
-                return {
-                    id: String(item.id || ("douban_" + rawTitle)), type: "douban",
-                    mediaType: isTv ? "tv" : "movie",
-                    title: rawTitle, posterPath: item.cover_url || (item.pic && (item.pic.large || item.pic.normal)) || "",
-                    backdropPath: "", rating: parseFloat(rate) || 0,
-                    genreTitle: doubanRatingGenreLine(rate, doubanItemGenres(item)),
-                    releaseDate: year, year: year,
-                    description: sub || "暂无简介"
-                };
-            }
-            return null; // 搜不到直接抛弃
+            return null; // 搜不到直接抛弃（保持整列卡片类型一致，混排会导致 App 只渲染部分条目）
         });
         
         var results = await Promise.all(promises);
