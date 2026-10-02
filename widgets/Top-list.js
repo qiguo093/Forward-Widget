@@ -4767,6 +4767,15 @@ var LITE_GENRE_MAP = {
 
 var LITE_DEFAULT_TMDB_KEY = "d913a144d0ba98fdca978f53a1ce27a5";
 var LITE_UA_PC = "Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 Chrome/120 Safari/537.36";
+const LITE_DOU_BAN_COLLECTIONS = {
+  movie_weekly: "movie_weekly_best", custom_movie_weekly: "movie_weekly_best",
+  custom_tv_global: "tv_global_best_weekly", tv_global_best: "tv_global_best_weekly",
+  custom_tv_chinese: "tv_chinese_best_weekly", tv_chinese_best: "tv_chinese_best_weekly",
+  custom_movie_showing: "movie_showing", movie_showing: "movie_showing",
+  custom_movie_hot: "movie_real_time_hotest", movie_hot: "movie_real_time_hotest",
+  custom_tv_hot: "tv_real_time_hotest", custom_subject_hot: "subject_real_time_hotest",
+  show_domestic: "show_domestic", show_foreign: "show_foreign"
+};
 const LITE_DOUBAN_URLS = {
  tv_american:"https://m.douban.com/rexxar/api/v2/subject_collection/tv_american/items", tv_korean:"https://m.douban.com/rexxar/api/v2/subject_collection/tv_korean/items", tv_japanese:"https://m.douban.com/rexxar/api/v2/subject_collection/tv_japanese/items", tv_domestic:"https://m.douban.com/rexxar/api/v2/subject_collection/tv_domestic/items", tv_animation:"https://m.douban.com/rexxar/api/v2/subject_collection/tv_animation/items", movie_hot:"https://m.douban.com/rexxar/api/v2/subject_collection/movie_real_time_hotest/items", movie_weekly:"https://m.douban.com/rexxar/api/v2/subject_collection/movie_weekly_best/items", movie_top250:"https://m.douban.com/rexxar/api/v2/subject_collection/movie_top250/items", movie_showing:"https://m.douban.com/rexxar/api/v2/subject_collection/movie_showing/items", show_domestic:"https://m.douban.com/rexxar/api/v2/subject_collection/show_domestic/items", show_foreign:"https://m.douban.com/rexxar/api/v2/subject_collection/show_foreign/items", tv_global_best:"https://m.douban.com/rexxar/api/v2/subject_collection/tv_global_best_weekly/items", tv_chinese_best:"https://m.douban.com/rexxar/api/v2/subject_collection/tv_chinese_best_weekly/items", custom_movie_hot:"https://m.douban.com/rexxar/api/v2/subject_collection/movie_real_time_hotest/items", custom_tv_hot:"https://m.douban.com/rexxar/api/v2/subject_collection/tv_real_time_hotest/items", custom_subject_hot:"https://m.douban.com/rexxar/api/v2/subject_collection/subject_real_time_hotest/items", custom_movie_weekly:"https://m.douban.com/rexxar/api/v2/subject_collection/movie_weekly_best/items", custom_tv_chinese:"https://m.douban.com/rexxar/api/v2/subject_collection/tv_chinese_best_weekly/items", custom_tv_global:"https://m.douban.com/rexxar/api/v2/subject_collection/tv_global_best_weekly/items", custom_show_domestic:"https://m.douban.com/rexxar/api/v2/subject_collection/show_domestic/items", custom_show_foreign:"https://m.douban.com/rexxar/api/v2/subject_collection/show_foreign/items", custom_movie_showing:"https://m.douban.com/rexxar/api/v2/subject_collection/movie_showing/items", custom_tv_animation:"https://m.douban.com/rexxar/api/v2/subject_collection/tv_animation/items"
 };
@@ -5080,48 +5089,53 @@ async function loadDoubanGenreChart(collectionId, mediaType, page, chartLabel) {
 }
 
 async function loadDoubanBridgeCatalog(categoryKey, mediaType, page) {
-    const url = LITE_DOUBAN_URLS[categoryKey];
-    if (!url) return [{ id: "douban_bridge_error", type: "text", title: "未找到豆瓣榜单" }];
+    const collectionId = (LITE_DOU_BAN_COLLECTIONS && LITE_DOU_BAN_COLLECTIONS[categoryKey]) || categoryKey;
     const pageNo = Number(page) || 1;
     const start = (pageNo - 1) * 20;
-    try {
-        const finalUrl = url + (url.includes("?") ? "&" : "?") + "start=" + start + "&count=20";
-        let rows = [];
+    let rows = null, lastError = "";
+    // 主源 m.douban.com/rexxar，失败再用微信端 frodo（bridge 用的就是 frodo）。
+    const endpoints = [
+        { url: `https://m.douban.com/rexxar/api/v2/subject_collection/${encodeURIComponent(collectionId)}/items?start=${start}&count=20`, headers: { "Referer": "https://m.douban.com/", "User-Agent": LITE_UA_PC } },
+        { url: `https://frodo.douban.com/api/v2/subject_collection/${encodeURIComponent(collectionId)}/items?start=${start}&count=20&apiKey=0ac44ae016490db2204ce0a042db2916`, headers: { "Referer": "https://servicewechat.com/wx2f9b06c1de1ccfca/99/page-frame.html", "User-Agent": "Mozilla/5.0 (iPhone; CPU iPhone OS 27_0 like Mac OS X) AppleWebKit/605.1.15 (KHTML, like Gecko) Mobile/15E148 MicroMessenger/8.0.76 NetType/WIFI Language/zh_CN" } }
+    ];
+    for (let i = 0; i < endpoints.length && rows === null; i++) {
         for (let attempt = 0; attempt < 2; attempt++) {
             try {
-                const res = await Widget.http.get(finalUrl, { headers: { "Referer": "https://m.douban.com/", "User-Agent": LITE_UA_PC } });
+                const res = await Widget.http.get(endpoints[i].url, { headers: endpoints[i].headers });
                 const data = safeJsonParse(res.data);
-                rows = (data && data.subject_collection_items) || [];
-            } catch (e) { rows = []; }
-            if (rows.length) break;   // 豆瓣偶发限流会返回空，重试一次
+                const list = (data && data.subject_collection_items) || [];
+                if (list.length) { rows = list; break; }
+                lastError = "接口返回空列表";
+            } catch (e) { lastError = (e && e.message) || String(e); }
         }
-        return await Promise.all(rows.map(async function (item) {
-            const rate = doubanItemRating(item);
-            const year = doubanItemYear(item);
-            const poster = item.cover_url || (item.pic && (item.pic.large || item.pic.normal)) || "";
-            const card = {
-                id: String(item.id), type: "douban", mediaType: mediaType,
-                title: item.title || "", posterPath: poster, backdropPath: "",
-                rating: parseFloat(rate) || 0,
-                genreTitle: doubanRatingGenreLine(rate, doubanItemGenres(item)),
-                releaseDate: year, year: year,
-                description: item.card_subtitle || item.description || "暂无简介"
-            };
-            const tmdb = await searchTmdbBridgeExactForDouban(item.title, mediaType === "tv" ? "tv" : "movie", year);
-            if (tmdb) {
-                card.type = "tmdb"; card.id = String(tmdb.id); card.tmdbId = tmdb.id;
-                card.posterPath = tmdb.poster_path ? `https://image.tmdb.org/t/p/w500${tmdb.poster_path}` : poster;
-                card.backdropPath = tmdb.backdrop_path ? `https://image.tmdb.org/t/p/w780${tmdb.backdrop_path}` : "";
-                card.genreTitle = doubanRatingGenreLine(rate, getGlobalGenreText(tmdb.genre_ids));
-                card.releaseDate = tmdb.release_date || tmdb.first_air_date || year;
-                card.year = String(card.releaseDate || year).slice(0, 4);
-                card.description = `${card.releaseDate || ""} · ${card.genreTitle}` + (tmdb.overview ? `\n${tmdb.overview}` : "");
-            }
-            return card;
-        }));
-    } catch (e) {
-        return [{ id: "douban_bridge_error", type: "text", title: "豆瓣榜单加载失败", description: e.message || "请求失败" }];
     }
+    console.log("[豆瓣榜单]", categoryKey, "取回", rows ? rows.length : 0, "条", rows ? "" : ("失败: " + lastError));
+    if (!rows) return [{ id: "douban_bridge_error", type: "text", title: "豆瓣榜单加载失败", description: lastError || "请稍后下拉刷新重试" }];
+
+    return await Promise.all(rows.map(async function (item) {
+        const rate = doubanItemRating(item);
+        const year = doubanItemYear(item);
+        const poster = item.cover_url || (item.pic && (item.pic.large || item.pic.normal)) || "";
+        const card = {
+            id: String(item.id), type: "douban", mediaType: mediaType,
+            title: item.title || "", posterPath: poster, backdropPath: "",
+            rating: parseFloat(rate) || 0,
+            genreTitle: doubanRatingGenreLine(rate, doubanItemGenres(item)),
+            releaseDate: year, year: year,
+            description: item.card_subtitle || item.description || "暂无简介"
+        };
+        const tmdb = await searchTmdbBridgeExactForDouban(item.title, mediaType === "tv" ? "tv" : "movie", year);
+        if (tmdb) {
+            card.type = "tmdb"; card.id = String(tmdb.id); card.tmdbId = tmdb.id;
+            card.posterPath = tmdb.poster_path ? `https://image.tmdb.org/t/p/w500${tmdb.poster_path}` : poster;
+            card.backdropPath = tmdb.backdrop_path ? `https://image.tmdb.org/t/p/w780${tmdb.backdrop_path}` : "";
+            card.genreTitle = doubanRatingGenreLine(rate, getGlobalGenreText(tmdb.genre_ids));
+            card.releaseDate = tmdb.release_date || tmdb.first_air_date || year;
+            card.year = String(card.releaseDate || year).slice(0, 4);
+            card.description = `${card.releaseDate || ""} · ${card.genreTitle}` + (tmdb.overview ? `\n${tmdb.overview}` : "");
+        }
+        return card;
+    }));
 }
 
 async function loadDoubanModule(params) {
