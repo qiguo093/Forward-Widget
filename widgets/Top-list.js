@@ -2697,7 +2697,7 @@ var WidgetMetadata = {
             {
                 name: "sort_by", title: "豆瓣 榜单", type: "enumeration", value: "db_tv_cn",
                 enumOptions: [
-                    { value: "custom_movie_showing", title: "影院热映" }, { value: "tv_domestic", title: "大陆剧集" }, { value: "tv_american", title: "欧美剧集" }, { value: "tv_korean", title: "韩国剧集" }, { value: "tv_japanese", title: "日本剧集" }, { value: "tv_animation", title: "动漫番剧" }, { value: "show_domestic", title: "大陆综艺" }, { value: "show_foreign", title: "国外综艺" }, { value: "db_movie", title: "热门电影" }, { value: "db_variety", title: "热门综艺" }, { value: "db_tv_us", title: "热门美剧" }, { value: "db_tv_cn", title: "热门国产剧" }, { value: "db_movie_genre", title: "电影类型榜" }, { value: "db_tv_genre", title: "剧集类型榜" }, { value: "movie_top250", title: "豆瓣Top250" }, { value: "custom_movie_hot", title: "实时热门电影" }, { value: "custom_tv_hot", title: "实时热门电视" }, { value: "custom_subject_hot", title: "实时书影音热门" }, { value: "movie_weekly", title: "一周口碑电影" }, { value: "custom_tv_chinese", title: "华语口碑剧集榜" }, { value: "custom_tv_global", title: "全球口碑剧集榜" }, { value: "db_movie_yearly", title: "年度评分最高电影" }, { value: "db_tv_yearly", title: "年度评分最高剧集" }, { value: "custom_url", title: "自定义URL" }
+                    { value: "custom_movie_showing", title: "影院热映" }, { value: "tv_domestic", title: "大陆剧集" }, { value: "tv_american", title: "欧美剧集" }, { value: "tv_korean", title: "韩国剧集" }, { value: "tv_japanese", title: "日本剧集" }, { value: "tv_animation", title: "动漫番剧" }, { value: "show_domestic", title: "国内综艺" }, { value: "show_foreign", title: "国外综艺" }, { value: "db_movie", title: "热门电影" }, { value: "db_variety", title: "热门综艺" }, { value: "db_tv_us", title: "热门美剧" }, { value: "db_tv_cn", title: "热门国产剧" }, { value: "db_movie_genre", title: "电影类型榜" }, { value: "db_tv_genre", title: "剧集类型榜" }, { value: "movie_top250", title: "豆瓣Top250" }, { value: "custom_movie_hot", title: "实时热门电影" }, { value: "custom_tv_hot", title: "实时热门电视" }, { value: "custom_subject_hot", title: "实时书影音热门" }, { value: "movie_weekly", title: "一周口碑电影" }, { value: "custom_tv_chinese", title: "华语口碑剧集榜" }, { value: "custom_tv_global", title: "全球口碑剧集榜" }, { value: "db_movie_yearly", title: "年度评分最高电影" }, { value: "db_tv_yearly", title: "年度评分最高剧集" }, { value: "custom_url", title: "自定义URL" }
                 ]
             },
             {
@@ -4786,6 +4786,14 @@ async function searchTmdb(title, year, apiKey, isTv) {
 // 海报墙第二行的实际内容是 `releaseDate · genreTitle`。
 // 这里把豆瓣评分与 TMDB 类型拼成第二行的形态：`豆瓣8.7 · 剧情/战争`。
 // 类型只保留前 2 个 —— 实测再多会超出卡片宽度而被截断。
+// 豆瓣 card_subtitle 形如「2026 / 中国大陆 / 真人秀 / 吴君如 殷桃」，
+// 中间那段就是豆瓣自己的类型。TMDB 没有给出类型时用它兜底，避免只显示评分。
+function doubanItemGenres(item) {
+    const pieces = String((item && item.card_subtitle) || "").split("/").map(function (x) { return x.trim(); }).filter(Boolean);
+    const raw = pieces.length >= 3 ? pieces[2] : "";
+    return raw ? raw.split(/[\s,，]+/).filter(Boolean).slice(0, 2).join("/") : "";
+}
+
 function doubanRatingGenreLine(rate, genreText) {
     const genres = [];
     String(genreText || "").split(" / ").forEach(function (g) {
@@ -5061,7 +5069,7 @@ async function loadDoubanModule(params) {
                 var dateStr = tmdbItem.release_date || tmdbItem.first_air_date || (year + "");
                 var yearStr = dateStr.substring(0, 4);
                 var genreStr = getGenreString(tmdbItem.genre_ids);
-                var finalGenreTitle = genreStr || (isTv ? "剧集" : "电影");
+                var finalGenreTitle = genreStr || doubanItemGenres(item) || (isTv ? "剧集" : "电影");
 
                 return {
                     id: String(tmdbItem.id),
