@@ -3936,6 +3936,95 @@ function normalizeDoubanTmdbTitle(title) {
 }
 
 // 【仅用于新移植的两个「观影偏好」数据源】
+// 原版「观影偏好」在拿豆瓣标题去 TMDB 搜索前，会先做一次标题清洗（cleanTitle）。
+// 这一步很关键：不清洗时《一饭封神2》《花儿与少年·丝路季》这类带季数/序号/后缀的标题
+// 在 TMDB 里搜不到，会被原版直接丢弃，而清洗成《一饭封神》《花儿与少年》就能命中母条目。
+// 下面是原版 cleanTitle 的等价移植（去掉了一个后行断言，改用捕获组，兼容性更好）。
+function doubanCleanTitle(title) {
+    var t = String(title || "");
+    // 特例：歌手 → 我是歌手
+    if (t === "歌手" || t.indexOf("歌手·") === 0 || /^歌手\d{4}$/.test(t)) return "我是歌手";
+    // 去掉括号内容
+    t = t.replace(/[（(【\[].*?[）)】\]]/g, "");
+    var patterns = [
+        /[·\-:]\s*[^·\-:]+季/,                       // “·丝路季”
+        /第[^季]*季/,                                  // “第X季”
+        /(?:Part|Season|Series)\s*\d+/i,             // “Part 2”
+        /\d{4}/,                                      // 年份
+        /(?:\s+|^)\d{1,2}(?:st|nd|rd|th)?(?=\s|$)/i,  // “2nd”
+        /([^\d\W])\d+\s*$/,                        // 数字结尾（原版用后行断言，这里用捕获组）
+        /[·\-:].*$/,                                  // 冒号、点之后内容
+    ];
+    for (var i = 0; i < patterns.length; i++) {
+        if (patterns[i].source.indexOf("\\d+\\s*$") >= 0) t = t.replace(patterns[i], "$1");
+        else t = t.replace(patterns[i], "");
+    }
+    // 去掉结尾修饰词
+    var tails = ["前传", "后传", "外传", "番外篇", "番外", "特别篇", "剧场版", "SP", "最终季", "完结篇", "完结", "电影", "OVA", "后篇"];
+    for (var j = 0; j < tails.length; j++) t = t.replace(new RegExp(tails[j] + "$"), "");
+    t = t.trim();
+    // 多词时只保留第一个主标题
+    var parts = t.split(/\s+/);
+    if (parts.length > 1) return parts[0].replace(/\d+$/, "");
+    return t.replace(/\d+$/, "");
+}
+
+// 与原版同源的首选逻辑（searchTmdbForDouban）+ 名称/年份校验。
+// 三级判定：
+//   ① 校验直接通过 → 用它；
+//   ② 校验不过，但该 TMDB 条目下有「年份对得上的季」——说明豆瓣这条本来就是它的某一季
+//      （实例：《花儿与少年·丝路季》= TMDB《花儿与少年》2023 那一季）→ 照样用它；
+//   ③ 都不行 → 返回 null，调用方丢弃该条（与原版一致，整列保持 tmdb 卡片，避免混排渲染异常）。
+// 注意：不去扫描候选换一个，实测那样会挑到《乘风破浪的姐姐2023 越南版》这种「同前缀但完全不同的节目」。
+async function pickTmdbForDouban(rawTitle, type, year) {
+    const wantedYear = String(year || "");
+    const yearOf = function (it) { return String(it.first_air_date || it.release_date || "").slice(0, 4); };
+
+    // 用给定关键字搜一次，按「精确同名同年 → 名称年份校验通过」的顺序挑
+    const tryQuery = async function (q) {
+        try {
+            const res = await Widget.tmdb.get("/search/" + type, { params: { query: q, language: "zh-CN" } });
+            const list = Array.isArray(res.results) ? res.results : [];
+            if (!list.length) return null;
+            // ① 全名 + 年份都精确相等（与原版第一步一致）
+            const wanted = normalizeDoubanTmdbTitle(rawTitle);
+            const exact = list.find(function (it) {
+                return normalizeDoubanTmdbTitle(it.name || it.title || "") === wanted &&
+                    (!wantedYear || yearOf(it) === wantedYear);
+            });
+            if (exact) return exact;
+            // ② 名称/年份校验通过的第一个（优先有海报的）
+            const okList = list.filter(function (it) { return doubanTmdbNameOk(rawTitle, it, year); });
+            return okList.find(function (it) { return it.poster_path; }) || okList[0] || null;
+        } catch (e) { return null; }
+    };
+
+    // 第①步：豆瓣原题（原版也是先拿原题做「全名+年份」精确匹配）
+    let cand = await tryQuery(rawTitle);
+
+    // 第②步：原题不行，用清洗后的标题再搜（清掉「第N季 / ·丝路季 / 年份 / 后缀」等）
+    const cleaned = doubanCleanTitle(rawTitle);
+    if (!cand && cleaned && cleaned !== rawTitle) cand = await tryQuery(cleaned);
+
+    // 第③步：仍不行时，看该条目下有没有「年份对得上的季」——说明豆瓣这条就是它的某一季
+    if (!cand) {
+        const fallback = await searchTmdbForDouban(cleaned || rawTitle, type, year);
+        if (fallback) {
+            try {
+                const detail = await Widget.tmdb.get("/" + type + "/" + fallback.id, { params: { language: "zh-CN" } });
+                const seasons = Array.isArray(detail.seasons) ? detail.seasons : [];
+                const dy = parseInt(wantedYear, 10);
+                if (dy && seasons.some(function (sn) {
+                    const y = parseInt(String(sn.air_date || "").slice(0, 4), 10);
+                    return y && Math.abs(y - dy) <= 1;
+                })) cand = fallback;
+            } catch (e) { /* 忽略 */ }
+        }
+    }
+    return cand || null;
+}
+
+// 【仅用于新移植的两个「观影偏好」数据源】
 // 豆瓣的综艺/剧集是按「季/期」建条目，TMDB 常常只有一个母条目；
 // 直接信任搜索首条会撞上「同名的另一部节目」（实例：《明星大侦探 第三季》被配成《名侦探俱乐部》、
 // 《新西游记 第四季》被配成 1990 年的《新西游记》、《大逃脱》被配成《密室大逃脱》）。
@@ -3945,7 +4034,15 @@ function doubanTmdbNameOk(doubanTitle, tmdb, doubanYear) {
     const a = normalizeDoubanTmdbTitle(strip(doubanTitle));
     const b = normalizeDoubanTmdbTitle(strip((tmdb && (tmdb.name || tmdb.title)) || ""));
     if (!a || !b) return false;
-    if (!(a === b || a.indexOf(b) === 0 || b.indexOf(a) === 0)) return false;
+    // 只认两种情况：
+    //   ① 两边完全同名；
+    //   ② TMDB 名是豆瓣名的前缀，且多出来的部分很短（≤4 字）——
+    //      典型是「豆瓣：《花儿与少年·丝路季》 → TMDB：《花儿与少年》」这种母条目。
+    // 反过来的「TMDB 名更长」以及「多出太多字」都不认：
+    // 实测《乘风破浪的姐姐 第一季》会因此配到《乘风破浪的姐姐2023 越南版》，甚至配到《乘风》。
+    if (a === b) return true;
+    if (a.indexOf(b) === 0 && (a.length - b.length) <= 4) return true;
+    return false;
     // 豆瓣条目是「某一季/某一期」，而 TMDB 命中的是母条目（名称更短）时，
     // 再校一次年份：母条目首播不应比这一季早太多，否则是同名的另一部节目
     // （实例：《新西游记 第四季》撞上 1990 年的《新西游记》、《花儿与少年·丝路季》撞上 2014 年的《花儿与少年》）。
@@ -6740,18 +6837,21 @@ async function loadVarietyDoubanRec(params) {
                 releaseDate: itemYear
             };
 
-            const tmdb = await searchTmdbForDouban(rawTitle, "tv", itemYear);
-            if (tmdb && doubanTmdbNameOk(rawTitle, tmdb, itemYear)) {
-                card.type = "tmdb"; card.id = String(tmdb.id); card.tmdbId = tmdb.id;
-                mergeDoubanTmdb(card, tmdb);
-            }
+            // 与原版一致：先清洗标题再搜 TMDB，命中后标题/海报/简介/日期全用 TMDB 的；
+            // 未命中或名称年份校验不过 → 丢弃该条（原版同样丢弃，整列统一为 tmdb 卡片）。
+            const tmdb = await pickTmdbForDouban(rawTitle, "tv", itemYear);
+            if (!tmdb) return null;
+            card.type = "tmdb"; card.id = String(tmdb.id); card.tmdbId = tmdb.id;
+            mergeDoubanTmdb(card, tmdb);
+            card.title = tmdb.name || tmdb.title || card.title;
+            card.mediaType = "tv";
             card.genreTitle = doubanRatingGenreLine(rate, card.genreTitle);
             return card;
         }));
 
         // 同一 TMDB 条目的多条豆瓣条目（如《明星大侦探》各季）合并成一张卡，避免重复。
         const seen = {};
-        return items.filter(function (it) {
+        return items.filter(Boolean).filter(function (it) {
             const key = it.type === "tmdb" && it.tmdbId ? "t" + it.tmdbId : "d" + it.id;
             if (seen[key]) return false;
             seen[key] = 1;
@@ -10309,11 +10409,14 @@ async function loadZoneDoubanRec(params) {
                 releaseDate: itemYear
             };
 
-            const tmdb = await searchTmdbForDouban(rawTitle, "tv", itemYear);
-            if (tmdb && doubanTmdbNameOk(rawTitle, tmdb, itemYear)) {
-                card.type = "tmdb"; card.id = String(tmdb.id); card.tmdbId = tmdb.id;
-                mergeDoubanTmdb(card, tmdb);
-            }
+            // 与原版一致：先清洗标题再搜 TMDB，命中后标题/海报/简介/日期全用 TMDB 的；
+            // 未命中或名称年份校验不过 → 丢弃该条（原版同样丢弃，整列统一为 tmdb 卡片）。
+            const tmdb = await pickTmdbForDouban(rawTitle, "tv", itemYear);
+            if (!tmdb) return null;
+            card.type = "tmdb"; card.id = String(tmdb.id); card.tmdbId = tmdb.id;
+            mergeDoubanTmdb(card, tmdb);
+            card.title = tmdb.name || tmdb.title || card.title;
+            card.mediaType = "tv";
             card.genreTitle = doubanRatingGenreLine(rate, card.genreTitle);
             return card;
         }));
@@ -10321,7 +10424,7 @@ async function loadZoneDoubanRec(params) {
         // 同一个 TMDB 条目的多条豆瓣条目（典型：《怪奇物语 第一/二/三季》都是 TMDB 66732）
         // 合并成一张卡，避免同一详情页重复出现。豆瓣卡片按豆瓣 id 去重。
         const seen = {};
-        return items.filter(function (it) {
+        return items.filter(Boolean).filter(function (it) {
             const key = it.type === "tmdb" && it.tmdbId ? "t" + it.tmdbId : "d" + it.id;
             if (seen[key]) return false;
             seen[key] = 1;
