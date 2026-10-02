@@ -5072,8 +5072,9 @@ async function loadDoubanModule(params) {
             // 🔴 关键改动：搜索前先清洗剧名
             var cleanTitle = cleanDoubanTitle(rawTitle);
             
-            // 仅"一周口碑电影榜"：豆瓣不返回 year 字段，需从 card_subtitle 解析（否则年份过滤失效会错配同名老片）
-            var isWeeklyBest = (categoryKey === "movie_weekly");
+            // 这两个榜单豆瓣都不返回 year 字段，需从 card_subtitle 解析（否则年份过滤失效会错配同名作品）
+            // 用户指定的两个榜单才走严格匹配：一周口碑电影榜、全球口碑剧集榜。
+            var isWeeklyBest = (categoryKey === "movie_weekly" || categoryKey === "custom_tv_global");
             var year = isWeeklyBest ? (function (it) {
                 if (it && it.year && /^(19|20)\d{2}$/.test(String(it.year))) return String(it.year);
                 var m = String((it && it.card_subtitle) || "").match(/(19|20)\d{2}/);
@@ -5114,7 +5115,7 @@ async function loadDoubanModule(params) {
                 };
             }
             
-            // 仅"一周口碑电影榜"：匹配不到 TMDB 时保留豆瓣原始卡片，保证名次与豆瓣一致。
+            // 这两个榜单匹配不到 TMDB 时保留豆瓣原始卡片，保证名次与豆瓣一致。
             // 其它榜单维持原先行为（丢弃），避免影响它们的数据完整性。
             if (isWeeklyBest) {
                 return {
@@ -5122,7 +5123,7 @@ async function loadDoubanModule(params) {
                     mediaType: isTv ? "tv" : "movie",
                     title: rawTitle, posterPath: item.cover_url || (item.pic && (item.pic.large || item.pic.normal)) || "",
                     backdropPath: "", rating: parseFloat(rate) || 0,
-                    genreTitle: rate ? ("豆瓣" + rate) : "",
+                    genreTitle: doubanRatingGenreLine(rate, doubanItemGenres(item)),
                     releaseDate: year, year: year,
                     description: sub || "暂无简介"
                 };
