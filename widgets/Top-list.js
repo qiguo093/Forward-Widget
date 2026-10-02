@@ -3197,8 +3197,8 @@ async function loadDoubanTrendEntry2(params = {}) {
     }
     else if (sortBy === "db_movie_yearly") list = await loadDoubanYearlyAll(params.movie_yearly || "2025", page);
     else if (sortBy === "db_tv_yearly") list = await loadDoubanTvYearlyAll(params.tv_yearly || "2025", page);
-    else if (sortBy === "movie_weekly" || sortBy === "db_weekly_best") list = await loadDoubanBridgeCatalog("db_weekly_best", "movie", page);
-    else if (sortBy === "custom_tv_global" || sortBy === "tv_global_best" || sortBy === "db_tv_global") list = await loadDoubanBridgeCatalog(sortBy, "tv", page);
+    else if (sortBy === "movie_weekly" || sortBy === "db_weekly_best") list = await loadDoubanGenreChart("movie_weekly_best", "movie", page, "一周口碑电影榜", searchTmdbBridgeExactForDouban);
+    else if (sortBy === "custom_tv_global" || sortBy === "tv_global_best" || sortBy === "db_tv_global") list = await loadDoubanGenreChart("tv_global_best_weekly", "tv", page, "全球口碑剧集榜", searchTmdbBridgeExactForDouban);
     else if (sortBy === "custom_url") list = await loadLiteCustomDouban(params);
     else list = await loadDoubanModule({ sort_by: sortBy, page });
     return sortDoubanTrendItems(list, sortType);
@@ -5047,7 +5047,7 @@ async function loadDoubanTvYearlyAll(year, page) {
     return items.slice((pageNo - 1) * 20, pageNo * 20);
 }
 
-async function loadDoubanGenreChart(collectionId, mediaType, page, chartLabel) {
+async function loadDoubanGenreChart(collectionId, mediaType, page, chartLabel, matcher) {
     const collection = String(collectionId || "").trim();
     if (!collection) return [{ id: "err", type: "text", title: "未选择类型" }];
     const pageNo = Number(page) || 1;
@@ -5076,10 +5076,13 @@ async function loadDoubanGenreChart(collectionId, mediaType, page, chartLabel) {
                 rating: parseFloat(rate) || 0, popularity: 0, voteCount: (item.rating && item.rating.count) || 0,
                 releaseDate: year ? String(year) : "", year: year ? String(year) : ""
             };
-            const tmdb = await searchTmdbForDouban(item.title, mediaType, year);
+            const tmdb = await (matcher || searchTmdbForDouban)(item.title, mediaType, year);
             if (tmdb) {
                 card.type = "tmdb"; card.id = String(tmdb.id); card.tmdbId = tmdb.id;
                 mergeDoubanTmdb(card, tmdb);
+            } else {
+                // 未命中 TMDB 时保留豆瓣卡片：类型取豆瓣 card_subtitle 里的分类
+                card.genreTitle = doubanItemGenres(item) || card.genreTitle;
             }
             card.genreTitle = doubanRatingGenreLine(rate, card.genreTitle);
             return card;
