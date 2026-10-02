@@ -2693,7 +2693,7 @@ var WidgetMetadata = {
             ]
         },
 
-        { title: "豆瓣榜单", functionName: "loadDoubanTrendEntry", type: "video", cacheDuration: 1800, params: [
+        { title: "豆瓣榜单", functionName: "loadDoubanTrendEntry2", type: "video", cacheDuration: 1800, params: [
             {
                 name: "sort_by", title: "豆瓣 榜单", type: "enumeration", value: "db_tv_cn",
                 enumOptions: [
@@ -3175,7 +3175,7 @@ function sortDoubanTrendItems(list, sortType) {
     });
 }
 
-async function loadDoubanTrendEntry(params = {}) {
+async function loadDoubanTrendEntry2(params = {}) {
     const sortBy = params.sort_by || "db_tv_cn";
     const page = params.page || 1;
     const sortType = params.sort_type || "default";
@@ -3203,6 +3203,8 @@ async function loadDoubanTrendEntry(params = {}) {
     else list = await loadDoubanModule({ sort_by: sortBy, page });
     return sortDoubanTrendItems(list, sortType);
 }
+
+async function loadDoubanTrendEntry(params = {}) { return await loadDoubanTrendEntry2(params); }
 
 async function routeTrendsHub(params) {
     const hubSource = params.hub_source || "imdb";
@@ -5110,7 +5112,7 @@ async function loadDoubanBridgeCatalog(categoryKey, mediaType, page) {
         }
     }
     console.log("[豆瓣榜单]", categoryKey, "取回", rows ? rows.length : 0, "条", rows ? "" : ("失败: " + lastError));
-    if (!rows) return [{ id: "douban_bridge_error", type: "text", title: "豆瓣榜单加载失败", description: lastError || "请稍后下拉刷新重试" }];
+    if (!rows) return [{ id: "douban_bridge_error", type: "text", title: "豆瓣榜单加载失败", description: "集合:" + collectionId + " / 原因:" + (lastError || "未知") }];
 
     return await Promise.all(rows.map(async function (item) {
         const rate = doubanItemRating(item);
