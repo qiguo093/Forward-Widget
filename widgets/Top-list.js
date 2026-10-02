@@ -4749,6 +4749,17 @@ function cleanDoubanTitle(rawTitle) {
 // 🟢 模块逻辑 1：豆瓣 (统一入口)
 // ============================================================================
 
+// 名称相关性：全等、或存在前缀包含关系。用于排除 TMDB 搜索里的无关同音条目
+// （例：搜「流人」返回「潮流合伙人」「千古风流人物」，都不相关，应当放弃匹配）。
+function tmdbNameRelated(query, item) {
+    var norm = function (x) { return String(x || "").toLowerCase().replace(/[^\p{L}\p{N}]+/gu, ""); };
+    var q = norm(query);
+    if (!q) return false;
+    return [item.title, item.name, item.original_title, item.original_name]
+        .map(norm).filter(Boolean)
+        .some(function (n) { return n === q || n.indexOf(q) === 0 || q.indexOf(n) === 0; });
+}
+
 async function searchTmdb(title, year, apiKey, isTv) {
     if (!title) return null;
     var url = "https://api.themoviedb.org/3/search/multi?api_key=" + apiKey + "&language=zh-CN&query=" + encodeURIComponent(title);
@@ -4756,27 +4767,42 @@ async function searchTmdb(title, year, apiKey, isTv) {
         var res = await Widget.http.get(url);
         var data = safeJsonParse(res.data);
         if (!data || !data.results || data.results.length === 0) return null;
-        
+
         var validItems = data.results.filter(function(item) {
             return item.media_type === 'movie' || item.media_type === 'tv';
         });
         if (validItems.length === 0) return null;
 
+        // 先按名称筛掉无关条目，再做年份比对；名字不相关的绝不硬配。
+        var related = validItems.filter(function (item) { return tmdbNameRelated(title, item); });
+        if (related.length === 0) return null;
+
         if (year) {
             var targetYear = parseInt(year);
-            var match = validItems.find(function(item) {
-                var d = item.release_date || item.first_air_date || "0000";
+            var match = related.find(function(item) {
+                var d = item.release_date || item.first_air_date || "";
+                if (!d) return true;                       // TMDB 无日期，无法比对，视为候选
                 var y = parseInt(d.substring(0, 4));
                 return Math.abs(y - targetYear) <= 1;
             });
             if (match) return match;
+            return null;   // 年份已知但无相符条目：宁可保留豆瓣卡片，也不用错误的同名作品
         }
 
+        // 名字完全一致的优先（避免同名不同年份时取错）
+        var norm = function (x) { return String(x || "").toLowerCase().replace(/[^\p{L}\p{N}]+/gu, ""); };
+        var q = norm(title);
+        var exact = related.find(function (item) {
+            return [item.title, item.name, item.original_title, item.original_name]
+                .map(norm).some(function (n) { return n === q; });
+        });
+        if (exact) return exact;
+
         if (isTv) {
-             var tvMatch = validItems.find(function(item) { return item.media_type === 'tv'; });
-             if (tvMatch) return tvMatch;
+            var tvMatch = related.find(function(item) { return item.media_type === 'tv'; });
+            if (tvMatch) return tvMatch;
         }
-        return validItems[0];
+        return related[0];
     } catch (e) { return null; }
 }
 
@@ -4788,6 +4814,16 @@ async function searchTmdb(title, year, apiKey, isTv) {
 // 类型只保留前 2 个 —— 实测再多会超出卡片宽度而被截断。
 // 豆瓣 card_subtitle 形如「2026 / 中国大陆 / 真人秀 / 吴君如 殷桃」，
 // 中间那段就是豆瓣自己的类型。TMDB 没有给出类型时用它兜底，避免只显示评分。
+// 豆瓣部分榜单（如一周口碑电影榜）不返回 year 字段，
+// 但 card_subtitle 首段就是年份（「2026 / 奥地利 德国 / 剧情 / …」），必须解析出来，
+// 否则 TMDB 搜索会跳过年份过滤、错取到同名老片。
+function doubanItemYear(item) {
+    const direct = item && item.year;
+    if (direct && /^(19|20)\d{2}$/.test(String(direct))) return String(direct);
+    const m = String((item && item.card_subtitle) || "").match(/(19|20)\d{2}/);
+    return m ? m[0] : "";
+}
+
 function doubanItemGenres(item) {
     const pieces = String((item && item.card_subtitle) || "").split("/").map(function (x) { return x.trim(); }).filter(Boolean);
     const raw = pieces.length >= 3 ? pieces[2] : "";
@@ -5056,7 +5092,7 @@ async function loadDoubanModule(params) {
             // 🔴 关键改动：搜索前先清洗剧名
             var cleanTitle = cleanDoubanTitle(rawTitle);
             
-            var year = item.year;
+            var year = doubanItemYear(item);
             var sub = item.card_subtitle || "";
             var rawRate = item.rating && item.rating.value != null ? item.rating.value : item.rate;
             var parsedRate = parseFloat(rawRate);
@@ -5092,7 +5128,17 @@ async function loadDoubanModule(params) {
                 };
             }
             
-            return null; // 搜不到直接抛弃
+            // 匹配不到 TMDB 时保留豆瓣原始卡片（type: douban，mediaType 明确给出），
+            // 保证榜单名次与豆瓣一致、不丢条目。
+            return {
+                id: String(item.id || ("douban_" + rawTitle)), type: "douban",
+                mediaType: isTv ? "tv" : "movie",
+                title: rawTitle, posterPath: item.cover_url || (item.pic && (item.pic.large || item.pic.normal)) || "",
+                backdropPath: "", rating: parseFloat(rate) || 0,
+                genreTitle: doubanRatingGenreLine(rate, doubanItemGenres(item)),
+                releaseDate: year, year: year,
+                description: sub || "暂无简介"
+            };
         });
         
         var results = await Promise.all(promises);
