@@ -2694,8 +2694,8 @@ var WidgetMetadata = {
                     type: "enumeration",
                     value: "tmdb",
                     enumOptions: [
-                        { title: "综艺更新时刻表（TMDB）", value: "tmdb" },
-                        { title: "观影偏好 · 综艺（豆瓣）", value: "douban" }
+                        { title: "更新时刻表（TMDB）", value: "tmdb" },
+                        { title: "观影偏好（豆瓣）", value: "douban" }
                     ]
                 },
                 { name: "sort_by", title: "综艺地区", type: "enumeration", value: "cn", belongTo: { paramName: "variety_source", value: ["tmdb"] }, enumOptions: [ { title: "国产综艺", value: "cn" }, { title: "韩国综艺", value: "kr" }, { title: "台湾综艺", value: "tw" }, { title: "欧美综艺", value: "us" }, { title: "全球热门", value: "global" } ] },
