@@ -2693,7 +2693,7 @@ var WidgetMetadata = {
             ]
         },
 
-        { title: "豆瓣榜单", functionName: "loadDoubanTrendEntry", type: "video", cacheDuration: 43200, params: [
+        { title: "豆瓣榜单", functionName: "loadDoubanTrendEntry", type: "video", cacheDuration: 1800, params: [
             {
                 name: "sort_by", title: "豆瓣 榜单", type: "enumeration", value: "db_tv_cn",
                 enumOptions: [
@@ -5086,9 +5086,15 @@ async function loadDoubanBridgeCatalog(categoryKey, mediaType, page) {
     const start = (pageNo - 1) * 20;
     try {
         const finalUrl = url + (url.includes("?") ? "&" : "?") + "start=" + start + "&count=20";
-        const res = await Widget.http.get(finalUrl, { headers: { "Referer": "https://m.douban.com/", "User-Agent": LITE_UA_PC } });
-        const data = safeJsonParse(res.data);
-        const rows = (data && data.subject_collection_items) || [];
+        let rows = [];
+        for (let attempt = 0; attempt < 2; attempt++) {
+            try {
+                const res = await Widget.http.get(finalUrl, { headers: { "Referer": "https://m.douban.com/", "User-Agent": LITE_UA_PC } });
+                const data = safeJsonParse(res.data);
+                rows = (data && data.subject_collection_items) || [];
+            } catch (e) { rows = []; }
+            if (rows.length) break;   // 豆瓣偶发限流会返回空，重试一次
+        }
         return await Promise.all(rows.map(async function (item) {
             const rate = doubanItemRating(item);
             const year = doubanItemYear(item);
