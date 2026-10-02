@@ -2693,11 +2693,11 @@ var WidgetMetadata = {
             ]
         },
 
-        { title: "豆瓣榜单", functionName: "loadDoubanTrendEntry2", type: "video", cacheDuration: 1800, params: [
+        { title: "豆瓣榜单", functionName: "loadDoubanTrendEntry", type: "video", cacheDuration: 1800, params: [
             {
                 name: "sort_by", title: "豆瓣 榜单", type: "enumeration", value: "db_tv_cn",
                 enumOptions: [
-                    { value: "custom_movie_showing", title: "影院热映" }, { value: "tv_domestic", title: "大陆剧集" }, { value: "tv_american", title: "欧美剧集" }, { value: "tv_korean", title: "韩国剧集" }, { value: "tv_japanese", title: "日本剧集" }, { value: "tv_animation", title: "动漫番剧" }, { value: "show_domestic", title: "国内综艺"}, { value: "show_foreign", title: "国外综艺" }, { value: "db_movie", title: "热门电影" }, { value: "db_variety", title: "热门综艺" }, { value: "db_tv_us", title: "热门美剧" }, { value: "db_tv_cn", title: "热门国产剧" }, { value: "db_movie_genre", title: "电影类型榜" }, { value: "db_tv_genre", title: "剧集类型榜" }, { value: "movie_top250", title: "豆瓣Top250" }, { value: "custom_movie_hot", title: "实时热门电影" }, { value: "custom_tv_hot", title: "实时热门电视" }, { value: "custom_subject_hot", title: "实时热门书影音"}, { value: "db_weekly_best", title: "一周口碑电影榜"}, { value: "custom_tv_chinese", title: "华语口碑剧集榜" }, { value: "db_tv_global", title: "全球口碑剧集榜" }, { value: "db_movie_yearly", title: "年度评分最高电影" }, { value: "db_tv_yearly", title: "年度评分最高剧集" }, { value: "custom_url", title: "自定义URL" }
+                    { value: "custom_movie_showing", title: "影院热映" }, { value: "tv_domestic", title: "大陆剧集" }, { value: "tv_american", title: "欧美剧集" }, { value: "tv_korean", title: "韩国剧集" }, { value: "tv_japanese", title: "日本剧集" }, { value: "tv_animation", title: "动漫番剧" }, { value: "show_domestic", title: "国内综艺"}, { value: "show_foreign", title: "国外综艺" }, { value: "db_movie", title: "热门电影" }, { value: "db_variety", title: "热门综艺" }, { value: "db_tv_us", title: "热门美剧" }, { value: "db_tv_cn", title: "热门国产剧" }, { value: "db_movie_genre", title: "电影类型榜" }, { value: "db_tv_genre", title: "剧集类型榜" }, { value: "movie_top250", title: "豆瓣Top250" }, { value: "custom_movie_hot", title: "实时热门电影" }, { value: "custom_tv_hot", title: "实时热门电视" }, { value: "custom_subject_hot", title: "实时热门书影音"}, { value: "movie_weekly", title: "一周口碑电影榜"}, { value: "custom_tv_chinese", title: "华语口碑剧集榜" }, { value: "custom_tv_global", title: "全球口碑剧集榜" }, { value: "db_movie_yearly", title: "年度评分最高电影" }, { value: "db_tv_yearly", title: "年度评分最高剧集" }, { value: "custom_url", title: "自定义URL" }
                 ]
             },
             {
@@ -3175,7 +3175,7 @@ function sortDoubanTrendItems(list, sortType) {
     });
 }
 
-async function loadDoubanTrendEntry2(params = {}) {
+async function loadDoubanTrendEntry(params = {}) {
     const sortBy = params.sort_by || "db_tv_cn";
     const page = params.page || 1;
     const sortType = params.sort_type || "default";
@@ -3197,14 +3197,10 @@ async function loadDoubanTrendEntry2(params = {}) {
     }
     else if (sortBy === "db_movie_yearly") list = await loadDoubanYearlyAll(params.movie_yearly || "2025", page);
     else if (sortBy === "db_tv_yearly") list = await loadDoubanTvYearlyAll(params.tv_yearly || "2025", page);
-    else if (sortBy === "movie_weekly" || sortBy === "db_weekly_best") list = await loadDoubanGenreChart("movie_weekly_best", "movie", page, "一周口碑电影榜", searchTmdbBridgeExactForDouban);
-    else if (sortBy === "custom_tv_global" || sortBy === "tv_global_best" || sortBy === "db_tv_global") list = await loadDoubanGenreChart("tv_global_best_weekly", "tv", page, "全球口碑剧集榜", searchTmdbBridgeExactForDouban);
     else if (sortBy === "custom_url") list = await loadLiteCustomDouban(params);
     else list = await loadDoubanModule({ sort_by: sortBy, page });
     return sortDoubanTrendItems(list, sortType);
 }
-
-async function loadDoubanTrendEntry(params = {}) { return await loadDoubanTrendEntry2(params); }
 
 async function routeTrendsHub(params) {
     const hubSource = params.hub_source || "imdb";
@@ -3669,24 +3665,6 @@ function doubanItemGenres(item) {
     const raw = pieces.length >= 3 ? pieces[2] : "";
     return raw ? raw.split(/[\s,，]+/).filter(Boolean).slice(0, 2).join("/") : "";
 }
-async function searchTmdbBridgeExactForDouban(query, type, year) {
-    const title = String(query || "").trim();
-    if (!title) return null;
-    try {
-        const res = await Widget.tmdb.get(`/search/${type}`, { params: { query: title, language: "zh-CN" } });
-        const results = Array.isArray(res.results) ? res.results : [];
-        const normalize = x => String(x || "").trim().toLocaleLowerCase();
-        const wanted = new Set([title].filter(Boolean).map(normalize));
-        const exact = results.filter(function (item) {
-            const names = [item.title, item.name, item.original_title, item.original_name].filter(Boolean);
-            const itemYear = String(item.release_date || item.first_air_date || "").slice(0, 4);
-            return names.some(name => wanted.has(normalize(name))) && (!year || !itemYear || itemYear === String(year));
-        });
-        // bridge 只接受唯一精确命中；0 个或多个都保留豆瓣原卡片。
-        return exact.length === 1 ? exact[0] : null;
-    } catch (_) { return null; }
-}
-
 async function searchTmdbExactForDouban(query, type, year) {
     const raw = String(query || "").trim();
     if (!raw) return null;
@@ -4769,15 +4747,6 @@ var LITE_GENRE_MAP = {
 
 var LITE_DEFAULT_TMDB_KEY = "d913a144d0ba98fdca978f53a1ce27a5";
 var LITE_UA_PC = "Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 Chrome/120 Safari/537.36";
-const LITE_DOU_BAN_COLLECTIONS = {
-  movie_weekly: "movie_weekly_best", db_weekly_best: "movie_weekly_best", custom_movie_weekly: "movie_weekly_best",
-  custom_tv_global: "tv_global_best_weekly", db_tv_global: "tv_global_best_weekly", tv_global_best: "tv_global_best_weekly",
-  custom_tv_chinese: "tv_chinese_best_weekly", tv_chinese_best: "tv_chinese_best_weekly",
-  custom_movie_showing: "movie_showing", movie_showing: "movie_showing",
-  custom_movie_hot: "movie_real_time_hotest", movie_hot: "movie_real_time_hotest",
-  custom_tv_hot: "tv_real_time_hotest", custom_subject_hot: "subject_real_time_hotest",
-  show_domestic: "show_domestic", show_foreign: "show_foreign"
-};
 const LITE_DOUBAN_URLS = {
  tv_american:"https://m.douban.com/rexxar/api/v2/subject_collection/tv_american/items", tv_korean:"https://m.douban.com/rexxar/api/v2/subject_collection/tv_korean/items", tv_japanese:"https://m.douban.com/rexxar/api/v2/subject_collection/tv_japanese/items", tv_domestic:"https://m.douban.com/rexxar/api/v2/subject_collection/tv_domestic/items", tv_animation:"https://m.douban.com/rexxar/api/v2/subject_collection/tv_animation/items", movie_hot:"https://m.douban.com/rexxar/api/v2/subject_collection/movie_real_time_hotest/items", movie_weekly:"https://m.douban.com/rexxar/api/v2/subject_collection/movie_weekly_best/items", movie_top250:"https://m.douban.com/rexxar/api/v2/subject_collection/movie_top250/items", movie_showing:"https://m.douban.com/rexxar/api/v2/subject_collection/movie_showing/items", show_domestic:"https://m.douban.com/rexxar/api/v2/subject_collection/show_domestic/items", show_foreign:"https://m.douban.com/rexxar/api/v2/subject_collection/show_foreign/items", tv_global_best:"https://m.douban.com/rexxar/api/v2/subject_collection/tv_global_best_weekly/items", tv_chinese_best:"https://m.douban.com/rexxar/api/v2/subject_collection/tv_chinese_best_weekly/items", custom_movie_hot:"https://m.douban.com/rexxar/api/v2/subject_collection/movie_real_time_hotest/items", custom_tv_hot:"https://m.douban.com/rexxar/api/v2/subject_collection/tv_real_time_hotest/items", custom_subject_hot:"https://m.douban.com/rexxar/api/v2/subject_collection/subject_real_time_hotest/items", custom_movie_weekly:"https://m.douban.com/rexxar/api/v2/subject_collection/movie_weekly_best/items", custom_tv_chinese:"https://m.douban.com/rexxar/api/v2/subject_collection/tv_chinese_best_weekly/items", custom_tv_global:"https://m.douban.com/rexxar/api/v2/subject_collection/tv_global_best_weekly/items", custom_show_domestic:"https://m.douban.com/rexxar/api/v2/subject_collection/show_domestic/items", custom_show_foreign:"https://m.douban.com/rexxar/api/v2/subject_collection/show_foreign/items", custom_movie_showing:"https://m.douban.com/rexxar/api/v2/subject_collection/movie_showing/items", custom_tv_animation:"https://m.douban.com/rexxar/api/v2/subject_collection/tv_animation/items"
 };
@@ -5093,56 +5062,6 @@ async function loadDoubanGenreChart(collectionId, mediaType, page, chartLabel, m
     }
 }
 
-async function loadDoubanBridgeCatalog(categoryKey, mediaType, page) {
-    const collectionId = (LITE_DOU_BAN_COLLECTIONS && LITE_DOU_BAN_COLLECTIONS[categoryKey]) || categoryKey;
-    const pageNo = Number(page) || 1;
-    const start = (pageNo - 1) * 20;
-    let rows = null, lastError = "";
-    // 主源 m.douban.com/rexxar，失败再用微信端 frodo（bridge 用的就是 frodo）。
-    const endpoints = [
-        { url: `https://m.douban.com/rexxar/api/v2/subject_collection/${encodeURIComponent(collectionId)}/items?start=${start}&count=20`, headers: { "Referer": "https://m.douban.com/", "User-Agent": LITE_UA_PC } },
-        { url: `https://frodo.douban.com/api/v2/subject_collection/${encodeURIComponent(collectionId)}/items?start=${start}&count=20&apiKey=0ac44ae016490db2204ce0a042db2916`, headers: { "Referer": "https://servicewechat.com/wx2f9b06c1de1ccfca/99/page-frame.html", "User-Agent": "Mozilla/5.0 (iPhone; CPU iPhone OS 27_0 like Mac OS X) AppleWebKit/605.1.15 (KHTML, like Gecko) Mobile/15E148 MicroMessenger/8.0.76 NetType/WIFI Language/zh_CN" } }
-    ];
-    for (let i = 0; i < endpoints.length && rows === null; i++) {
-        for (let attempt = 0; attempt < 2; attempt++) {
-            try {
-                const res = await Widget.http.get(endpoints[i].url, { headers: endpoints[i].headers });
-                const data = safeJsonParse(res.data);
-                const list = (data && data.subject_collection_items) || [];
-                if (list.length) { rows = list; break; }
-                lastError = "接口返回空列表";
-            } catch (e) { lastError = (e && e.message) || String(e); }
-        }
-    }
-    console.log("[豆瓣榜单]", categoryKey, "取回", rows ? rows.length : 0, "条", rows ? "" : ("失败: " + lastError));
-    if (!rows) return [{ id: "douban_bridge_error", type: "text", title: "豆瓣榜单加载失败", description: "集合:" + collectionId + " / 原因:" + (lastError || "未知") }];
-
-    return await Promise.all(rows.map(async function (item) {
-        const rate = doubanItemRating(item);
-        const year = doubanItemYear(item);
-        const poster = item.cover_url || (item.pic && (item.pic.large || item.pic.normal)) || "";
-        const card = {
-            id: String(item.id), type: "douban", mediaType: mediaType,
-            title: item.title || "", posterPath: poster, backdropPath: "",
-            rating: parseFloat(rate) || 0,
-            genreTitle: doubanRatingGenreLine(rate, doubanItemGenres(item)),
-            releaseDate: year, year: year,
-            description: item.card_subtitle || item.description || "暂无简介"
-        };
-        const tmdb = await searchTmdbBridgeExactForDouban(item.title, mediaType === "tv" ? "tv" : "movie", year);
-        if (tmdb) {
-            card.type = "tmdb"; card.id = String(tmdb.id); card.tmdbId = tmdb.id;
-            card.posterPath = tmdb.poster_path ? `https://image.tmdb.org/t/p/w500${tmdb.poster_path}` : poster;
-            card.backdropPath = tmdb.backdrop_path ? `https://image.tmdb.org/t/p/w780${tmdb.backdrop_path}` : "";
-            card.genreTitle = doubanRatingGenreLine(rate, getGlobalGenreText(tmdb.genre_ids));
-            card.releaseDate = tmdb.release_date || tmdb.first_air_date || year;
-            card.year = String(card.releaseDate || year).slice(0, 4);
-            card.description = `${card.releaseDate || ""} · ${card.genreTitle}` + (tmdb.overview ? `\n${tmdb.overview}` : "");
-        }
-        return card;
-    }));
-}
-
 async function loadDoubanModule(params) {
     var categoryKey = params.sort_by || "tv_american";
     var url = LITE_DOUBAN_URLS[categoryKey];
@@ -5204,14 +5123,7 @@ async function loadDoubanModule(params) {
                 };
             }
             
-            // TMDB 匹配不到时保留原始豆瓣卡片，不能因为匹配失败改变豆瓣榜单原始名次。
-            return {
-                id: String(item.id || ("douban_" + rawTitle)), type: "douban", mediaType: isTv ? "tv" : "movie",
-                title: rawTitle, genreTitle: doubanRatingGenreLine(rate, doubanItemGenres(item)),
-                subTitle: dateStr ? `⭐ ${rate} | ${dateStr}` : `⭐ ${rate}`,
-                description: sub || "暂无简介", posterPath: item.cover_url || item.pic?.large || item.pic?.normal || "",
-                rating: parseFloat(rate) || 0, releaseDate: year, year: year
-            };
+            return null; // 搜不到直接抛弃（保持列表全部为 TMDB 卡片）
         });
         
         var results = await Promise.all(promises);
