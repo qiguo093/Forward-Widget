@@ -3018,7 +3018,19 @@ var WidgetMetadata = {
                     value: "tmdb",
                     enumOptions: [
                         { title: "地区热播榜（TMDB）", value: "tmdb" },
-                        { title: "观影偏好 · 剧集（豆瓣）", value: "douban" }
+                        { title: "观影偏好（豆瓣）", value: "douban" }
+                    ]
+                },
+                {
+                    // 观影偏好（豆瓣）的类别：电影 / 剧集
+                    name: "db_media",
+                    title: "类别",
+                    type: "enumeration",
+                    value: "tv",
+                    belongTo: { paramName: "data_source", value: ["douban"] },
+                    enumOptions: [
+                        { title: "剧集", value: "tv" },
+                        { title: "电影", value: "movie" }
                     ]
                 },
                 {
@@ -3070,34 +3082,39 @@ var WidgetMetadata = {
                     ]
                 },
                 {
+                    // 电影 / 剧集共用一份类型词表（豆瓣接口的标签就是纯文本，两边都能用）
                     name: "db_genre",
-                    title: "剧集类型",
+                    title: "类型",
                     type: "enumeration",
                     value: "",
                     belongTo: { paramName: "data_source", value: ["douban"] },
                     enumOptions: [
                         { title: "全部", value: "" },
+                        { title: "剧情", value: "剧情" },
                         { title: "喜剧", value: "喜剧" },
                         { title: "爱情", value: "爱情" },
-                        { title: "悬疑", value: "悬疑" },
+                        { title: "动作", value: "动作" },
+                        { title: "科幻", value: "科幻" },
                         { title: "动画", value: "动画" },
+                        { title: "悬疑", value: "悬疑" },
+                        { title: "犯罪", value: "犯罪" },
+                        { title: "惊悚", value: "惊悚" },
+                        { title: "冒险", value: "冒险" },
+                        { title: "奇幻", value: "奇幻" },
+                        { title: "恐怖", value: "恐怖" },
                         { title: "武侠", value: "武侠" },
                         { title: "古装", value: "古装" },
-                        { title: "家庭", value: "家庭" },
-                        { title: "犯罪", value: "犯罪" },
-                        { title: "科幻", value: "科幻" },
-                        { title: "恐怖", value: "恐怖" },
                         { title: "历史", value: "历史" },
                         { title: "战争", value: "战争" },
-                        { title: "动作", value: "动作" },
-                        { title: "冒险", value: "冒险" },
                         { title: "传记", value: "传记" },
-                        { title: "剧情", value: "剧情" },
-                        { title: "奇幻", value: "奇幻" },
-                        { title: "惊悚", value: "惊悚" },
+                        { title: "家庭", value: "家庭" },
                         { title: "灾难", value: "灾难" },
+                        { title: "西部", value: "西部" },
+                        { title: "音乐", value: "音乐" },
                         { title: "歌舞", value: "歌舞" },
-                        { title: "音乐", value: "音乐" }
+                        { title: "运动", value: "运动" },
+                        { title: "纪录片", value: "纪录片" },
+                        { title: "短片", value: "短片" }
                     ]
                 },
                 {
@@ -10346,6 +10363,9 @@ async function loadZoneDoubanRec(params) {
     const page = Math.max(1, parseInt(params.page) || 1);
     const start = (page - 1) * 20;
 
+    // 类别：电影 / 剧集（默认剧集）
+    const mediaType = params.db_media === "movie" ? "movie" : "tv";
+    const isMovie = mediaType === "movie";
     const genre = params.db_genre || "";
     const region = params.db_region || "";
     const year = params.db_year || "";
@@ -10354,14 +10374,15 @@ async function loadZoneDoubanRec(params) {
     let rating = String(params.db_rating || "0").trim();
     if (!/^\d$/.test(rating)) rating = "0";
 
-    // 「形式」固定为电视剧；类型/地区走 selected_categories（与豆瓣网页一致）
-    const selectedCategories = { "形式": "电视剧" };
+    // 剧集要带「形式=电视剧」，电影没有「形式」这一维；类型/地区走 selected_categories
+    const selectedCategories = {};
+    if (!isMovie) selectedCategories["形式"] = "电视剧";
     if (genre) selectedCategories["类型"] = genre;
     if (region) selectedCategories["地区"] = region;
 
-    // tags 拼装顺序与原模块一致：类型（无类型时用「电视剧」）→ 地区 → 年份 → 平台 → 自定义标签
+    // tags 拼装顺序与原模块一致：类型（无类型时用「电视剧」/「电影」）→ 地区 → 年份 → 平台 → 自定义标签
     const tags = [];
-    if (genre) tags.push(genre); else tags.push("电视剧");
+    if (genre) tags.push(genre); else tags.push(isMovie ? "电影" : "电视剧");
     if (region) tags.push(region);
     if (year) tags.push(year);
     if (platform) tags.push(platform);
@@ -10370,7 +10391,7 @@ async function loadZoneDoubanRec(params) {
         if (v) tags.push(v);
     });
 
-    const url = "https://m.douban.com/rexxar/api/v2/tv/recommend?refresh=0&start=" + start + "&count=20&selected_categories=" +
+    const url = "https://m.douban.com/rexxar/api/v2/" + mediaType + "/recommend?refresh=0&start=" + start + "&count=20&selected_categories=" +
         encodeURIComponent(JSON.stringify(selectedCategories)) + "&uncollect=false&score_range=" + rating + ",10&tags=" +
         encodeURIComponent(tags.join(",")) + "&sort=" + sort;
 
@@ -10398,9 +10419,9 @@ async function loadZoneDoubanRec(params) {
             const comment = (item.comment && item.comment.comment) || "";
 
             const card = {
-                id: String(item.id || rawTitle), type: "douban", mediaType: "tv",
+                id: String(item.id || rawTitle), type: "douban", mediaType: mediaType,
                 title: rawTitle,
-                genreTitle: "剧集",
+                genreTitle: isMovie ? "电影" : "剧集",
                 subTitle: (rate ? "豆瓣 " + rate + " · " : "") + "观影偏好",
                 description: (rate ? "豆瓣 " + rate : "暂无评分") + (cardSub ? " · " + cardSub : "") + "\n" + (comment || "暂无简介"),
                 posterPath: poster, backdropPath: "",
@@ -10411,12 +10432,12 @@ async function loadZoneDoubanRec(params) {
 
             // 与原版一致：先清洗标题再搜 TMDB，命中后标题/海报/简介/日期全用 TMDB 的；
             // 未命中或名称年份校验不过 → 丢弃该条（原版同样丢弃，整列统一为 tmdb 卡片）。
-            const tmdb = await pickTmdbForDouban(rawTitle, "tv", itemYear);
+            const tmdb = await pickTmdbForDouban(rawTitle, mediaType, itemYear);
             if (!tmdb) return null;
             card.type = "tmdb"; card.id = String(tmdb.id); card.tmdbId = tmdb.id;
             mergeDoubanTmdb(card, tmdb);
             card.title = tmdb.name || tmdb.title || card.title;
-            card.mediaType = "tv";
+            card.mediaType = mediaType;
             card.genreTitle = doubanRatingGenreLine(rate, card.genreTitle);
             return card;
         }));
