@@ -2879,10 +2879,22 @@ var WidgetMetadata = {
             cacheDuration: 43200,
             params: [
                 {
+                    // 数据源二选一：原来的 TMDB 地区榜 / 移植自「观影偏好(TMDB版)」的豆瓣剧集推荐
+                    name: "data_source",
+                    title: "数据源",
+                    type: "enumeration",
+                    value: "tmdb",
+                    enumOptions: [
+                        { title: "地区热播榜（TMDB）", value: "tmdb" },
+                        { title: "观影偏好 · 剧集（豆瓣）", value: "douban" }
+                    ]
+                },
+                {
                     name: "region",
                     title: "选择国家/地区",
                     type: "enumeration",
                     value: "CN",
+                    belongTo: { paramName: "data_source", value: ["tmdb"] },
                     enumOptions: [
                         { title: "全球综合热播", value: "GLOBAL" },
                         { title: "大陆", value: "CN" },
@@ -2905,6 +2917,7 @@ var WidgetMetadata = {
                     title: "影视类型",
                     type: "enumeration",
                     value: "all",
+                    belongTo: { paramName: "data_source", value: ["tmdb"] },
                     enumOptions: [
                         { title: "全部", value: "all" },
                         { title: "仅看电影", value: "movie" },
@@ -2917,10 +2930,153 @@ var WidgetMetadata = {
                     title: "排序榜单",
                     type: "enumeration",
                     value: "hot",
+                    belongTo: { paramName: "data_source", value: ["tmdb"] },
                     enumOptions: [
                         { title: "近期热播榜", value: "hot" },
                         { title: "最新上线榜", value: "new" },
                         { title: "历史高分榜", value: "top" }
+                    ]
+                },
+                {
+                    name: "db_genre",
+                    title: "剧集类型",
+                    type: "enumeration",
+                    value: "",
+                    belongTo: { paramName: "data_source", value: ["douban"] },
+                    enumOptions: [
+                        { title: "全部", value: "" },
+                        { title: "喜剧", value: "喜剧" },
+                        { title: "爱情", value: "爱情" },
+                        { title: "悬疑", value: "悬疑" },
+                        { title: "动画", value: "动画" },
+                        { title: "武侠", value: "武侠" },
+                        { title: "古装", value: "古装" },
+                        { title: "家庭", value: "家庭" },
+                        { title: "犯罪", value: "犯罪" },
+                        { title: "科幻", value: "科幻" },
+                        { title: "恐怖", value: "恐怖" },
+                        { title: "历史", value: "历史" },
+                        { title: "战争", value: "战争" },
+                        { title: "动作", value: "动作" },
+                        { title: "冒险", value: "冒险" },
+                        { title: "传记", value: "传记" },
+                        { title: "剧情", value: "剧情" },
+                        { title: "奇幻", value: "奇幻" },
+                        { title: "惊悚", value: "惊悚" },
+                        { title: "灾难", value: "灾难" },
+                        { title: "歌舞", value: "歌舞" },
+                        { title: "音乐", value: "音乐" }
+                    ]
+                },
+                {
+                    name: "db_region",
+                    title: "地区",
+                    type: "enumeration",
+                    value: "",
+                    belongTo: { paramName: "data_source", value: ["douban"] },
+                    enumOptions: [
+                        { title: "全部地区", value: "" },
+                        { title: "华语", value: "华语" },
+                        { title: "欧美", value: "欧美" },
+                        { title: "韩国", value: "韩国" },
+                        { title: "日本", value: "日本" },
+                        { title: "中国大陆", value: "中国大陆" },
+                        { title: "中国香港", value: "中国香港" },
+                        { title: "中国台湾", value: "中国台湾" },
+                        { title: "美国", value: "美国" },
+                        { title: "英国", value: "英国" },
+                        { title: "法国", value: "法国" },
+                        { title: "德国", value: "德国" },
+                        { title: "意大利", value: "意大利" },
+                        { title: "西班牙", value: "西班牙" },
+                        { title: "印度", value: "印度" },
+                        { title: "泰国", value: "泰国" }
+                    ]
+                },
+                {
+                    name: "db_year",
+                    title: "年份",
+                    type: "enumeration",
+                    value: "",
+                    belongTo: { paramName: "data_source", value: ["douban"] },
+                    enumOptions: [
+                        { title: "全部年份", value: "" },
+                        { title: "2026", value: "2026" },
+                        { title: "2025", value: "2025" },
+                        { title: "2024", value: "2024" },
+                        { title: "2023", value: "2023" },
+                        { title: "2022", value: "2022" },
+                        { title: "2021", value: "2021" },
+                        { title: "2020", value: "2020" },
+                        { title: "2020年代", value: "2020年代" },
+                        { title: "2010年代", value: "2010年代" },
+                        { title: "2000年代", value: "2000年代" },
+                        { title: "90年代", value: "90年代" },
+                        { title: "80年代", value: "80年代" },
+                        { title: "更早", value: "更早" }
+                    ]
+                },
+                {
+                    name: "db_platform",
+                    title: "平台",
+                    type: "enumeration",
+                    value: "",
+                    belongTo: { paramName: "data_source", value: ["douban"] },
+                    enumOptions: [
+                        { title: "全部", value: "" },
+                        { title: "腾讯视频", value: "腾讯视频" },
+                        { title: "爱奇艺", value: "爱奇艺" },
+                        { title: "优酷", value: "优酷" },
+                        { title: "湖南卫视", value: "湖南卫视" },
+                        { title: "Netflix", value: "Netflix" },
+                        { title: "HBO", value: "HBO" },
+                        { title: "BBC", value: "BBC" },
+                        { title: "NHK", value: "NHK" },
+                        { title: "CBS", value: "CBS" },
+                        { title: "NBC", value: "NBC" },
+                        { title: "tvN", value: "tvN" }
+                    ]
+                },
+                {
+                    name: "db_sort",
+                    title: "豆瓣排序",
+                    type: "enumeration",
+                    value: "T",
+                    belongTo: { paramName: "data_source", value: ["douban"] },
+                    enumOptions: [
+                        { title: "综合排序", value: "T" },
+                        { title: "近期热度", value: "U" },
+                        { title: "首映时间", value: "R" },
+                        { title: "高分优选", value: "S" }
+                    ]
+                },
+                {
+                    name: "db_rating",
+                    title: "最低评分",
+                    type: "input",
+                    value: "0",
+                    belongTo: { paramName: "data_source", value: ["douban"] },
+                    description: "填 0～9 的整数，0 表示不限",
+                    placeholders: [
+                        { title: "不限", value: "0" },
+                        { title: "7 分以上", value: "7" },
+                        { title: "8 分以上", value: "8" },
+                        { title: "9 分以上", value: "9" }
+                    ]
+                },
+                {
+                    name: "db_tags",
+                    title: "自定义标签",
+                    type: "input",
+                    value: "",
+                    belongTo: { paramName: "data_source", value: ["douban"] },
+                    description: "多个标签用英文逗号分隔，例如：丧尸,推理",
+                    placeholders: [
+                        { title: "空", value: "" },
+                        { title: "推理,悬疑", value: "推理,悬疑" },
+                        { title: "丧尸", value: "丧尸" },
+                        { title: "穿越", value: "穿越" },
+                        { title: "经典", value: "经典" }
                     ]
                 },
                 { name: "page", title: "页码", type: "page", startPage: 1 }
@@ -9775,6 +9931,9 @@ async function zoneFetchFromTmdb(endpoint, sort_by, page, regionKey, needCount) 
 }
 
 async function loadGlobalZoneList(params) {
+    // 数据源分发：默认仍是原来的 TMDB 地区热播榜
+    if ((params.data_source || "tmdb") === "douban") return await loadZoneDoubanRec(params);
+
     const region = params.region || "CN";
     const mediaType = params.mediaType || "all";
     const sort_by = params.sort_by || "hot"; // 👉 改为 sort_by
@@ -9823,5 +9982,101 @@ async function loadGlobalZoneList(params) {
     } catch (error) {
         console.error("数据请求异常:", error);
         return [{ id: "error", type: "text", title: "网络异常", description: "请下拉刷新重试" }];
+    }
+}
+
+// ================= 全球探索发现 · 观影偏好（豆瓣剧集推荐） =================
+// 移植自第三方模块「豆瓣我看&豆瓣个性化推荐」的 getPreferenceRecommendations，
+// 只保留其中的「电视剧」部分（形式固定为 电视剧，不涉及综艺/电影）。
+// 数据源：https://m.douban.com/rexxar/api/v2/tv/recommend（与豆瓣网页「选剧集」同一接口，免登录）
+// 每条再走一次 TMDB 搜索换高清海报/简介/类型；匹配失败时保留豆瓣卡片（type:"douban"），不丢条目。
+async function loadZoneDoubanRec(params) {
+    const page = Math.max(1, parseInt(params.page) || 1);
+    const start = (page - 1) * 20;
+
+    const genre = params.db_genre || "";
+    const region = params.db_region || "";
+    const year = params.db_year || "";
+    const platform = params.db_platform || "";
+    const sort = params.db_sort || "T";
+    let rating = String(params.db_rating || "0").trim();
+    if (!/^\d$/.test(rating)) rating = "0";
+
+    // 「形式」固定为电视剧；类型/地区走 selected_categories（与豆瓣网页一致）
+    const selectedCategories = { "形式": "电视剧" };
+    if (genre) selectedCategories["类型"] = genre;
+    if (region) selectedCategories["地区"] = region;
+
+    // tags 拼装顺序与原模块一致：类型（无类型时用「电视剧」）→ 地区 → 年份 → 平台 → 自定义标签
+    const tags = [];
+    if (genre) tags.push(genre); else tags.push("电视剧");
+    if (region) tags.push(region);
+    if (year) tags.push(year);
+    if (platform) tags.push(platform);
+    String(params.db_tags || "").split(/[,，]/).forEach(function (t) {
+        const v = t.trim();
+        if (v) tags.push(v);
+    });
+
+    const url = "https://m.douban.com/rexxar/api/v2/tv/recommend?refresh=0&start=" + start + "&count=20&selected_categories=" +
+        encodeURIComponent(JSON.stringify(selectedCategories)) + "&uncollect=false&score_range=" + rating + ",10&tags=" +
+        encodeURIComponent(tags.join(",")) + "&sort=" + sort;
+
+    try {
+        const res = await Widget.http.get(url, {
+            headers: { "Referer": "https://movie.douban.com/explore", "User-Agent": LITE_UA_PC }
+        });
+        const data = typeof res.data === "string" ? safeJsonParse(res.data) : res.data;
+        const list = (data && Array.isArray(data.items) ? data.items : []).filter(function (it) {
+            return it && it.card === "subject";
+        });
+        if (!list.length) {
+            return page === 1
+                ? [{ id: "empty", type: "text", title: "无数据", description: "换个类型 / 地区，或降低最低评分再试" }]
+                : [];
+        }
+
+        const items = await Promise.all(list.map(async function (item) {
+            const rawTitle = item.title || "";
+            const cardSub = String(item.card_subtitle || "");
+            const yearHit = cardSub.match(/(19|20)\d{2}/);
+            const itemYear = String(item.year || (yearHit ? yearHit[0] : ""));
+            const rate = item.rating && typeof item.rating.value === "number" ? item.rating.value.toFixed(1) : "";
+            const poster = (item.pic && (item.pic.large || item.pic.normal)) || item.cover_url || "";
+            const comment = (item.comment && item.comment.comment) || "";
+
+            const card = {
+                id: String(item.id || rawTitle), type: "douban", mediaType: "tv",
+                title: rawTitle,
+                genreTitle: "剧集",
+                subTitle: (rate ? "豆瓣 " + rate + " · " : "") + "观影偏好",
+                description: (rate ? "豆瓣 " + rate : "暂无评分") + (cardSub ? " · " + cardSub : "") + "\n" + (comment || "暂无简介"),
+                posterPath: poster, backdropPath: "",
+                rating: parseFloat(rate) || 0, popularity: 0,
+                voteCount: (item.rating && item.rating.count) || 0,
+                releaseDate: itemYear
+            };
+
+            const tmdb = await searchTmdbForDouban(rawTitle, "tv", itemYear);
+            if (tmdb) {
+                card.type = "tmdb"; card.id = String(tmdb.id); card.tmdbId = tmdb.id;
+                mergeDoubanTmdb(card, tmdb);
+            }
+            card.genreTitle = doubanRatingGenreLine(rate, card.genreTitle);
+            return card;
+        }));
+
+        // 同一个 TMDB 条目的多条豆瓣条目（典型：《怪奇物语 第一/二/三季》都是 TMDB 66732）
+        // 合并成一张卡，避免同一详情页重复出现。豆瓣卡片按豆瓣 id 去重。
+        const seen = {};
+        return items.filter(function (it) {
+            const key = it.type === "tmdb" && it.tmdbId ? "t" + it.tmdbId : "d" + it.id;
+            if (seen[key]) return false;
+            seen[key] = 1;
+            return true;
+        });
+    } catch (e) {
+        console.error("[ZoneDoubanRec] 请求失败: " + e.message);
+        return [{ id: "err", type: "text", title: "豆瓣拒绝了请求", description: "网络IP被豆瓣限制，请切换流量(4G/5G)或更换节点。" }];
     }
 }
