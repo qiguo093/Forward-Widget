@@ -3064,8 +3064,8 @@ var WidgetMetadata = {
                     belongTo: { paramName: "data_source", value: ["tmdb"] },
                     enumOptions: [
                         { title: "全部", value: "all" },
-                        { title: "仅看电影", value: "movie" },
-                        { title: "仅看剧集", value: "tv" }
+                        { title: "电影", value: "movie" },
+                        { title: "剧集", value: "tv" }
                     ]
                 },
                 {
