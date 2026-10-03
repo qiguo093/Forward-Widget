@@ -8787,12 +8787,11 @@ function fetchCategoryList(apiHost, cateId, area, sortBy, page) {
       var item = list[i];
       var year = item.year || "";
       var displayYear = (year !== "") ? year : "未知年份";
-      var fullDate = item.year ? (item.year + "-01-01") : "";
       items.push({
         id: "ole_" + item.id, type: "url", title: item.name,
         posterPath: "https://static.olelive.com/" + item.pic,
         backdropPath: "https://static.olelive.com/" + item.pic,
-        releaseDate: fullDate, description: displayYear + " · " + categoryName,
+        releaseDate: year, description: displayYear + " · " + categoryName,
         genreTitle: categoryName, vod_id: item.id, api_host: apiHost,
         link: "ole://detail?id=" + item.id + "&api=" + encodeURIComponent(apiHost)
       });
