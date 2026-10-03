@@ -222,9 +222,11 @@ async def search_tmdb(session, item, cache):
                 results = data.get("results", [])
                 _diag.append(f"HTTP200 结果{len(results)}条")
                 
-                # 获取当天的北京时间，用于拦截未开播的剧
+                # 获取当天的北京时间，用于判断条目是已开播还是待播
                 tz_bj = datetime.timezone(datetime.timedelta(hours=8))
-                today_str = datetime.datetime.now(tz_bj).strftime("%Y-%m-%d")
+                now_bj = datetime.datetime.now(tz_bj)
+                today_str = now_bj.strftime("%Y-%m-%d")
+                current_year = now_bj.year
                 
                 for res in results:
                     tmdb_name = (res.get("name") or res.get("title") or "").strip().lower()
@@ -258,10 +260,14 @@ async def search_tmdb(session, item, cache):
                             # 数据不全，看 TMDB 返回的下一个搜索结果
                             continue
                             
-                        # 🔴 核心拦截逻辑 2：检查是否未开播
-                        if not first_air or first_air > today_str:
-                            # 未到开播时间，或者 TMDB 根本没写开播时间，直接跳过
-                            continue
+                        # 🔴 核心拦截逻辑 2：未开播的条目不再直接丢弃
+                        #    · TMDB 有开播日期但还没到 → 保留，稍后归入「即将推出」（upcoming）
+                        #    · TMDB 完全没写开播日期 → 只有当豆瓣片单标注的年份 >= 今年时才保留
+                        #      （视作已定档待播的新剧），否则按老剧处理直接跳过。
+                        if not first_air:
+                            douban_year = str(item.get("year") or "")
+                            if not (douban_year.isdigit() and int(douban_year) >= current_year):
+                                continue
 
                         # 🔴 新增：剧集再请求详情，获取最新更新日期 (last_air_date) 与缺失的剧照
                         last_update_date = first_air # 默认用首播日期兜底
@@ -381,7 +387,9 @@ async def process_theater(session, theater, cache):
         await asyncio.sleep(0.3)
 
     tz_bj = datetime.timezone(datetime.timedelta(hours=8))
-    current_year = datetime.datetime.now(tz_bj).year
+    now_bj = datetime.datetime.now(tz_bj)
+    current_year = now_bj.year
+    today_str = now_bj.strftime("%Y-%m-%d")
 
     # 只跳过「同标题 + 同类型」的兜底条目，避免电影版与剧集版同名时被误删
     tmdb_keys = {
@@ -392,12 +400,18 @@ async def process_theater(session, theater, cache):
 
     seen_tmdb = set()
     aired = []
+    upcoming = []
     for show in tmdb_shows:
         key = (show.get("mediaType"), show.get("id"))
         if key in seen_tmdb:
             continue
         seen_tmdb.add(key)
-        aired.append(show)
+        release = show.get("releaseDate") or ""
+        # 已经开播（或日期未知但属于往年存量）→ 已开播；开播日期在未来 → 即将推出
+        if release and release > today_str:
+            upcoming.append(show)
+        else:
+            aired.append(show)
 
     seen_douban = set()
     fallback_aired = []
@@ -435,21 +449,23 @@ async def process_theater(session, theater, cache):
         key=lambda x: x.get("releaseDate") or "0000-00-00",
         reverse=True,
     )
-    fallback_upcoming.sort(
-        key=lambda x: x.get("releaseDate") or "0000-00-00",
-        reverse=True,
+    # 「即将推出」按开播日期由近到远排；没有日期的排最后
+    upcoming.sort(
+        key=lambda x: x.get("releaseDate") or "9999-99-99",
     )
 
     tmdb_count = len(seen_tmdb)
     fallback_count = len(fallback_aired) + len(fallback_upcoming)
-    # 恢复为旧行为：只输出 TMDB 匹配成功的条目，不保留豆瓣兜底项。
+    # 保持既定行为：只输出 TMDB 匹配成功的条目，不保留豆瓣兜底项。
     aired = [show for show in aired if show.get("type") == "tmdb"]
+    upcoming = [show for show in upcoming if show.get("type") == "tmdb"]
     fallback_upcoming = []
     movie_count = sum(1 for show in aired if show.get("mediaType") == "movie")
 
     print(
         f"✅ [{theater['name']}] 处理完成: 共发现 {len(items)} 部，"
-        f"TMDB 匹配 {len(aired)} 部，豆瓣兜底 0 部，电影 {movie_count} 部"
+        f"TMDB 匹配 {len(aired)} 部（已开播）+ {len(upcoming)} 部（即将推出），"
+        f"豆瓣兜底 0 部，电影 {movie_count} 部"
     )
     if UNMATCHED_DIAG:
         print(f"   ⚠️ [{theater['name']}] 未匹配明细 {len(UNMATCHED_DIAG)} 条:")
@@ -459,7 +475,7 @@ async def process_theater(session, theater, cache):
     return {
         theater["name"]: {
             "aired": aired,
-            "upcoming": [],
+            "upcoming": upcoming,
             "totalItems": len(items),
             "totalPages": douban_data["page_count"],
         }
