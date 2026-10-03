@@ -1,0 +1,44 @@
+name: 🥭 Update Mango TV Hot
+
+permissions:
+  contents: write
+
+on:
+  schedule:
+    # 每天北京时间 08:30 与 20:30 自动更新两次（GitHub Actions 使用 UTC）
+    - cron: '30 0,12 * * *'
+  workflow_dispatch:
+
+jobs:
+  update-data:
+    runs-on: ubuntu-latest
+
+    env:
+      FORCE_JAVASCRIPT_ACTIONS_TO_NODE24: true
+
+    steps:
+      - name: 📥 检出代码
+        uses: actions/checkout@v4
+
+      - name: 🐍 设置 Python 环境
+        uses: actions/setup-python@v4
+        with:
+          python-version: '3.10'
+
+      - name: 📦 安装依赖库
+        run: |
+          python -m pip install --upgrade pip
+          pip install aiohttp
+
+      - name: 🚀 运行芒果TV抓取脚本
+        env:
+          TMDB_API_KEY: ${{ secrets.TMDB_API_KEY }}
+        run: |
+          python scripts/update_mgtv.py
+
+      - name: 📤 提交并推送
+        run: |
+          git config --local user.email "action@github.com"
+          git config --local user.name "GitHub Action Bot"
+          git add data/mgtv-hot.json
+          git diff --quiet && git diff --staged --quiet || (git commit -m "chore: 自动更新芒果TV热榜数据 🥭" && git push)
