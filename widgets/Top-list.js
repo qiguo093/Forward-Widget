@@ -5908,49 +5908,6 @@ const THEATER_UTILS = {
     return (await OWN_DATA.json(filename, "MangoTV")) || this.emptyTips;
   },
 
-  async fetchTheaterData() {
-    return this.fetchAny(THEATER_DATA_URLS, "theater-data");
-  },
-
-  // 多源容错：依次尝试，任一成功即返回
-  async fetchAny(urls, tag = "data") {
-    const list = Array.isArray(urls) ? urls : [urls];
-    let lastErr = null;
-    for (const url of list) {
-      try {
-        let resp;
-        try {
-          // 优先要求桥接层解码 JSON；旧版本不接受 options 时再退回单参数调用。
-          resp = await Widget.http.get(url, { decodable: true });
-        } catch (_) {
-          resp = await Widget.http.get(url);
-        }
-        const raw = resp?.data ?? resp;
-        if (!raw) throw new Error("空响应");
-        const data = typeof raw === "string" ? JSON.parse(raw) : raw;
-        if (!data || typeof data !== "object") throw new Error("数据格式异常");
-        return data;
-      } catch (e) {
-        lastErr = e;
-        console.error(`[${tag}] 数据源失败 ${url}: ${e.message}`);
-      }
-    }
-    console.error(`[${tag}] 全部数据源失败: ${lastErr && lastErr.message}`);
-    this.lastError = (lastErr && lastErr.message) || "未知原因";
-    return null;
-  },
-
-  async fetchUrl(url) {
-    try {
-      const resp = await Widget.http.get(url, { decodable: true });
-      if (!resp?.data) return this.emptyTips;
-      return typeof resp.data === "string" ? JSON.parse(resp.data) : resp.data;
-    } catch (e) {
-      console.error(`[Error] ${url}: ${e.message}`);
-      return this.emptyTips;
-    }
-  },
-
   // 完全纯本地的同步排序逻辑，速度极快
   sortList(list, sortType) {
     if (!list || !Array.isArray(list) || list.length === 0) return list || [];
@@ -5994,19 +5951,6 @@ const THEATER_UTILS = {
   }
 };
 
-/**
- * 模块 2：加载精选剧场
- */
-const THEATER_DATA_URL = "https://raw.githubusercontent.com/qiguo093/Forward-Widget/main/data/theater-data.json";
-const THEATER_DATA_URLS = [
-  THEATER_DATA_URL,
-  "https://gcore.jsdelivr.net/gh/qiguo093/Forward-Widget@main/data/theater-data.json",
-  "https://fastly.jsdelivr.net/gh/qiguo093/Forward-Widget@main/data/theater-data.json",
-  "https://raw.githack.com/qiguo093/Forward-Widget/main/data/theater-data.json",
-  "https://ghfast.top/https://raw.githubusercontent.com/qiguo093/Forward-Widget/main/data/theater-data.json",
-  "https://gh-proxy.com/https://raw.githubusercontent.com/qiguo093/Forward-Widget/main/data/theater-data.json",
-  "https://raw.githubusercontent.com/qiguo093/Forward-Widget/main/data/theater-data.json"
-];
 // 平台剧场：读取 qiguo093/Forward-Widget 自己生成的纯 TMDB 数据。
 const OWN_PLATFORM_THEATER = {
   emptyTips: [{ id: "empty", type: "text", title: "加载失败", description: "请检查网络连接" }],
