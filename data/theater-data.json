@@ -1,5 +1,5 @@
 {
-  "last_updated": "2026-10-03 17:51:33",
+  "last_updated": "2026-10-03 18:25:23",
   "迷雾剧场": {
     "aired": [
       {
@@ -2184,6 +2184,36 @@
         "genreTitle": "剧情"
       },
       {
+        "id": "214309",
+        "type": "tmdb",
+        "title": "明月祭君心",
+        "description": "靖国将军之子萧奇风与宁国公主国婚当晚，一副穿着青衣的骸骨赫然出现在废井之中！萧将军、萧夫人、天命司玄女素晴争相认罪，靖国皇后竟险些遭遇刺杀，萧府一时间成修罗场，“青衣骸骨”背后的真相也逐渐浮出水面。",
+        "rating": 8.0,
+        "voteCount": 2,
+        "popularity": 1.3735,
+        "releaseDate": "2022-11-09",
+        "lastUpdateDate": "2022-11-17",
+        "posterPath": "/8uGJNguD3jwB4B89cQ0ikF7Hof3.jpg",
+        "backdropPath": "/aTdg1swDHVJdaZ14K69xGhIuT7K.jpg",
+        "mediaType": "tv",
+        "genreTitle": "剧情,悬疑"
+      },
+      {
+        "id": "213591",
+        "type": "tmdb",
+        "title": "双世萌妻",
+        "description": "“绿叶女孩”姚靓靓成为失恋又失业的“双失青年”后，意外打开时间裂缝，开启了平行宇宙的神秘大门，又误打误撞成了这个国度里国王“正”的救命稻草。当财迷靓靓遇上落难国王，一纸契约，一段同居，平行宇宙里的奇妙命运就这样联结了，姚靓靓与正跨越时空的合租奇缘，两人从相识、相扶，最终相爱，上演着一段又一段搞笑甜蜜的爱情故事。",
+        "rating": 7.0,
+        "voteCount": 1,
+        "popularity": 1.7742,
+        "releaseDate": "2022-10-31",
+        "lastUpdateDate": "2022-11-17",
+        "posterPath": "/qzoHopP5VfhB151Fly5XBqSGsSI.jpg",
+        "backdropPath": "/zgXf1k4qg7j6ohdEVEyqRt0Dgy2.jpg",
+        "mediaType": "tv",
+        "genreTitle": "剧情,科幻奇幻,喜剧"
+      },
+      {
         "id": "211908",
         "type": "tmdb",
         "title": "将军府来了个小厨娘",
@@ -2319,6 +2349,21 @@
         "genreTitle": "剧情"
       },
       {
+        "id": "198251",
+        "type": "tmdb",
+        "title": "独女君未见",
+        "description": "《独女君未见》由刘爱东执导，改编自心静如蓝同名长篇小说《浴火毒女》。该剧讲述了相府弃女阿弃被心爱之人杀害，重生变身冷府大小姐嫁给傻王爷爽爆复仇，收获甜蜜的爱情故事。",
+        "rating": 0.0,
+        "voteCount": 0,
+        "popularity": 2.4044,
+        "releaseDate": "2022-04-22",
+        "lastUpdateDate": "2022-05-19",
+        "posterPath": "/zSAcRw6e0sge5mJ6ALSkKes0KdA.jpg",
+        "backdropPath": "/cjbehkm7klxuVUAtLgOWJTwN1DH.jpg",
+        "mediaType": "tv",
+        "genreTitle": "动作冒险"
+      },
+      {
         "id": "198165",
         "type": "tmdb",
         "title": "瓦舍之素舞遥",
@@ -2362,6 +2407,21 @@
         "backdropPath": "/f7ZXBhQkE6jmRS9j63Qfdhh1KF5.jpg",
         "mediaType": "tv",
         "genreTitle": "剧情"
+      },
+      {
+        "id": "155405",
+        "type": "tmdb",
+        "title": "致命主妇",
+        "description": "城市里备受父母宠爱的艾青爱上了农村出身的理发师李大力，李大力拿了艾青父母支援的启动资金和艾青一起创业，业务蒸蒸日上，李大力以不让艾青太辛苦为由，让艾青回家待孕。两年过去了，二人并未怀孕成功，随着婆婆徐春枝搬来同住，战争开始全面爆发。",
+        "rating": 7.0,
+        "voteCount": 1,
+        "popularity": 1.3419,
+        "releaseDate": "2022-01-11",
+        "lastUpdateDate": "2022-01-11",
+        "posterPath": "/9st1VrBntamEacI5ke49u9lLQ50.jpg",
+        "backdropPath": "/aBDlC813P9IpzaCgi7gQoWrT3Au.jpg",
+        "mediaType": "tv",
+        "genreTitle": "犯罪,剧情,悬疑"
       },
       {
         "id": "155052",
@@ -3165,7 +3225,23 @@
         "genreTitle": "剧情,喜剧"
       }
     ],
-    "upcoming": [],
+    "upcoming": [
+      {
+        "id": "277910",
+        "type": "tmdb",
+        "title": "喜剧之王",
+        "description": "位于福建沿海的沙浦村，由于位置偏远落后，人口流失严重，面临开发商黄总提出的拆迁橄榄枝，村民们动摇，准备接受。村里的阿珍（杨超越 饰）和哥哥嘉豪（张弛 饰），是少数拒绝拆迁的村民，他们争取到七天机会用《喜剧之王》的IP知名度保住村子。他们找来了经验丰富的周可（蒋龙 饰）和表姐林细妹（蒋诗萌 饰）帮忙。周可临危受命却状况不断，首波视频爆红却突遭封号，周可醉酒意外引文旅关注。一切好转之际，却陷入侵权风波，又遇对手船澳村盗名号，村子再陷危机。两人关系在此过程中日渐升温，但误解和阴谋仍在升级。这一次，周可和阿珍并肩作战，成功守护了村子。",
+        "rating": 0.0,
+        "voteCount": 0,
+        "popularity": 1.6817,
+        "releaseDate": "2026-10-06",
+        "lastUpdateDate": "2026-10-06",
+        "posterPath": "/tlj9CC9Do2tBmDT4yfe6TLfe9r1.jpg",
+        "backdropPath": "/tlj9CC9Do2tBmDT4yfe6TLfe9r1.jpg",
+        "mediaType": "tv",
+        "genreTitle": "喜剧"
+      }
+    ],
     "totalItems": 9,
     "totalPages": 1
   },
@@ -4056,7 +4132,23 @@
         "genreTitle": "剧情"
       }
     ],
-    "upcoming": [],
+    "upcoming": [
+      {
+        "id": "294446",
+        "type": "tmdb",
+        "title": "美人余",
+        "description": "",
+        "rating": 7.0,
+        "voteCount": 1,
+        "popularity": 2.972,
+        "releaseDate": "2026-10-09",
+        "lastUpdateDate": "2026-10-09",
+        "posterPath": "/hwx7VCmLRhd5seoJuWirnjjnkEb.jpg",
+        "backdropPath": "/hwx7VCmLRhd5seoJuWirnjjnkEb.jpg",
+        "mediaType": "tv",
+        "genreTitle": "剧情"
+      }
+    ],
     "totalItems": 20,
     "totalPages": 1
   },
