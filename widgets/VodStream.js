@@ -1,6 +1,7 @@
 const RESOURCE_SITES = `
 非凡影视,http://ffzy4.tv/api.php/provide/vod/
 欧乐影视,ole
+金牌影院,jinpai
 如意资源站,https://cj.rycjapi.com/api.php/provide/vod/at/json/
 量子资源站,https://cj.lziapi.com/api.php/provide/vod/at/json/
 爱奇艺资源站,https://iqiyizyapi.com/api.php/provide/vod/
@@ -117,8 +118,8 @@ function extractPlayInfoForCache(item, siteTitle, type) {
 function parseResourceSites(VodData) {
   const parseLine = (line) => {
     const [title, value] = line.split(',').map(s => s.trim());
-    if (title && (value?.startsWith('http') || value === 'ole')) {
-      return { title, value: value.endsWith('/') ? value : value + '/' };
+    if (title && (value?.startsWith('http') || value === 'ole' || value === 'jinpai')) {
+      return { title, value: (value === 'ole' || value === 'jinpai') ? value : (value.endsWith('/') ? value : value + '/') };
     }
     return null;
   };
@@ -566,6 +567,228 @@ function loadOleResource(params) {
 
 
 
+
+// --- 金牌影院适配器 ---
+const JP_DEFAULT_HOST = "https://www.jiabaide.cn";
+const JP_SIGN_KEY = "cb808529bae6b6be45ecfab29a4889bc";
+const JP_UA = "Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/126.0.6478.61 Safari/537.36";
+const JP_EP_CONCURRENCY = 8;
+
+function jpMd5(str) {
+  var bytes = [], i, c;
+  for (i = 0; i < str.length; i++) {
+    c = str.charCodeAt(i);
+    if (c < 0x80) bytes.push(c);
+    else if (c < 0x800) bytes.push(0xC0 | (c >> 6), 0x80 | (c & 0x3F));
+    else if (c < 0xD800 || c >= 0xE000) bytes.push(0xE0 | (c >> 12), 0x80 | ((c >> 6) & 0x3F), 0x80 | (c & 0x3F));
+    else {
+      i++;
+      c = 0x10000 + (((c & 0x3FF) << 10) | (str.charCodeAt(i) & 0x3FF));
+      bytes.push(0xF0 | (c >> 18), 0x80 | ((c >> 12) & 0x3F), 0x80 | ((c >> 6) & 0x3F), 0x80 | (c & 0x3F));
+    }
+  }
+  var bitLen = bytes.length * 8;
+  bytes.push(0x80);
+  while (bytes.length % 64 !== 56) bytes.push(0);
+  var lo = bitLen >>> 0, hi = Math.floor(bitLen / 4294967296);
+  bytes.push(lo & 0xFF, (lo >>> 8) & 0xFF, (lo >>> 16) & 0xFF, (lo >>> 24) & 0xFF);
+  bytes.push(hi & 0xFF, (hi >>> 8) & 0xFF, (hi >>> 16) & 0xFF, (hi >>> 24) & 0xFF);
+
+  var S = [7,12,17,22,7,12,17,22,7,12,17,22,7,12,17,22,
+           5,9,14,20,5,9,14,20,5,9,14,20,5,9,14,20,
+           4,11,16,23,4,11,16,23,4,11,16,23,4,11,16,23,
+           6,10,15,21,6,10,15,21,6,10,15,21,6,10,15,21];
+  var K = [];
+  for (i = 0; i < 64; i++) K[i] = Math.floor(Math.abs(Math.sin(i + 1)) * 4294967296);
+
+  var a0 = 0x67452301, b0 = 0xEFCDAB89, c0 = 0x98BADCFE, d0 = 0x10325476;
+  var M = new Array(16);
+  function rotl(x, n) { return (x << n) | (x >>> (32 - n)); }
+
+  for (var off = 0; off < bytes.length; off += 64) {
+    for (i = 0; i < 16; i++) {
+      M[i] = bytes[off + i * 4] | (bytes[off + i * 4 + 1] << 8) | (bytes[off + i * 4 + 2] << 16) | (bytes[off + i * 4 + 3] << 24);
+    }
+    var A = a0, B = b0, C = c0, D = d0, F, g;
+    for (i = 0; i < 64; i++) {
+      if (i < 16) { F = (B & C) | ((~B) & D); g = i; }
+      else if (i < 32) { F = (D & B) | ((~D) & C); g = (5 * i + 1) % 16; }
+      else if (i < 48) { F = B ^ C ^ D; g = (3 * i + 5) % 16; }
+      else { F = C ^ (B | (~D)); g = (7 * i) % 16; }
+      F = (F + A + K[i] + M[g]) | 0;
+      A = D; D = C; C = B;
+      B = (B + rotl(F, S[i])) | 0;
+    }
+    a0 = (a0 + A) | 0; b0 = (b0 + B) | 0; c0 = (c0 + C) | 0; d0 = (d0 + D) | 0;
+  }
+  function hex(n) {
+    var s = "";
+    for (var k = 0; k < 4; k++) s += ("0" + ((n >>> (k * 8)) & 0xFF).toString(16)).slice(-2);
+    return s;
+  }
+  return (hex(a0) + hex(b0) + hex(c0) + hex(d0)).toLowerCase();
+}
+
+function jpSha1(str) {
+  var bytes = [], i, c;
+  for (i = 0; i < str.length; i++) {
+    c = str.charCodeAt(i);
+    if (c < 0x80) bytes.push(c);
+    else if (c < 0x800) bytes.push(0xC0 | (c >> 6), 0x80 | (c & 0x3F));
+    else if (c < 0xD800 || c >= 0xE000) bytes.push(0xE0 | (c >> 12), 0x80 | ((c >> 6) & 0x3F), 0x80 | (c & 0x3F));
+    else {
+      i++;
+      c = 0x10000 + (((c & 0x3FF) << 10) | (str.charCodeAt(i) & 0x3FF));
+      bytes.push(0xF0 | (c >> 18), 0x80 | ((c >> 12) & 0x3F), 0x80 | ((c >> 6) & 0x3F), 0x80 | (c & 0x3F));
+    }
+  }
+  var bitLen = bytes.length * 8;
+  bytes.push(0x80);
+  while (bytes.length % 64 !== 56) bytes.push(0);
+  var hi = Math.floor(bitLen / 4294967296), lo = bitLen >>> 0;
+  bytes.push((hi >>> 24) & 0xFF, (hi >>> 16) & 0xFF, (hi >>> 8) & 0xFF, hi & 0xFF);
+  bytes.push((lo >>> 24) & 0xFF, (lo >>> 16) & 0xFF, (lo >>> 8) & 0xFF, lo & 0xFF);
+
+  var h0 = 0x67452301, h1 = 0xEFCDAB89, h2 = 0x98BADCFE, h3 = 0x10325476, h4 = 0xC3D2E1F0;
+  var w = new Array(80), j, a, b, d, e, f, k, temp;
+  function rotl(n, s) { return (n << s) | (n >>> (32 - s)); }
+  for (i = 0; i < bytes.length; i += 64) {
+    for (j = 0; j < 16; j++) {
+      w[j] = (bytes[i + j * 4] << 24) | (bytes[i + j * 4 + 1] << 16) | (bytes[i + j * 4 + 2] << 8) | bytes[i + j * 4 + 3];
+    }
+    for (j = 16; j < 80; j++) w[j] = rotl(w[j - 3] ^ w[j - 8] ^ w[j - 14] ^ w[j - 16], 1);
+    a = h0; b = h1; c = h2; d = h3; e = h4;
+    for (j = 0; j < 80; j++) {
+      if (j < 20) { f = (b & c) | ((~b) & d); k = 0x5A827999; }
+      else if (j < 40) { f = b ^ c ^ d; k = 0x6ED9EBA1; }
+      else if (j < 60) { f = (b & c) | (b & d) | (c & d); k = 0x8F1BBCDC; }
+      else { f = b ^ c ^ d; k = 0xCA62C1D6; }
+      temp = (rotl(a, 5) + f + e + k + w[j]) >>> 0;
+      e = d; d = c; c = rotl(b, 30); b = a; a = temp;
+    }
+    h0 = (h0 + a) >>> 0; h1 = (h1 + b) >>> 0; h2 = (h2 + c) >>> 0;
+    h3 = (h3 + d) >>> 0; h4 = (h4 + e) >>> 0;
+  }
+  function hex(n) { return ("00000000" + n.toString(16)).slice(-8); }
+  return (hex(h0) + hex(h1) + hex(h2) + hex(h3) + hex(h4)).toLowerCase();
+}
+
+function jpBuildQuery(p) {
+  var parts = [], k;
+  for (k in p) {
+    if (Object.prototype.hasOwnProperty.call(p, k) && p[k] !== undefined && p[k] !== null) {
+      parts.push(k + "=" + p[k]);
+    }
+  }
+  return parts.join("&");
+}
+
+var jpDeviceId = null;
+function jpGetDeviceId() {
+  if (jpDeviceId) return jpDeviceId;
+  jpDeviceId = "xxxxxxxx-xxxx-4xxx-yxxx-xxxxxxxxxxxx".replace(/[xy]/g, function (ch) {
+    var r = (Math.random() * 16) | 0;
+    return (ch === "x" ? r : ((r & 0x3) | 0x8)).toString(16);
+  });
+  return jpDeviceId;
+}
+
+function jpSignedGet(host, path, params) {
+  params = params || {};
+  var t = String(Date.now());
+  var signedParams = {}, k;
+  for (k in params) if (Object.prototype.hasOwnProperty.call(params, k)) signedParams[k] = params[k];
+  signedParams.key = JP_SIGN_KEY;
+  signedParams.t = t;
+  var sign = jpSha1(jpMd5(jpBuildQuery(signedParams)));
+  var qs = jpBuildQuery(params);
+  var url = host + path + (qs ? "?" + qs : "");
+  return Widget.http.get(url, {
+    headers: {
+      "sign": sign,
+      "t": t,
+      "deviceid": jpGetDeviceId(),
+      "User-Agent": JP_UA,
+      "Accept": "application/json, text/plain, */*",
+      "Referer": host + "/"
+    }
+  }).then(function (res) {
+    var data = res && res.data !== undefined ? res.data : res;
+    if (typeof data === "string") { try { data = JSON.parse(data); } catch (e) { return null; } }
+    if (!data || data.code !== 200) return null;
+    return data;
+  }).catch(function () { return null; });
+}
+
+function jpNormalizeHost(host) {
+  var h = (host || JP_DEFAULT_HOST).trim();
+  if (!/^https?:\/\//i.test(h)) h = "https://" + h;
+  return h.replace(/\/+$/, "");
+}
+
+async function loadJinpaiResource(params) {
+  params = params || {};
+  var host = jpNormalizeHost(params.ApiHost || JP_DEFAULT_HOST);
+  var seriesName = (params.seriesName || params.title || params.name || params.keyword || "").trim();
+  if (!seriesName) return [];
+  var type = (params.type === "movie") ? "movie" : "tv";
+  var episode = params.episode ? parseInt(params.episode, 10) : 1;
+
+  var cleanTitle = seriesName.replace(/第[一二三四五六七八九十\d]+[季部]/g, "").replace(/[\(\[（【][^\)\]）】]*[\)\]）】]/g, "").trim();
+  if (!cleanTitle) cleanTitle = seriesName;
+
+  try {
+    var res = await jpSignedGet(host, "/api/mw-movie/anonymous/video/searchByWord", {
+      keyword: cleanTitle, pageNum: "1", pageSize: "10", sourceCode: "1", type: "1"
+    });
+    var d = res && res.data;
+    var list = [];
+    if (Array.isArray(d)) list = d;
+    else if (d && d.result && Array.isArray(d.result.list)) list = d.result.list;
+    else if (d && Array.isArray(d.list)) list = d.list;
+    if (!list.length) return [];
+
+    var target = list[0];
+    var normUser = cleanTitle.toLowerCase().replace(/[^\u4e00-\u9fa5a-z0-9]/g, "");
+    for (var i = 0; i < list.length; i++) {
+      var itemNorm = String(list[i].vodName || "").toLowerCase().replace(/[^\u4e00-\u9fa5a-z0-9]/g, "");
+      if (itemNorm === normUser) { target = list[i]; break; }
+    }
+
+    var vodId = target.vodId;
+    var dRes = await jpSignedGet(host, "/api/mw-movie/anonymous/video/detail", { id: String(vodId) });
+    var dd = dRes && dRes.data;
+    var eps = (dd && dd.episodeList) || [];
+    if (!eps.length) return [];
+
+    var epIndex = 0;
+    if (type !== "movie" && episode > 1) {
+      epIndex = Math.min(episode - 1, eps.length - 1);
+    }
+    var targetEp = eps[epIndex] || eps[0];
+
+    var uRes = await jpSignedGet(host, "/api/mw-movie/anonymous/v2/video/episode/url", {
+      clientType: "1", id: String(vodId), nid: String(targetEp.nid)
+    });
+    var uList = (uRes && uRes.data && uRes.data.list) || [];
+    var best = null;
+    for (var k = 0; k < uList.length; k++) {
+      if (!uList[k].url) continue;
+      if (!best || (uList[k].resolution || 0) > (best.resolution || 0)) best = uList[k];
+    }
+    if (!best || !best.url) return [];
+
+    var epLabel = (type === "movie") ? "正片" : ("第 " + (targetEp.name || (epIndex + 1)) + " 集");
+    return [{
+      name: "金牌影院",
+      description: target.vodName + " · " + epLabel + (best.resolutionName ? " [" + best.resolutionName + "]" : ""),
+      url: best.url,
+      _ep: targetEp.name ? parseInt(targetEp.name) : (epIndex + 1)
+    }];
+  } catch (e) {
+    return [];
+  }
+}
 
 // --- 瓜子影视适配器：复用终极模块已验证的播放处理器 ---
 const loadGuaziResource = (() => {
@@ -1607,14 +1830,26 @@ async function loadResource(params) {
   if (!configured.some(site => site.title === '欧乐影视' || site.value === 'ole')) {
     configured.push({ title: '欧乐影视', value: 'ole' });
   }
+  if (!configured.some(site => site.title === '金牌影院' || site.value === 'jinpai')) {
+    configured.push({ title: '金牌影院', value: 'jinpai' });
+  }
   const oleSite = configured.find(site => site.title === '欧乐影视' || site.value === 'ole');
-  const standardSites = configured.filter(site => !(site.title === '欧乐影视' || site.value === 'ole'));
+  const jinpaiSite = configured.find(site => site.title === '金牌影院' || site.value === 'jinpai');
+  const standardSites = configured.filter(site => !(site.title === '欧乐影视' || site.value === 'ole' || site.title === '金牌影院' || site.value === 'jinpai'));
   const results = [];
   try {
     const guaziResults = await loadGuaziResource(params || {});
     results.push(...(Array.isArray(guaziResults) ? guaziResults : []));
   } catch (error) {
     console.error('[瓜子影视] 资源加载失败:', error.message || error);
+  }
+  if (jinpaiSite) {
+    try {
+      const jpResults = await loadJinpaiResource(params || {});
+      results.push(...(Array.isArray(jpResults) ? jpResults : []));
+    } catch (error) {
+      console.error('[金牌影院] 资源加载失败:', error.message || error);
+    }
   }
   if (oleSite) {
     try {
