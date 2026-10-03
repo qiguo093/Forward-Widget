@@ -26,6 +26,7 @@ WidgetMetadata = {
       name: "multiSource",
       title: "是否启用聚合搜索",
       type: "enumeration",
+      value: "enabled",
       enumOptions: [
         { title: "启用", value: "enabled" },
         { title: "禁用", value: "disabled" }
@@ -1875,7 +1876,7 @@ async function loadResource(params) {
 }
 async function loadStandardResources(params) {
   const { seriesName, type = 'tv', season, episode, multiSource, VodData } = params;
-  if (multiSource !== "enabled" || !seriesName) return [];
+  if (multiSource === "disabled" || !seriesName) return [];
 
   const resourceSites = parseResourceSites(VodData);
   const { baseName, seasonNumber } = extractSeasonInfo(seriesName);
