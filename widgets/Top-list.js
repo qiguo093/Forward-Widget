@@ -2985,6 +2985,7 @@ var WidgetMetadata = {
                 {"name":"金牌_area","title":"地区","type":"enumeration","value":"","enumOptions":[{"title":"全部","value":""},{"title":"中国大陆","value":"中国大陆"},{"title":"中国香港","value":"中国香港"},{"title":"中国台湾","value":"中国台湾"},{"title":"美国","value":"美国"},{"title":"日本","value":"日本"},{"title":"韩国","value":"韩国"},{"title":"泰国","value":"泰国"},{"title":"英国","value":"英国"},{"title":"法国","value":"法国"},{"title":"其他","value":"其他"}],"belongTo":{"paramName":"vod_list","value":["金牌"]}},
                 {"name":"金牌_year","title":"年份","type":"enumeration","value":"","enumOptions":[{"title":"全部","value":""},{"title":"2026","value":"2026"},{"title":"2025","value":"2025"},{"title":"2024","value":"2024"},{"title":"2023","value":"2023"},{"title":"2022","value":"2022"},{"title":"2021","value":"2021"},{"title":"2020","value":"2020"}],"belongTo":{"paramName":"vod_list","value":["金牌"]}},
                 {"name":"金牌_sort_by","title":"排序方式","type":"enumeration","value":"hot","enumOptions":[{"title":"综合","value":"hot"},{"title":"最近更新","value":"update"},{"title":"人气高低","value":"heat"},{"title":"评分高低","value":"score"}],"belongTo":{"paramName":"vod_list","value":["金牌"]}},
+                {"name":"金牌_count","title":"每页数量","type":"count","value":"30","belongTo":{"paramName":"vod_list","value":["金牌"]}},
                 {"name":"金牌_page","title":"页码","type":"page","startPage":1,"belongTo":{"paramName":"vod_list","value":["金牌"]}},
                 {"name":"金牌_host","title":"接口地址","type":"input","value":"https://www.jiabaide.cn","belongTo":{"paramName":"vod_list","value":["金牌"]}},
                 {"name":"骨朵_category","title":"榜单分类","type":"enumeration","value":"剧集","enumOptions":[{"title":"陆剧","value":"剧集"},{"title":"国漫","value":"动漫"},{"title":"综艺","value":"综艺"},{"title":"电影","value":"电影"}],"belongTo":{"paramName":"vod_list","value":["骨朵"]}},
@@ -9096,22 +9097,48 @@ function jpFetchList(params) {
   var host = jpNormalizeHost(params["金牌_host"]);
   var catId = JP_CATEGORY[String(params["金牌_section"] || "0")] || JP_CATEGORY["0"];
   var page = parseInt(params["金牌_page"], 10) || 1;
-  // ⚠️ 不要发送 filterStatus：它会额外收窄目录（实测综艺 3023 → 307），
-  //    导致 App 与网站展示的内容对不上。网站前端只发送下面这几个参数。
-  var q = {
-    pageNum: String(page),
+  // 「每页数量」由客户端 count 参数决定：一页装得多，往下就能一直滑。
+  var count = parseInt(params["金牌_count"], 10) || JP_PAGE_SIZE;
+  if (count < JP_PAGE_SIZE) count = JP_PAGE_SIZE;
+
+  // 计算本次要覆盖的条目区间，再换算成上游页码（上游每页固定 JP_PAGE_SIZE 条）。
+  // 例：count=120、page=1 → 需要上游第 1~4 页；page=2 → 需要第 5~8 页。
+  var startIdx = (page - 1) * count;
+  var firstUp = Math.floor(startIdx / JP_PAGE_SIZE) + 1;
+  var lastUp = Math.floor((startIdx + count - 1) / JP_PAGE_SIZE) + 1;
+  lastUp = Math.min(lastUp, firstUp + 19);   // 安全上限，避免一次抓过多
+
+  var baseQ = {
     pageSize: String(JP_PAGE_SIZE),
     sort: JP_SORT[params["金牌_sort_by"] || "hot"] || "1",
     sortBy: "1",
     type1: String(catId)
   };
   // 只在用户确实选了筛选项时才带上，避免发送空值参数
-  if (params["金牌_area"]) q.area = params["金牌_area"];
-  if (params["金牌_year"]) q.year = params["金牌_year"];
-  return jpSignedGet(host, "/api/mw-movie/anonymous/video/list", q).then(function (res) {
-    var list = (res && res.data && res.data.list) || [];
+  // ⚠️ 不要发送 filterStatus：它会额外收窄目录（实测综艺 3023 → 307），
+  //    导致 App 与网站展示的内容对不上。网站前端也不发它。
+  if (params["金牌_area"]) baseQ.area = params["金牌_area"];
+  if (params["金牌_year"]) baseQ.year = params["金牌_year"];
+
+  var tasks = [];
+  for (var p = firstUp; p <= lastUp; p++) {
+    var q = {};
+    for (var k in baseQ) if (Object.prototype.hasOwnProperty.call(baseQ, k)) q[k] = baseQ[k];
+    q.pageNum = String(p);
+    tasks.push(jpSignedGet(host, "/api/mw-movie/anonymous/video/list", q));
+  }
+
+  return Promise.all(tasks).then(function (pages) {
+    var merged = [];
+    for (var i = 0; i < pages.length; i++) {
+      var list = (pages[i] && pages[i].data && pages[i].data.list) || [];
+      for (var j = 0; j < list.length; j++) merged.push(list[j]);
+    }
+    // 对齐到用户请求的区间起点，避免每次翻页出现重复条目
+    var offset = startIdx % JP_PAGE_SIZE;
+    var slice = merged.slice(offset, offset + count);
     var items = [];
-    for (var i = 0; i < list.length; i++) items.push(jpMapItem(list[i], host));
+    for (var m = 0; m < slice.length; m++) items.push(jpMapItem(slice[m], host));
     if (!items.length && page <= 1) {
       return [{ id: "empty", type: "text", title: "暂无数据，请检查网络或接口地址" }];
     }
