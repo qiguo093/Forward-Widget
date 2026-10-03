@@ -9197,7 +9197,87 @@ function jpLoadDetail(params) {
   });
 }
 
-__vod_group_sources.push({handlers:{"scheme":"jp","jpList":(typeof jpFetchList==="function"?jpFetchList:null),"loadDetail":(typeof jpLoadDetail==="function"?jpLoadDetail:null)}});})();
+// ==================== 智能匹配播放源（提供给「播放资源」面板） ====================
+// 当用户在任何地方点开一部片子（如 TMDB 详情、其他榜单）时，App 会调用各数据源
+// 的 loadResource，按片名自动搜索并返回一个或多个直链选项。
+function jpSearchVod(host, keyword) {
+  return jpSignedGet(host, "/api/mw-movie/anonymous/video/searchByWord", {
+    keyword: keyword,
+    pageNum: "1",
+    pageSize: "10",
+    sourceCode: "1",
+    type: "1"
+  }).then(function (res) {
+    var d = res && res.data;
+    if (!d) return [];
+    if (Array.isArray(d)) return d;
+    if (d.result && Array.isArray(d.result.list)) return d.result.list;
+    if (Array.isArray(d.list)) return d.list;
+    return [];
+  });
+}
+
+function jpLoadResource(params) {
+  params = params || {};
+  var host = jpNormalizeHost(params.ApiHost || params["金牌_host"]);
+  var seriesName = (params.seriesName || params.title || params.name || params.keyword || "").trim();
+  if (!seriesName) return Promise.resolve([]);
+  var type = (params.type === "movie") ? "movie" : "tv";
+  var episode = params.episode ? parseInt(params.episode, 10) : 1;
+
+  // 提取纯净片名去搜（去掉季数等噪声）
+  var cleanTitle = seriesName.replace(/第[一二三四五六七八九十\d]+[季部]/g, "").replace(/[\(\[（【][^\)\]）】]*[\)\]）】]/g, "").trim();
+  if (!cleanTitle) cleanTitle = seriesName;
+
+  return jpSearchVod(host, cleanTitle).then(function (list) {
+    if (!list.length) return [];
+    // 找名字最匹配的一部
+    var target = null;
+    var normUser = cleanTitle.toLowerCase().replace(/[^\u4e00-\u9fa5a-z0-9]/g, "");
+    for (var i = 0; i < list.length; i++) {
+      var itemNorm = String(list[i].vodName || "").toLowerCase().replace(/[^\u4e00-\u9fa5a-z0-9]/g, "");
+      if (itemNorm === normUser) { target = list[i]; break; }
+    }
+    if (!target) target = list[0];   // 兜底取首个相关结果
+
+    var vodId = target.vodId;
+    return jpSignedGet(host, "/api/mw-movie/anonymous/video/detail", { id: String(vodId) }).then(function (res) {
+      var d = res && res.data;
+      var eps = (d && d.episodeList) || [];
+      if (!eps.length) return [];
+
+      // 电影取首集，剧集按指定的 episode 序号找（越界则取最后一集）
+      var epIndex = 0;
+      if (type !== "movie" && episode > 1) {
+        epIndex = Math.min(episode - 1, eps.length - 1);
+      }
+      var targetEp = eps[epIndex] || eps[0];
+
+      return jpSignedGet(host, "/api/mw-movie/anonymous/v2/video/episode/url", {
+        clientType: "1", id: String(vodId), nid: String(targetEp.nid)
+      }).then(function (uRes) {
+        var uList = (uRes && uRes.data && uRes.data.list) || [];
+        var best = null;
+        for (var k = 0; k < uList.length; k++) {
+          if (!uList[k].url) continue;
+          if (!best || (uList[k].resolution || 0) > (best.resolution || 0)) best = uList[k];
+        }
+        if (!best || !best.url) return [];
+
+        var epLabel = (type === "movie") ? "正片" : ("第 " + (targetEp.name || (epIndex + 1)) + " 集");
+        return [{
+          id: "jp_res_" + vodId + "_" + (targetEp.nid || epIndex),
+          name: "金牌影院",
+          type: type,
+          description: target.vodName + " · " + epLabel + (best.resolutionName ? " [" + best.resolutionName + "]" : ""),
+          url: best.url
+        }];
+      });
+    });
+  }).catch(function () { return []; });
+}
+
+__vod_group_sources.push({handlers:{"scheme":"jp","jpList":(typeof jpFetchList==="function"?jpFetchList:null),"loadDetail":(typeof jpLoadDetail==="function"?jpLoadDetail:null),"loadResource":(typeof jpLoadResource==="function"?jpLoadResource:null)}});})();
 // 金牌影院：按 handler 名字查找，不依赖 push 顺序（避免新增数据源时索引错位）
 async function __vod_group_金牌(params = {}) {
     for (const s of __vod_group_sources) {
@@ -9260,13 +9340,11 @@ async function loadDetail(link){
 "__vod_group_骨朵": (typeof __vod_group_骨朵 === "function" ? __vod_group_骨朵 : null),
 "loadResource": async function(params = {}) {
   const resources = [];
-  const guazi = __vod_group_sources[0] && __vod_group_sources[0].handlers.loadResource;
-  const ole = __vod_group_sources[2] && __vod_group_sources[2].handlers.loadResource;
-  if (guazi) {
-    try { resources.push(...(await guazi(params) || [])); } catch (_) {}
-  }
-  if (ole) {
-    try { resources.push(...(await ole(params) || [])); } catch (_) {}
+  for (const s of __vod_group_sources) {
+    const fn = s && s.handlers && s.handlers.loadResource;
+    if (typeof fn === "function") {
+      try { resources.push(...(await fn(params) || [])); } catch (_) {}
+    }
   }
   const seen = new Set();
   return resources.filter(item => {
