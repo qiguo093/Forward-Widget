@@ -674,13 +674,16 @@ function jpSha1(str) {
   return (hex(h0) + hex(h1) + hex(h2) + hex(h3) + hex(h4)).toLowerCase();
 }
 
+// ⚠️ 参数必须按字母序排列：服务端会用「排序后的业务参数 + &key + &t」重算签名，
+//    顺序不同会返回 code 122001（应用签名失败）。
 function jpBuildQuery(p) {
-  var parts = [], k;
+  var keys = [], k;
   for (k in p) {
-    if (Object.prototype.hasOwnProperty.call(p, k) && p[k] !== undefined && p[k] !== null) {
-      parts.push(k + "=" + p[k]);
-    }
+    if (Object.prototype.hasOwnProperty.call(p, k) && p[k] !== undefined && p[k] !== null) keys.push(k);
   }
+  keys.sort();
+  var parts = [];
+  for (var i = 0; i < keys.length; i++) parts.push(keys[i] + "=" + p[keys[i]]);
   return parts.join("&");
 }
 
@@ -697,12 +700,9 @@ function jpGetDeviceId() {
 function jpSignedGet(host, path, params) {
   params = params || {};
   var t = String(Date.now());
-  var signedParams = {}, k;
-  for (k in params) if (Object.prototype.hasOwnProperty.call(params, k)) signedParams[k] = params[k];
-  signedParams.key = JP_SIGN_KEY;
-  signedParams.t = t;
-  var sign = jpSha1(jpMd5(jpBuildQuery(signedParams)));
+  // 先按字母序拼好业务参数，再追加 key 与 t 参与签名
   var qs = jpBuildQuery(params);
+  var sign = jpSha1(jpMd5(qs + "&key=" + JP_SIGN_KEY + "&t=" + t));
   var url = host + path + (qs ? "?" + qs : "");
   return Widget.http.get(url, {
     headers: {

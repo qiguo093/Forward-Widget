@@ -9008,13 +9008,16 @@ function jpSha1(str) {
 // ==================== 请求层 ====================
 // 协议：sign = sha1(md5("按插入顺序拼接的全部查询参数&key=KEY&t=毫秒时间戳"))
 //       参与签名的参数集合必须与 URL 上实际发送的完全一致（含取空值的参数）。
+// ⚠️ 参数必须按字母序排列：服务端会用「排序后的业务参数 + &key + &t」重算签名，
+//    顺序不同就会返回 code 122001（应用签名失败）。实测乱序必失败。
 function jpBuildQuery(p) {
-  var parts = [], k;
+  var keys = [], k;
   for (k in p) {
-    if (Object.prototype.hasOwnProperty.call(p, k) && p[k] !== undefined && p[k] !== null) {
-      parts.push(k + "=" + p[k]);
-    }
+    if (Object.prototype.hasOwnProperty.call(p, k) && p[k] !== undefined && p[k] !== null) keys.push(k);
   }
+  keys.sort();
+  var parts = [];
+  for (var i = 0; i < keys.length; i++) parts.push(keys[i] + "=" + p[keys[i]]);
   return parts.join("&");
 }
 
@@ -9031,12 +9034,9 @@ function jpGetDeviceId() {
 function jpSignedGet(host, path, params) {
   params = params || {};
   var t = String(Date.now());
-  var signedParams = {}, k;
-  for (k in params) if (Object.prototype.hasOwnProperty.call(params, k)) signedParams[k] = params[k];
-  signedParams.key = JP_SIGN_KEY;
-  signedParams.t = t;
-  var sign = jpSha1(jpMd5(jpBuildQuery(signedParams)));
+  // 先按字母序拼好业务参数，再追加 key 与 t 参与签名（与站点前端的行为一致）
   var qs = jpBuildQuery(params);
+  var sign = jpSha1(jpMd5(qs + "&key=" + JP_SIGN_KEY + "&t=" + t));
   var url = host + path + (qs ? "?" + qs : "");
   return Widget.http.get(url, {
     headers: {
@@ -9096,19 +9096,19 @@ function jpFetchList(params) {
   var host = jpNormalizeHost(params["金牌_host"]);
   var catId = JP_CATEGORY[String(params["金牌_section"] || "0")] || JP_CATEGORY["0"];
   var page = parseInt(params["金牌_page"], 10) || 1;
-  return jpSignedGet(host, "/api/mw-movie/anonymous/video/list", {
-    area: params["金牌_area"] || "",
-    filterStatus: "1",
-    lang: "",
+  // ⚠️ 不要发送 filterStatus：它会额外收窄目录（实测综艺 3023 → 307），
+  //    导致 App 与网站展示的内容对不上。网站前端只发送下面这几个参数。
+  var q = {
     pageNum: String(page),
     pageSize: String(JP_PAGE_SIZE),
     sort: JP_SORT[params["金牌_sort_by"] || "hot"] || "1",
     sortBy: "1",
-    type: "",
-    type1: String(catId),
-    v_class: "",
-    year: params["金牌_year"] || ""
-  }).then(function (res) {
+    type1: String(catId)
+  };
+  // 只在用户确实选了筛选项时才带上，避免发送空值参数
+  if (params["金牌_area"]) q.area = params["金牌_area"];
+  if (params["金牌_year"]) q.year = params["金牌_year"];
+  return jpSignedGet(host, "/api/mw-movie/anonymous/video/list", q).then(function (res) {
     var list = (res && res.data && res.data.list) || [];
     var items = [];
     for (var i = 0; i < list.length; i++) items.push(jpMapItem(list[i], host));
