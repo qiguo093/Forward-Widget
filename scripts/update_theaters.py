@@ -38,7 +38,6 @@ THEATERS = [
     { "name": "萤火单元", "id": "164881201", "custom_items": [] },
     { "name": "正午阳光", "id": "164881266", "custom_items": [] },
     { "name": "恋恋剧场", "id": "164880465", "custom_items": [] },
-    { "name": "悬疑剧场", "id": "128400108", "custom_items": [] },
     { "name": "微尘剧场", "id": "161658331", "custom_items": [] },
     { "name": "暗流剧场", "id": "164879624", "custom_items": [] }
 ]

@@ -32,7 +32,6 @@ WidgetMetadata = {
             { title: "萤火单元", value: "萤火单元" },
             { title: "正午阳光", value: "正午阳光" },
             { title: "恋恋剧场", value: "恋恋剧场" },
-            { title: "悬疑剧场", value: "悬疑剧场" },
             { title: "微尘剧场", value: "微尘剧场" }
           ]
         },
