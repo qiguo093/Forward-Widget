@@ -2975,12 +2975,18 @@ var WidgetMetadata = {
             type: "video",
             cacheDuration: 43200,
             params: [
-                {"name":"vod_list","title":"选择子列表","type":"enumeration","value":"榜单","enumOptions":[{"title":"聚合实时榜单","value":"榜单"},{"title":"欧乐影视","value":"欧乐"},{"title":"骨朵热度指数榜","value":"骨朵"}]},
+                {"name":"vod_list","title":"选择子列表","type":"enumeration","value":"榜单","enumOptions":[{"title":"聚合实时榜单","value":"榜单"},{"title":"欧乐影视","value":"欧乐"},{"title":"金牌影院","value":"金牌"},{"title":"骨朵热度指数榜","value":"骨朵"}]},
                 {"name":"榜单_section","title":"功能分类","type":"enumeration","value":"0","enumOptions":[{"title":"Netflix新片榜","value":"0"},{"title":"Disney+新片榜","value":"1"},{"title":"Apple TV+新片榜","value":"2"},{"title":"HBOmax新片榜","value":"3"},{"title":"prime video新片榜","value":"4"},{"title":"本周国剧排行榜","value":"5"},{"title":"本周美剧排行榜","value":"6"},{"title":"本周动漫排行榜","value":"7"},{"title":"本周电影排行榜","value":"8"},{"title":"本周韩剧排行榜","value":"9"},{"title":"本周英剧排行榜","value":"10"},{"title":"本周日剧排行榜","value":"11"},{"title":"本周泰剧排行榜","value":"12"},{"title":"本周综艺排行榜","value":"13"},{"title":"本周纪录片排行榜","value":"14"}],"belongTo":{"paramName":"vod_list","value":["榜单"]}},
                 {"name":"欧乐_section","title":"功能分类","type":"enumeration","value":"0","enumOptions":[{"title":"电影","value":"0"},{"title":"剧集","value":"1"},{"title":"综艺","value":"2"},{"title":"动漫","value":"3"},{"title":"短剧","value":"4"}],"belongTo":{"paramName":"vod_list","value":["欧乐"]}},
                 {"name":"欧乐_area","title":"地区","type":"enumeration","value":"0","enumOptions":[{"title":"全部","value":"0"},{"title":"大陆","value":"大陆"},{"title":"香港","value":"香港"},{"title":"台湾","value":"台湾"},{"title":"美国","value":"美国"},{"title":"日本","value":"日本"},{"title":"韩国","value":"韩国"},{"title":"英国","value":"英国"},{"title":"法国","value":"法国"},{"title":"德国","value":"德国"},{"title":"西班牙","value":"西班牙"},{"title":"泰国","value":"泰国"},{"title":"印度","value":"印度"}],"belongTo":{"paramName":"vod_list","value":["欧乐"]}},
                 {"name":"欧乐_sort_by","title":"榜单类型","type":"enumeration","value":"hot","enumOptions":[{"title":"热门榜","value":"hot"},{"title":"高分榜","value":"score"},{"title":"最新","value":"update"},{"title":"最近添加","value":"desc"}],"belongTo":{"paramName":"vod_list","value":["欧乐"]}},
                 {"name":"欧乐_page","title":"页码","type":"page","startPage":1,"belongTo":{"paramName":"vod_list","value":["欧乐"]}},
+                {"name":"金牌_section","title":"功能分类","type":"enumeration","value":"0","enumOptions":[{"title":"电影","value":"0"},{"title":"电视剧","value":"1"},{"title":"综艺","value":"2"},{"title":"动漫","value":"3"},{"title":"短剧","value":"4"}],"belongTo":{"paramName":"vod_list","value":["金牌"]}},
+                {"name":"金牌_area","title":"地区","type":"enumeration","value":"","enumOptions":[{"title":"全部","value":""},{"title":"中国大陆","value":"中国大陆"},{"title":"中国香港","value":"中国香港"},{"title":"中国台湾","value":"中国台湾"},{"title":"美国","value":"美国"},{"title":"日本","value":"日本"},{"title":"韩国","value":"韩国"},{"title":"泰国","value":"泰国"},{"title":"英国","value":"英国"},{"title":"法国","value":"法国"},{"title":"其他","value":"其他"}],"belongTo":{"paramName":"vod_list","value":["金牌"]}},
+                {"name":"金牌_year","title":"年份","type":"enumeration","value":"","enumOptions":[{"title":"全部","value":""},{"title":"2026","value":"2026"},{"title":"2025","value":"2025"},{"title":"2024","value":"2024"},{"title":"2023","value":"2023"},{"title":"2022","value":"2022"},{"title":"2021","value":"2021"},{"title":"2020","value":"2020"}],"belongTo":{"paramName":"vod_list","value":["金牌"]}},
+                {"name":"金牌_sort_by","title":"排序方式","type":"enumeration","value":"hot","enumOptions":[{"title":"综合","value":"hot"},{"title":"最近更新","value":"update"},{"title":"人气高低","value":"heat"},{"title":"评分高低","value":"score"}],"belongTo":{"paramName":"vod_list","value":["金牌"]}},
+                {"name":"金牌_page","title":"页码","type":"page","startPage":1,"belongTo":{"paramName":"vod_list","value":["金牌"]}},
+                {"name":"金牌_host","title":"接口地址","type":"input","value":"https://www.jiabaide.cn","belongTo":{"paramName":"vod_list","value":["金牌"]}},
                 {"name":"骨朵_category","title":"榜单分类","type":"enumeration","value":"剧集","enumOptions":[{"title":"陆剧","value":"剧集"},{"title":"国漫","value":"动漫"},{"title":"综艺","value":"综艺"},{"title":"电影","value":"电影"}],"belongTo":{"paramName":"vod_list","value":["骨朵"]}},
             ]
         },
@@ -8884,6 +8890,322 @@ WidgetMetadata = {
   ]
 };
 __vod_group_sources.push({handlers:{"searchOle":(typeof searchOle==="function"?searchOle:null),"loadMovieList":(typeof loadMovieList==="function"?loadMovieList:null),"loadTvList":(typeof loadTvList==="function"?loadTvList:null),"loadVarietyList":(typeof loadVarietyList==="function"?loadVarietyList:null),"loadAnimeList":(typeof loadAnimeList==="function"?loadAnimeList:null),"loadShortList":(typeof loadShortList==="function"?loadShortList:null),"loadResource":(typeof loadResource==="function"?loadResource:null),loadDetail:(typeof loadDetail==="function"?loadDetail:null)}});})();
+(function(){
+// @name 金牌影院数据源
+// @description 金牌影院（自建数据源：签名请求 + 分类浏览 + 详情播放）
+// @version 1.0.0
+// 说明：本块只提供数据与播放能力，UI 入口挂在「VOD合集列表 → 选择子列表 → 金牌影院」。
+//       内部的 jpList / jpLoadDetail 通过 __vod_group_sources 暴露给顶层的分发函数。
+
+var JP_DEFAULT_HOST = "https://www.jiabaide.cn";
+var JP_SIGN_KEY = "cb808529bae6b6be45ecfab29a4889bc";
+var JP_UA = "Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/126.0.6478.61 Chrome/126.0.6478.61 Not/A)Brand/8 Safari/537.36";
+var JP_PAGE_SIZE = 30;
+var JP_EP_CONCURRENCY = 8;
+
+// ==================== 哈希（签名的基石） ====================
+// ⚠️ 本仓库另有一份把 charCodeAt 直接当字节使用的 md5，遇到中文会算错；
+//    而签名字符串包含地区/语言等中文值，必须使用下面这份 UTF-8 版本。
+function jpMd5(str) {
+  var bytes = [], i, c;
+  for (i = 0; i < str.length; i++) {
+    c = str.charCodeAt(i);
+    if (c < 0x80) bytes.push(c);
+    else if (c < 0x800) bytes.push(0xC0 | (c >> 6), 0x80 | (c & 0x3F));
+    else if (c < 0xD800 || c >= 0xE000) bytes.push(0xE0 | (c >> 12), 0x80 | ((c >> 6) & 0x3F), 0x80 | (c & 0x3F));
+    else {
+      i++;
+      c = 0x10000 + (((c & 0x3FF) << 10) | (str.charCodeAt(i) & 0x3FF));
+      bytes.push(0xF0 | (c >> 18), 0x80 | ((c >> 12) & 0x3F), 0x80 | ((c >> 6) & 0x3F), 0x80 | (c & 0x3F));
+    }
+  }
+  var bitLen = bytes.length * 8;
+  bytes.push(0x80);
+  while (bytes.length % 64 !== 56) bytes.push(0);
+  var lo = bitLen >>> 0, hi = Math.floor(bitLen / 4294967296);
+  bytes.push(lo & 0xFF, (lo >>> 8) & 0xFF, (lo >>> 16) & 0xFF, (lo >>> 24) & 0xFF);
+  bytes.push(hi & 0xFF, (hi >>> 8) & 0xFF, (hi >>> 16) & 0xFF, (hi >>> 24) & 0xFF);
+
+  var S = [7,12,17,22,7,12,17,22,7,12,17,22,7,12,17,22,
+           5,9,14,20,5,9,14,20,5,9,14,20,5,9,14,20,
+           4,11,16,23,4,11,16,23,4,11,16,23,4,11,16,23,
+           6,10,15,21,6,10,15,21,6,10,15,21,6,10,15,21];
+  var K = [];
+  for (i = 0; i < 64; i++) K[i] = Math.floor(Math.abs(Math.sin(i + 1)) * 4294967296);
+
+  var a0 = 0x67452301, b0 = 0xEFCDAB89, c0 = 0x98BADCFE, d0 = 0x10325476;
+  var M = new Array(16);
+  function rotl(x, n) { return (x << n) | (x >>> (32 - n)); }
+
+  for (var off = 0; off < bytes.length; off += 64) {
+    for (i = 0; i < 16; i++) {
+      M[i] = bytes[off + i * 4] | (bytes[off + i * 4 + 1] << 8) | (bytes[off + i * 4 + 2] << 16) | (bytes[off + i * 4 + 3] << 24);
+    }
+    var A = a0, B = b0, C = c0, D = d0, F, g;
+    for (i = 0; i < 64; i++) {
+      if (i < 16) { F = (B & C) | ((~B) & D); g = i; }
+      else if (i < 32) { F = (D & B) | ((~D) & C); g = (5 * i + 1) % 16; }
+      else if (i < 48) { F = B ^ C ^ D; g = (3 * i + 5) % 16; }
+      else { F = C ^ (B | (~D)); g = (7 * i) % 16; }
+      F = (F + A + K[i] + M[g]) | 0;
+      A = D; D = C; C = B;
+      B = (B + rotl(F, S[i])) | 0;
+    }
+    a0 = (a0 + A) | 0; b0 = (b0 + B) | 0; c0 = (c0 + C) | 0; d0 = (d0 + D) | 0;
+  }
+  function hex(n) {
+    var s = "";
+    for (var k = 0; k < 4; k++) s += ("0" + ((n >>> (k * 8)) & 0xFF).toString(16)).slice(-2);
+    return s;
+  }
+  return (hex(a0) + hex(b0) + hex(c0) + hex(d0)).toLowerCase();
+}
+
+function jpSha1(str) {
+  var bytes = [], i, c;
+  for (i = 0; i < str.length; i++) {
+    c = str.charCodeAt(i);
+    if (c < 0x80) bytes.push(c);
+    else if (c < 0x800) bytes.push(0xC0 | (c >> 6), 0x80 | (c & 0x3F));
+    else if (c < 0xD800 || c >= 0xE000) bytes.push(0xE0 | (c >> 12), 0x80 | ((c >> 6) & 0x3F), 0x80 | (c & 0x3F));
+    else {
+      i++;
+      c = 0x10000 + (((c & 0x3FF) << 10) | (str.charCodeAt(i) & 0x3FF));
+      bytes.push(0xF0 | (c >> 18), 0x80 | ((c >> 12) & 0x3F), 0x80 | ((c >> 6) & 0x3F), 0x80 | (c & 0x3F));
+    }
+  }
+  var bitLen = bytes.length * 8;
+  bytes.push(0x80);
+  while (bytes.length % 64 !== 56) bytes.push(0);
+  var hi = Math.floor(bitLen / 4294967296), lo = bitLen >>> 0;
+  bytes.push((hi >>> 24) & 0xFF, (hi >>> 16) & 0xFF, (hi >>> 8) & 0xFF, hi & 0xFF);
+  bytes.push((lo >>> 24) & 0xFF, (lo >>> 16) & 0xFF, (lo >>> 8) & 0xFF, lo & 0xFF);
+
+  var h0 = 0x67452301, h1 = 0xEFCDAB89, h2 = 0x98BADCFE, h3 = 0x10325476, h4 = 0xC3D2E1F0;
+  var w = new Array(80), j, a, b, d, e, f, k, temp;
+  function rotl(n, s) { return (n << s) | (n >>> (32 - s)); }
+  for (i = 0; i < bytes.length; i += 64) {
+    for (j = 0; j < 16; j++) {
+      w[j] = (bytes[i + j * 4] << 24) | (bytes[i + j * 4 + 1] << 16) | (bytes[i + j * 4 + 2] << 8) | bytes[i + j * 4 + 3];
+    }
+    for (j = 16; j < 80; j++) w[j] = rotl(w[j - 3] ^ w[j - 8] ^ w[j - 14] ^ w[j - 16], 1);
+    a = h0; b = h1; c = h2; d = h3; e = h4;
+    for (j = 0; j < 80; j++) {
+      if (j < 20) { f = (b & c) | ((~b) & d); k = 0x5A827999; }
+      else if (j < 40) { f = b ^ c ^ d; k = 0x6ED9EBA1; }
+      else if (j < 60) { f = (b & c) | (b & d) | (c & d); k = 0x8F1BBCDC; }
+      else { f = b ^ c ^ d; k = 0xCA62C1D6; }
+      temp = (rotl(a, 5) + f + e + k + w[j]) >>> 0;
+      e = d; d = c; c = rotl(b, 30); b = a; a = temp;
+    }
+    h0 = (h0 + a) >>> 0; h1 = (h1 + b) >>> 0; h2 = (h2 + c) >>> 0;
+    h3 = (h3 + d) >>> 0; h4 = (h4 + e) >>> 0;
+  }
+  function hex(n) { return ("00000000" + n.toString(16)).slice(-8); }
+  return (hex(h0) + hex(h1) + hex(h2) + hex(h3) + hex(h4)).toLowerCase();
+}
+
+// ==================== 请求层 ====================
+// 协议：sign = sha1(md5("按插入顺序拼接的全部查询参数&key=KEY&t=毫秒时间戳"))
+//       参与签名的参数集合必须与 URL 上实际发送的完全一致（含取空值的参数）。
+function jpBuildQuery(p) {
+  var parts = [], k;
+  for (k in p) {
+    if (Object.prototype.hasOwnProperty.call(p, k) && p[k] !== undefined && p[k] !== null) {
+      parts.push(k + "=" + p[k]);
+    }
+  }
+  return parts.join("&");
+}
+
+var jpDeviceId = null;
+function jpGetDeviceId() {
+  if (jpDeviceId) return jpDeviceId;
+  jpDeviceId = "xxxxxxxx-xxxx-4xxx-yxxx-xxxxxxxxxxxx".replace(/[xy]/g, function (ch) {
+    var r = (Math.random() * 16) | 0;
+    return (ch === "x" ? r : ((r & 0x3) | 0x8)).toString(16);
+  });
+  return jpDeviceId;
+}
+
+function jpSignedGet(host, path, params) {
+  params = params || {};
+  var t = String(Date.now());
+  var signedParams = {}, k;
+  for (k in params) if (Object.prototype.hasOwnProperty.call(params, k)) signedParams[k] = params[k];
+  signedParams.key = JP_SIGN_KEY;
+  signedParams.t = t;
+  var sign = jpSha1(jpMd5(jpBuildQuery(signedParams)));
+  var qs = jpBuildQuery(params);
+  var url = host + path + (qs ? "?" + qs : "");
+  return Widget.http.get(url, {
+    headers: {
+      "sign": sign,
+      "t": t,
+      "deviceid": jpGetDeviceId(),
+      "User-Agent": JP_UA,
+      "Accept": "application/json, text/plain, */*",
+      "Referer": host + "/"
+    }
+  }).then(function (res) {
+    var data = res && res.data !== undefined ? res.data : res;
+    if (typeof data === "string") { try { data = JSON.parse(data); } catch (e) { return null; } }
+    if (!data || data.code !== 200) {
+      console.error("[金牌影院] 接口异常 " + path + " code=" + (data && data.code) + " " + (data && data.msg));
+      return null;
+    }
+    return data;
+  }).catch(function (e) {
+    console.error("[金牌影院] 请求失败 " + path + ": " + (e && e.message));
+    return null;
+  });
+}
+
+function jpNormalizeHost(host) {
+  var h = (host || JP_DEFAULT_HOST).trim();
+  if (!/^https?:\/\//i.test(h)) h = "https://" + h;
+  return h.replace(/\/+$/, "");
+}
+
+// ==================== 数据映射 ====================
+var JP_CATEGORY = { "0": 1, "1": 2, "2": 3, "3": 4, "4": 88 };   // 电影/电视剧/综艺/动漫/短剧
+var JP_SORT = { hot: "1", update: "2", heat: "3", score: "4" };    // 综合 / 最近更新 / 人气 / 评分
+
+function jpMapItem(it, host) {
+  var pic = it.vodPic || "";
+  var parts = [];
+  if (it.vodPubdate) parts.push(String(it.vodPubdate).slice(0, 4));
+  if (it.vodClass) parts.push(it.vodClass);
+  if (it.vodRemarks) parts.push(it.vodRemarks);
+  return {
+    id: "jp_" + it.vodId,
+    type: "url",
+    title: it.vodName,
+    posterPath: pic,
+    backdropPath: it.vodPicSlide || pic,
+    releaseDate: String(it.vodPubdate || ""),
+    description: parts.join(" · "),
+    genreTitle: it.vodClass || "",
+    rating: it.vodScore || 0,
+    link: "jp://detail?id=" + it.vodId + "&host=" + encodeURIComponent(host)
+  };
+}
+
+// ==================== 分类列表 ====================
+function jpFetchList(params) {
+  var host = jpNormalizeHost(params["金牌_host"]);
+  var catId = JP_CATEGORY[String(params["金牌_section"] || "0")] || JP_CATEGORY["0"];
+  var page = parseInt(params["金牌_page"], 10) || 1;
+  return jpSignedGet(host, "/api/mw-movie/anonymous/video/list", {
+    area: params["金牌_area"] || "",
+    filterStatus: "1",
+    lang: "",
+    pageNum: String(page),
+    pageSize: String(JP_PAGE_SIZE),
+    sort: JP_SORT[params["金牌_sort_by"] || "hot"] || "1",
+    sortBy: "1",
+    type: "",
+    type1: String(catId),
+    v_class: "",
+    year: params["金牌_year"] || ""
+  }).then(function (res) {
+    var list = (res && res.data && res.data.list) || [];
+    var items = [];
+    for (var i = 0; i < list.length; i++) items.push(jpMapItem(list[i], host));
+    if (!items.length && page <= 1) {
+      return [{ id: "empty", type: "text", title: "暂无数据，请检查网络或接口地址" }];
+    }
+    return items;
+  });
+}
+
+// ==================== 详情与播放 ====================
+// ⚠️ 该站没有「一次取回全部集数地址」的接口：episodeList 只给 nid，
+//    每集播放地址都要带 nid 单独请求一次。故固定并发拉取，个别失败不影响整体；
+//    集数越多耗时越长（按 App 端约 3.4 请求/秒估算，160 集约需 45 秒）。
+function jpFetchEpisodeUrls(host, vodId, eps) {
+  var out = new Array(eps.length);
+  for (var z = 0; z < out.length; z++) out[z] = null;
+  var cursor = 0;
+  function worker() {
+    var i = cursor++;
+    if (i >= eps.length) return Promise.resolve();
+    return jpSignedGet(host, "/api/mw-movie/anonymous/v2/video/episode/url", {
+      clientType: "1", id: String(vodId), nid: String(eps[i].nid)
+    }).then(function (res) {
+      var list = (res && res.data && res.data.list) || [];
+      var best = null;
+      for (var k = 0; k < list.length; k++) {
+        if (!list[k].url) continue;
+        if (!best || (list[k].resolution || 0) > (best.resolution || 0)) best = list[k];
+      }
+      out[i] = best ? best.url : null;
+    }).catch(function () { out[i] = null; }).then(worker);
+  }
+  var chain = Promise.resolve();
+  var n = Math.min(JP_EP_CONCURRENCY, eps.length);
+  for (var w = 0; w < n; w++) chain = chain.then(worker);
+  return chain.then(function () { return out; });
+}
+
+function jpLoadDetail(params) {
+  var link = "";
+  if (typeof params === "string") link = params;
+  else if (params && typeof params === "object") link = params.id || params.link || "";
+  if (!link || String(link).indexOf("jp://detail") !== 0) return Promise.resolve(null);
+
+  var idMatch = String(link).match(/[?&]id=(\d+)/);
+  if (!idMatch) return Promise.resolve(null);
+  var vodId = idMatch[1];
+  var hostMatch = String(link).match(/[?&]host=([^&]+)/);
+  var host = hostMatch ? jpNormalizeHost(decodeURIComponent(hostMatch[1])) : JP_DEFAULT_HOST;
+
+  return jpSignedGet(host, "/api/mw-movie/anonymous/video/detail", { id: vodId }).then(function (res) {
+    var d = res && res.data;
+    if (!d) throw new Error("获取影片详情失败");
+    var eps = d.episodeList || [];
+    if (!eps.length) throw new Error("该影片暂无可播放剧集");
+    return jpFetchEpisodeUrls(host, vodId, eps).then(function (urls) {
+      var isMovie = String(d.typeId1) === "1" || eps.length === 1;
+      var episodeItems = [];
+      for (var i = 0; i < eps.length; i++) {
+        if (!urls[i]) continue;
+        episodeItems.push({
+          id: vodId + "_" + i,
+          type: "url",
+          title: isMovie ? d.vodName : (d.vodName + " 第" + (eps[i].name || (i + 1)) + "集"),
+          videoUrl: urls[i],
+          mediaType: "episode"
+        });
+      }
+      if (!episodeItems.length) throw new Error("未获取到可播放地址");
+      var mediaType = "tv", videoUrl = null;
+      if (isMovie) { mediaType = "movie"; videoUrl = episodeItems[0].videoUrl; episodeItems = []; }
+      return {
+        id: "jp_" + vodId,
+        type: "url",
+        title: d.vodName,
+        description: d.vodContent ? String(d.vodContent).replace(/<[^>]*>/g, "").replace(/&nbsp;/g, " ").replace(/\r\n/g, "\n").trim() : "",
+        posterPath: d.vodPic || "",
+        backdropPath: d.vodPicSlide || d.vodPic || "",
+        mediaType: mediaType,
+        episode: episodeItems.length,
+        episodeItems: episodeItems,
+        videoUrl: videoUrl
+      };
+    });
+  });
+}
+
+__vod_group_sources.push({handlers:{"scheme":"jp","jpList":(typeof jpFetchList==="function"?jpFetchList:null),"loadDetail":(typeof jpLoadDetail==="function"?jpLoadDetail:null)}});})();
+// 金牌影院：按 handler 名字查找，不依赖 push 顺序（避免新增数据源时索引错位）
+async function __vod_group_金牌(params = {}) {
+    for (const s of __vod_group_sources) {
+        const h = s && s.handlers;
+        if (h && typeof h["jpList"] === "function") return await h["jpList"](params);
+    }
+    return [];
+}
 async function __vod_group_榜单(params = {}) { if(String(params["榜单_section"]||"0")==="0") { const f=__vod_group_sources[0].handlers["getNetflixNew"]; return f ? await f({}) : []; } if(String(params["榜单_section"]||"0")==="1") { const f=__vod_group_sources[0].handlers["getDisneyNew"]; return f ? await f({}) : []; } if(String(params["榜单_section"]||"0")==="2") { const f=__vod_group_sources[0].handlers["getAppleTvNew"]; return f ? await f({}) : []; } if(String(params["榜单_section"]||"0")==="3") { const f=__vod_group_sources[0].handlers["getHboNew"]; return f ? await f({}) : []; } if(String(params["榜单_section"]||"0")==="4") { const f=__vod_group_sources[0].handlers["getPrimeVideoNew"]; return f ? await f({}) : []; } if(String(params["榜单_section"]||"0")==="5") { const f=__vod_group_sources[0].handlers["getWeeklyDomesticDrama"]; return f ? await f({}) : []; } if(String(params["榜单_section"]||"0")==="6") { const f=__vod_group_sources[0].handlers["getWeeklyUSDrama"]; return f ? await f({}) : []; } if(String(params["榜单_section"]||"0")==="7") { const f=__vod_group_sources[0].handlers["getWeeklyAnime"]; return f ? await f({}) : []; } if(String(params["榜单_section"]||"0")==="8") { const f=__vod_group_sources[0].handlers["getWeeklyMovie"]; return f ? await f({}) : []; } if(String(params["榜单_section"]||"0")==="9") { const f=__vod_group_sources[0].handlers["getWeeklyKDrama"]; return f ? await f({}) : []; } if(String(params["榜单_section"]||"0")==="10") { const f=__vod_group_sources[0].handlers["getWeeklyUKDrama"]; return f ? await f({}) : []; } if(String(params["榜单_section"]||"0")==="11") { const f=__vod_group_sources[0].handlers["getWeeklyJDrama"]; return f ? await f({}) : []; } if(String(params["榜单_section"]||"0")==="12") { const f=__vod_group_sources[0].handlers["getWeeklyThaiDrama"]; return f ? await f({}) : []; } if(String(params["榜单_section"]||"0")==="13") { const f=__vod_group_sources[0].handlers["getWeeklyVariety"]; return f ? await f({}) : []; } if(String(params["榜单_section"]||"0")==="14") { const f=__vod_group_sources[0].handlers["getWeeklyDocumentary"]; return f ? await f({}) : []; } return []; }
 async function __vod_group_豆瓣(params = {}) { if(String(params["豆瓣_section"]||"0")==="0") { const f=__vod_group_sources[1].handlers["list"]; return f ? await f({"list": params["豆瓣_m0_list"],"url": params["豆瓣_m0_url"],"page": params["豆瓣_m0_page"]}) : []; } if(String(params["豆瓣_section"]||"0")==="1") { const f=__vod_group_sources[1].handlers["listComingSoon"]; return f ? await f({"page": params["豆瓣_m1_page"]}) : []; } return []; }
 async function __vod_group_欧乐(params = {}) {
@@ -8904,12 +9226,37 @@ async function __vod_group_欧乐(params = {}) {
 async function __vod_group_骨朵(params = {}) {
     return await loadGuduoRank({ guduo_category: params["骨朵_category"] || "剧集" });
 }
-async function loadDetail(link){for(const s of __vod_group_sources){if(typeof s.handlers.loadDetail==="function"){try{const r=await s.handlers.loadDetail(link);if(r)return r}catch(_){}}}return null;}
+// 详情路由：带自有 scheme 的链接只交给声明了该 scheme 的数据源；没有归属者时
+// 按原顺序兜底（欧乐的数据源对无法识别的 link 会返回占位「播放」项，故归属方
+// 必须优先，且归属方失败时必须返回空而不是让别的数据源伪造结果）。
+async function loadDetail(link){
+  const s = String(link || "");
+  const m = s.match(/^([a-z]+):\/\//);
+  let order = [];
+  if (m) {
+    for (let i = 0; i < __vod_group_sources.length; i++) {
+      const h = __vod_group_sources[i] && __vod_group_sources[i].handlers;
+      if (h && h.scheme === m[1]) order.push(i);
+    }
+    if (!order.length) order = null;   // 无归属者 → 走通用顺序
+  }
+  if (!order) {
+    order = [];
+    for (let i = 0; i < __vod_group_sources.length; i++) order.push(i);
+  }
+  for (const i of order) {
+    const h = __vod_group_sources[i] && __vod_group_sources[i].handlers;
+    if (!h || typeof h.loadDetail !== "function") continue;
+    try { const r = await h.loadDetail(link); if (r) return r; } catch (_) {}
+  }
+  return null;
+}
 
  return {
 "__vod_group_榜单": (typeof __vod_group_榜单 === "function" ? __vod_group_榜单 : null),
 "__vod_group_豆瓣": (typeof __vod_group_豆瓣 === "function" ? __vod_group_豆瓣 : null),
 "__vod_group_欧乐": (typeof __vod_group_欧乐 === "function" ? __vod_group_欧乐 : null),
+"__vod_group_金牌": (typeof __vod_group_金牌 === "function" ? __vod_group_金牌 : null),
 "__vod_group_骨朵": (typeof __vod_group_骨朵 === "function" ? __vod_group_骨朵 : null),
 "loadResource": async function(params = {}) {
   const resources = [];
@@ -8958,6 +9305,8 @@ async function loadVodHubMerged(params = {}) {
  switch (key) {
   case "榜单": group = "__vod_group_榜单"; secParam = "榜单_section"; secValue = params["榜单_section"] || "0"; break;
   case "欧乐": group = "__vod_group_欧乐"; secParam = "欧乐_section"; secValue = (oleSec !== null ? oleSec : (params["欧乐_section"] || "0")); break;
+  // 金牌影院自己读取 金牌_section 等参数，无需外层注入分类
+  case "金牌": group = "__vod_group_金牌"; break;
   case "骨朵": group = "__vod_group_骨朵"; break;
   // 已下线的入口（豆瓣片单 / 豆瓣即将上映 / 欧乐影视·搜索）：
   // 旧存档值命中时回落到首个入口，避免出现空白页
