@@ -5956,16 +5956,54 @@ const THEATER_DATA_URLS = [
 // 平台剧场：读取 qiguo093/Forward-Widget 自己生成的纯 TMDB 数据。
 const OWN_PLATFORM_THEATER = {
   emptyTips: [{ id: "empty", type: "text", title: "加载失败", description: "请检查网络连接" }],
+  // 数据源镜像链：raw.githubusercontent 国内网络经常连不上，按顺序降级尝试。
+  mirrors(filename) {
+    const repo = "qiguo093/Forward-Widget";
+    const raw = `https://raw.githubusercontent.com/${repo}/main/data/${filename}`;
+    const gh = `gh/${repo}@main/data/${filename}`;
+    return [
+      raw,
+      `https://gcore.jsdelivr.net/${gh}`,
+      `https://fastly.jsdelivr.net/${gh}`,
+      `https://raw.githack.com/${repo}/main/data/${filename}`,
+      `https://ghfast.top/${raw}`,
+      `https://gh-proxy.com/${raw}`
+    ];
+  },
   async fetch(filename) {
-    const url = `https://raw.githubusercontent.com/qiguo093/Forward-Widget/main/data/${filename}`;
-    try {
-      const resp = await Widget.http.get(url, { decodable: true });
-      if (!resp?.data) return this.emptyTips;
-      return typeof resp.data === "string" ? JSON.parse(resp.data) : resp.data;
-    } catch (e) {
-      console.error(`[CopiedPlatformTheater] ${url}: ${e.message}`);
-      return this.emptyTips;
+    let lastErr = null;
+    for (const url of this.mirrors(filename)) {
+      try {
+        const resp = await this.httpGet(url);
+        const raw = resp && resp.data !== undefined ? resp.data : resp;
+        if (!raw) throw new Error("空响应");
+        const data = typeof raw === "string" ? JSON.parse(raw) : raw;
+        if (!data || typeof data !== "object") throw new Error("数据格式异常");
+        return data;
+      } catch (e) {
+        lastErr = e;
+        console.error(`[CopiedPlatformTheater] 数据源失败 ${url}: ${e.message}`);
+      }
     }
+    console.error(`[CopiedPlatformTheater] 全部数据源失败: ${lastErr && lastErr.message}`);
+    return this.emptyTips;
+  },
+  // 优先要求桥接层解码 JSON；旧版本不接受 options 时降级为单参数调用。
+  // 能力只探测一次并缓存，避免每个镜像都白探两遍（网络故障时省一半等待）。
+  decodableSupported: null,
+  async httpGet(url) {
+    if (this.decodableSupported !== false) {
+      try {
+        const resp = await Widget.http.get(url, { decodable: true });
+        this.decodableSupported = true;
+        return resp;
+      } catch (e) {
+        // 已确认支持 options → 这是网络/HTTP 错误，直接抛给上层换镜像
+        if (this.decodableSupported === true) throw e;
+        this.decodableSupported = false;
+      }
+    }
+    return await Widget.http.get(url);
   },
   sortList(list, sortType) {
     if (!Array.isArray(list) || !list.length || !sortType || sortType === "default") return list || [];
