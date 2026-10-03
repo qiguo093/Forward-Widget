@@ -2980,12 +2980,13 @@ var WidgetMetadata = {
                 {"name":"欧乐_section","title":"功能分类","type":"enumeration","value":"0","enumOptions":[{"title":"电影","value":"0"},{"title":"剧集","value":"1"},{"title":"综艺","value":"2"},{"title":"动漫","value":"3"},{"title":"短剧","value":"4"}],"belongTo":{"paramName":"vod_list","value":["欧乐"]}},
                 {"name":"欧乐_area","title":"地区","type":"enumeration","value":"0","enumOptions":[{"title":"全部","value":"0"},{"title":"大陆","value":"大陆"},{"title":"香港","value":"香港"},{"title":"台湾","value":"台湾"},{"title":"美国","value":"美国"},{"title":"日本","value":"日本"},{"title":"韩国","value":"韩国"},{"title":"英国","value":"英国"},{"title":"法国","value":"法国"},{"title":"德国","value":"德国"},{"title":"西班牙","value":"西班牙"},{"title":"泰国","value":"泰国"},{"title":"印度","value":"印度"}],"belongTo":{"paramName":"vod_list","value":["欧乐"]}},
                 {"name":"欧乐_sort_by","title":"榜单类型","type":"enumeration","value":"hot","enumOptions":[{"title":"热门榜","value":"hot"},{"title":"高分榜","value":"score"},{"title":"最新","value":"update"},{"title":"最近添加","value":"desc"}],"belongTo":{"paramName":"vod_list","value":["欧乐"]}},
+                {"name":"欧乐_count","title":"每页数量","type":"enumeration","value":"48","enumOptions":[{"title":"48 条","value":"48"},{"title":"96 条","value":"96"},{"title":"144 条","value":"144"},{"title":"192 条","value":"192"}],"belongTo":{"paramName":"vod_list","value":["欧乐"]}},
                 {"name":"欧乐_page","title":"页码","type":"page","startPage":1,"belongTo":{"paramName":"vod_list","value":["欧乐"]}},
                 {"name":"金牌_section","title":"功能分类","type":"enumeration","value":"0","enumOptions":[{"title":"电影","value":"0"},{"title":"电视剧","value":"1"},{"title":"综艺","value":"2"},{"title":"动漫","value":"3"},{"title":"短剧","value":"4"}],"belongTo":{"paramName":"vod_list","value":["金牌"]}},
                 {"name":"金牌_area","title":"地区","type":"enumeration","value":"","enumOptions":[{"title":"全部","value":""},{"title":"中国大陆","value":"中国大陆"},{"title":"中国香港","value":"中国香港"},{"title":"中国台湾","value":"中国台湾"},{"title":"美国","value":"美国"},{"title":"日本","value":"日本"},{"title":"韩国","value":"韩国"},{"title":"泰国","value":"泰国"},{"title":"英国","value":"英国"},{"title":"法国","value":"法国"},{"title":"其他","value":"其他"}],"belongTo":{"paramName":"vod_list","value":["金牌"]}},
                 {"name":"金牌_year","title":"年份","type":"enumeration","value":"","enumOptions":[{"title":"全部","value":""},{"title":"2026","value":"2026"},{"title":"2025","value":"2025"},{"title":"2024","value":"2024"},{"title":"2023","value":"2023"},{"title":"2022","value":"2022"},{"title":"2021","value":"2021"},{"title":"2020","value":"2020"}],"belongTo":{"paramName":"vod_list","value":["金牌"]}},
                 {"name":"金牌_sort_by","title":"排序方式","type":"enumeration","value":"hot","enumOptions":[{"title":"综合","value":"hot"},{"title":"最近更新","value":"update"},{"title":"人气高低","value":"heat"},{"title":"评分高低","value":"score"}],"belongTo":{"paramName":"vod_list","value":["金牌"]}},
-                {"name":"金牌_count","title":"每页数量","type":"enumeration","value":"30","enumOptions":[{"title":"30 条","value":"30"},{"title":"60 条","value":"60"},{"title":"90 条","value":"90"},{"title":"120 条","value":"120"},{"title":"200 条","value":"200"}],"belongTo":{"paramName":"vod_list","value":["金牌"]}},
+                {"name":"金牌_count","title":"每页数量","type":"enumeration","value":"30","enumOptions":[{"title":"30 条","value":"30"},{"title":"60 条","value":"60"},{"title":"90 条","value":"90"},{"title":"120 条","value":"120"},{"title":"200 条","value":"200"},{"title":"300 条","value":"300"},{"title":"500 条","value":"500"}],"belongTo":{"paramName":"vod_list","value":["金牌"]}},
                 {"name":"金牌_page","title":"页码","type":"page","startPage":1,"belongTo":{"paramName":"vod_list","value":["金牌"]}},
                 {"name":"金牌_host","title":"接口地址","type":"input","value":"https://www.jiabaide.cn","belongTo":{"paramName":"vod_list","value":["金牌"]}},
                 {"name":"骨朵_category","title":"榜单分类","type":"enumeration","value":"剧集","enumOptions":[{"title":"陆剧","value":"剧集"},{"title":"国漫","value":"动漫"},{"title":"综艺","value":"综艺"},{"title":"电影","value":"电影"}],"belongTo":{"paramName":"vod_list","value":["骨朵"]}},
@@ -8799,11 +8800,45 @@ function fetchCategoryList(apiHost, cateId, area, sortBy, page) {
   }).catch(function(e) { logError("获取分类列表失败", e); return []; });
 }
 
-function loadMovieList(params) { var apiHost = (params && params.ApiHost) ? params.ApiHost : DEFAULT_API_HOST; apiHost = apiHost.replace(/\/$/, ""); var area = (params && params.area) ? params.area : "0"; var sortBy = (params && params.sort_by) ? params.sort_by : "hot"; var page = (params && params.page) ? parseInt(params.page) : 1; var sortValue = SORT_MAP[sortBy] || "hot"; return fetchCategoryList(apiHost, CATEGORY_ID.movie, area, sortValue, page).then(function(items) { if (items.length === 0 && page === 1) return [{ id: "empty", type: "text", title: "暂无数据，请检查网络或API地址" }]; return items; }); }
-function loadTvList(params) { var apiHost = (params && params.ApiHost) ? params.ApiHost : DEFAULT_API_HOST; apiHost = apiHost.replace(/\/$/, ""); var area = (params && params.area) ? params.area : "0"; var sortBy = (params && params.sort_by) ? params.sort_by : "hot"; var page = (params && params.page) ? parseInt(params.page) : 1; var sortValue = SORT_MAP[sortBy] || "hot"; return fetchCategoryList(apiHost, CATEGORY_ID.tv, area, sortValue, page).then(function(items) { if (items.length === 0 && page === 1) return [{ id: "empty", type: "text", title: "暂无数据，请检查网络或API地址" }]; return items; }); }
-function loadVarietyList(params) { var apiHost = (params && params.ApiHost) ? params.ApiHost : DEFAULT_API_HOST; apiHost = apiHost.replace(/\/$/, ""); var area = (params && params.area) ? params.area : "0"; var sortBy = (params && params.sort_by) ? params.sort_by : "hot"; var page = (params && params.page) ? parseInt(params.page) : 1; var sortValue = SORT_MAP[sortBy] || "hot"; return fetchCategoryList(apiHost, CATEGORY_ID.variety, area, sortValue, page).then(function(items) { if (items.length === 0 && page === 1) return [{ id: "empty", type: "text", title: "暂无数据，请检查网络或API地址" }]; return items; }); }
-function loadAnimeList(params) { var apiHost = (params && params.ApiHost) ? params.ApiHost : DEFAULT_API_HOST; apiHost = apiHost.replace(/\/$/, ""); var area = (params && params.area) ? params.area : "0"; var sortBy = (params && params.sort_by) ? params.sort_by : "hot"; var page = (params && params.page) ? parseInt(params.page) : 1; var sortValue = SORT_MAP[sortBy] || "hot"; return fetchCategoryList(apiHost, CATEGORY_ID.anime, area, sortValue, page).then(function(items) { if (items.length === 0 && page === 1) return [{ id: "empty", type: "text", title: "暂无数据，请检查网络或API地址" }]; return items; }); }
-function loadShortList(params) { var apiHost = (params && params.ApiHost) ? params.ApiHost : DEFAULT_API_HOST; apiHost = apiHost.replace(/\/$/, ""); var area = (params && params.area) ? params.area : "0"; var sortBy = (params && params.sort_by) ? params.sort_by : "hot"; var page = (params && params.page) ? parseInt(params.page) : 1; var sortValue = SORT_MAP[sortBy] || "hot"; return fetchCategoryList(apiHost, CATEGORY_ID.short, area, sortValue, page).then(function(items) { if (items.length === 0 && page === 1) return [{ id: "empty", type: "text", title: "暂无数据，请检查网络或API地址" }]; return items; }); }
+// 欧乐上游每页固定 48 条。把「每页数量」换算成需要抓取的上游页并合并，
+// 这样用户把数量调大后，一屏就能滑很久（翻页用 offset 对齐，避免重复）。
+var OLE_PAGE_SIZE = 48;
+function oleFetchPaged(params, cateId) {
+  var apiHost = (params && params.ApiHost) ? params.ApiHost : DEFAULT_API_HOST;
+  apiHost = apiHost.replace(/\/$/, "");
+  var area = (params && params.area) ? params.area : "0";
+  var sortBy = (params && params.sort_by) ? params.sort_by : "hot";
+  var sortValue = SORT_MAP[sortBy] || "hot";
+  var page = parseInt(params && params.page, 10) || 1;
+  var count = parseInt(params && params.count, 10) || OLE_PAGE_SIZE;
+  if (count < OLE_PAGE_SIZE) count = OLE_PAGE_SIZE;
+
+  var startIdx = (page - 1) * count;
+  var firstUp = Math.floor(startIdx / OLE_PAGE_SIZE) + 1;
+  var lastUp = Math.floor((startIdx + count - 1) / OLE_PAGE_SIZE) + 1;
+  lastUp = Math.min(lastUp, firstUp + 19);   // 安全上限，避免一次抓过多
+
+  var tasks = [];
+  for (var p = firstUp; p <= lastUp; p++) {
+    tasks.push(fetchCategoryList(apiHost, cateId, area, sortValue, p));
+  }
+  return Promise.all(tasks).then(function (pages) {
+    var merged = [];
+    for (var i = 0; i < pages.length; i++) merged = merged.concat(pages[i] || []);
+    var offset = startIdx % OLE_PAGE_SIZE;
+    var items = merged.slice(offset, offset + count);
+    if (!items.length && page <= 1) {
+      return [{ id: "empty", type: "text", title: "暂无数据，请检查网络或API地址" }];
+    }
+    return items;
+  });
+}
+
+function loadMovieList(params) { return oleFetchPaged(params, CATEGORY_ID.movie); }
+function loadTvList(params) { return oleFetchPaged(params, CATEGORY_ID.tv); }
+function loadVarietyList(params) { return oleFetchPaged(params, CATEGORY_ID.variety); }
+function loadAnimeList(params) { return oleFetchPaged(params, CATEGORY_ID.anime); }
+function loadShortList(params) { return oleFetchPaged(params, CATEGORY_ID.short); }
 
 // ==================== 统一的详情加载入口（修复集数显示） ====================
 async function loadDetail(params) {
@@ -9328,7 +9363,7 @@ async function __vod_group_欧乐(params = {}) {
         return f ? await f({ "wd": params["欧乐_wd"], "pg": params["欧乐_pg"] }) : [];
     }
     const f = ol[FN[sec] || "loadMovieList"];
-    return f ? await f({ "area": params["欧乐_area"], "sort_by": params["欧乐_sort_by"], "page": params["欧乐_page"] }) : [];
+    return f ? await f({ "area": params["欧乐_area"], "sort_by": params["欧乐_sort_by"], "page": params["欧乐_page"], "count": params["欧乐_count"] }) : [];
 }
 async function __vod_group_骨朵(params = {}) {
     return await loadGuduoRank({ guduo_category: params["骨朵_category"] || "剧集" });
